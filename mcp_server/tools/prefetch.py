@@ -1,4 +1,4 @@
-"""
+r"""
 parse_prefetch() — MCP tool wrapping Eric Zimmerman's PECmd.dll
 
 Prefetch files (.pf) in C:\Windows\Prefetch\ record every program that ran
