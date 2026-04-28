@@ -12,6 +12,7 @@ Tool paths verified on Protocol SIFT (WSL2 Ubuntu 22.04), April 28 2026.
 
 from fastmcp import FastMCP
 from mcp_server.tools.amcache import parse_amcache
+from mcp_server.tools.prefetch import parse_prefetch
 
 # ── Verified tool paths ──────────────────────────────────────────────────────
 VOL        = "/usr/local/bin/vol"          # symlink → /opt/volatility3/bin/vol
@@ -47,6 +48,7 @@ Rules:
 
 # ── Register tools ────────────────────────────────────────────────────────────
 mcp.tool()(parse_amcache)
+mcp.tool()(parse_prefetch)
 
 if __name__ == "__main__":
     mcp.run()
