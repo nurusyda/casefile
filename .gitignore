@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+venv/
+.venv/
+find-evil-venv/
+casefile-venv/
+
+# Tests
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Audit logs — may contain real evidence paths, never commit
+audit/mcp.jsonl
+audit/*.jsonl
+
+# Evidence — never commit case data
+cases/
+/mnt/
+*.E01
+*.img
+*.vmem
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
