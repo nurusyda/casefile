@@ -11,7 +11,7 @@ import json
 import sys
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 import pytest
 
@@ -195,185 +195,201 @@ class TestSafeInt:
 # ── parse_prefetch integration (mocked subprocess) ───────────────────────────
 
 class TestParsePrefetchIntegration:
-    def _write_csv(self, out_dir: Path, prefix: str, content: str) -> None:
-        out_dir.mkdir(parents=True, exist_ok=True)
-        (out_dir / f"{prefix}_PECmd_Output.csv").write_text(content, encoding="utf-8")
+    """Integration tests — mocks _parse_pf_file instead of run_tool."""
 
-    @patch("mcp_server.tools.prefetch.run_tool")
-    def test_successful_parse_directory(self, mock_run, tmp_path):
+    CLEAN_ENTRIES = [
+        {
+            "executable_name": "notepad.exe",
+            "full_path": "C:\\Windows\\System32\\notepad.exe",
+            "source_file": "NOTEPAD.EXE-AB12CD34.pf",
+            "run_count": 5,
+            "last_run_utc": "2024-03-01T09:00:00Z",
+            "previous_run_times": ["2024-02-28T08:00:00Z"],
+            "files_loaded": ["C:\\WINDOWS\\SYSTEM32\\NOTEPAD.EXE",
+                             "C:\\WINDOWS\\SYSTEM32\\NTDLL.DLL"],
+            "files_loaded_count": 2,
+            "directories_referenced": ["C:\\WINDOWS\\SYSTEM32"],
+            "volume_name": "\\DEVICE\\HARDDISKVOLUME2",
+            "volume_serial": "ABCD1234",
+            "volume_created": "2023-01-01T00:00:00Z",
+        },
+        {
+            "executable_name": "explorer.exe",
+            "full_path": "C:\\Windows\\explorer.exe",
+            "source_file": "EXPLORER.EXE-DE34EF56.pf",
+            "run_count": 120,
+            "last_run_utc": "2024-03-01T10:00:00Z",
+            "previous_run_times": [],
+            "files_loaded": ["C:\\WINDOWS\\EXPLORER.EXE"],
+            "files_loaded_count": 1,
+            "directories_referenced": ["C:\\WINDOWS"],
+            "volume_name": "\\DEVICE\\HARDDISKVOLUME2",
+            "volume_serial": "ABCD1234",
+            "volume_created": "2023-01-01T00:00:00Z",
+        },
+    ]
+
+    SUSPICIOUS_ENTRY = {
+        "executable_name": "STUN.exe",
+        "full_path": "C:\\Users\\Public\\STUN.exe",
+        "source_file": "STUN.EXE-FF001122.pf",
+        "run_count": 3,
+        "last_run_utc": "2024-03-15T14:00:00Z",
+        "previous_run_times": [],
+        "files_loaded": ["C:\\USERS\\PUBLIC\\STUN.EXE",
+                         "C:\\WINDOWS\\TEMP\\DROP.DLL"],
+        "files_loaded_count": 2,
+        "directories_referenced": ["C:\\USERS\\PUBLIC"],
+        "volume_name": "",
+        "volume_serial": "",
+        "volume_created": "",
+    }
+
+    @patch("mcp_server.tools.prefetch._parse_pf_file")
+    def test_successful_parse_directory(self, mock_parse, tmp_path):
         pf_dir = tmp_path / "Prefetch"
         pf_dir.mkdir()
-        out_dir = tmp_path / "prefetch_out"
+        (pf_dir / "NOTEPAD.EXE-AB12CD34.pf").write_bytes(b"fake")
+        (pf_dir / "EXPLORER.EXE-DE34EF56.pf").write_bytes(b"fake")
+        mock_parse.side_effect = list(self.CLEAN_ENTRIES)
 
-        mock_run.return_value = SimpleNamespace(returncode=0, stdout="", stderr="")
-        self._write_csv(out_dir, "prefetch", CLEAN_CSV)
-
-        result = parse_prefetch(str(pf_dir), output_dir=str(out_dir))
+        result = parse_prefetch(str(pf_dir))
 
         assert result["error"] is None
         assert result["total_entries"] == 2
-        assert result["tool"] == "PECmd"
+        assert result["tool"] == "pyscca"
         assert result["invocation_id"]
 
-    @patch("mcp_server.tools.prefetch.run_tool")
-    def test_successful_parse_single_file(self, mock_run, tmp_path):
+    @patch("mcp_server.tools.prefetch._parse_pf_file")
+    def test_successful_parse_single_file(self, mock_parse, tmp_path):
         pf_file = tmp_path / "STUN.EXE-FF001122.pf"
-        pf_file.write_bytes(b"\x00" * 16)  # fake .pf content
-        out_dir = tmp_path / "prefetch_out"
+        pf_file.write_bytes(b"fake")
+        mock_parse.return_value = self.SUSPICIOUS_ENTRY
 
-        mock_run.return_value = SimpleNamespace(returncode=0, stdout="", stderr="")
-        self._write_csv(out_dir, "STUN.EXE-FF001122", SUSPICIOUS_CSV)
-
-        result = parse_prefetch(str(pf_file), output_dir=str(out_dir))
+        result = parse_prefetch(str(pf_file))
 
         assert result["error"] is None
         assert result["total_entries"] > 0
 
-    def test_missing_path_returns_error(self, tmp_path):
-        result = parse_prefetch(str(tmp_path / "nonexistent"))
-        assert result["error"] is not None
-        assert "not found" in result["error"].lower()
-        assert result["entries"] == []
-
-    @patch("mcp_server.tools.prefetch.run_tool")
-    def test_suspicious_entries_populated(self, mock_run, tmp_path):
+    @patch("mcp_server.tools.prefetch._parse_pf_file")
+    def test_suspicious_entries_populated(self, mock_parse, tmp_path):
         pf_dir = tmp_path / "Prefetch"
         pf_dir.mkdir()
-        out_dir = tmp_path / "prefetch_out"
+        (pf_dir / "STUN.EXE-FF001122.pf").write_bytes(b"fake")
+        mock_parse.return_value = self.SUSPICIOUS_ENTRY
 
-        mock_run.return_value = SimpleNamespace(returncode=0, stdout="", stderr="")
-        self._write_csv(out_dir, "prefetch", SUSPICIOUS_CSV)
-
-        result = parse_prefetch(str(pf_dir), output_dir=str(out_dir))
+        result = parse_prefetch(str(pf_dir))
 
         assert len(result["suspicious"]) > 0
         for s in result["suspicious"]:
             assert "suspicion_reasons" in s
             assert len(s["suspicion_reasons"]) > 0
 
-    @patch("mcp_server.tools.prefetch.run_tool")
-    def test_entries_sorted_most_recent_first(self, mock_run, tmp_path):
+    @patch("mcp_server.tools.prefetch._parse_pf_file")
+    def test_entries_sorted_most_recent_first(self, mock_parse, tmp_path):
         pf_dir = tmp_path / "Prefetch"
         pf_dir.mkdir()
-        out_dir = tmp_path / "prefetch_out"
-
-        mock_run.return_value = SimpleNamespace(returncode=0, stdout="", stderr="")
-        self._write_csv(out_dir, "prefetch", CLEAN_CSV)
-
-        result = parse_prefetch(str(pf_dir), output_dir=str(out_dir))
-
-        timestamps = [
-            e["last_run_utc"] for e in result["entries"]
-            if e.get("last_run_utc")
-        ]
-        assert timestamps == sorted(timestamps, reverse=True)
-
-    @patch("mcp_server.tools.prefetch.run_tool")
-    def test_context_window_cap(self, mock_run, tmp_path):
-        pf_dir = tmp_path / "Prefetch"
-        pf_dir.mkdir()
-        out_dir = tmp_path / "prefetch_out"
-
-        mock_run.return_value = SimpleNamespace(returncode=0, stdout="", stderr="")
-
-        header = "ExecutableName,SourceFilePath,SourceFileName,RunCount,LastRun,RunTime1,FilesLoaded,Directories,VolumeName,VolumeSerial,VolumeCreated,Hash,Size\n"
-        rows = "\n".join(
-            f"prog{i}.exe,C:\\Windows\\prog{i}.exe,PROG{i}.EXE-{i:08X}.pf,"
-            f"1,2024-01-01 00:00:00,,C:\\WINDOWS\\PROG{i}.EXE,,\\DEVICE\\HV2,ABCD,2023-01-01,{i:08X},1024"
-            for i in range(600)
-        )
-        self._write_csv(out_dir, "prefetch", header + rows)
-
-        result = parse_prefetch(str(pf_dir), output_dir=str(out_dir), include_all=False)
-
-        assert result["total_entries"] == 600
-        assert result["entries_returned"] <= 500
-        assert result["entries_capped"] is True
-
-    @patch("mcp_server.tools.prefetch.run_tool")
-    def test_include_all_bypasses_cap(self, mock_run, tmp_path):
-        pf_dir = tmp_path / "Prefetch"
-        pf_dir.mkdir()
-        out_dir = tmp_path / "prefetch_out"
-
-        mock_run.return_value = SimpleNamespace(returncode=0, stdout="", stderr="")
-
-        header = "ExecutableName,SourceFilePath,SourceFileName,RunCount,LastRun,RunTime1,FilesLoaded,Directories,VolumeName,VolumeSerial,VolumeCreated,Hash,Size\n"
-        rows = "\n".join(
-            f"prog{i}.exe,C:\\Windows\\prog{i}.exe,PROG{i}.EXE-{i:08X}.pf,"
-            f"1,2024-01-01 00:00:00,,C:\\WINDOWS\\PROG{i}.EXE,,\\DEVICE\\HV2,ABCD,2023-01-01,{i:08X},1024"
-            for i in range(600)
-        )
-        self._write_csv(out_dir, "prefetch", header + rows)
-
-        result = parse_prefetch(str(pf_dir), output_dir=str(out_dir), include_all=True)
-
-        assert result["entries_returned"] == 600
-        assert result["entries_capped"] is False
-
-    @patch("mcp_server.tools.prefetch.run_tool")
-    def test_empty_prefetch_no_error(self, mock_run, tmp_path):
-        """Empty Prefetch folder → no CSV → should return graceful no-error result."""
-        pf_dir = tmp_path / "Prefetch"
-        pf_dir.mkdir()
-        out_dir = tmp_path / "prefetch_out"
-        out_dir.mkdir()
-
-        mock_run.return_value = SimpleNamespace(returncode=0, stdout="", stderr="")
-        # No CSV files written — simulates empty/disabled Prefetch
-
-        result = parse_prefetch(str(pf_dir), output_dir=str(out_dir))
-
-        assert result["error"] is None
-        assert result["total_entries"] == 0
-        assert "disabled" in result["analyst_note"].lower() or \
-               "empty" in result["analyst_note"].lower()
-
-    @patch("mcp_server.tools.prefetch.run_tool")
-    def test_tool_failure_returns_error(self, mock_run, tmp_path):
-        pf_dir = tmp_path / "Prefetch"
-        pf_dir.mkdir()
-
-        mock_run.side_effect = RuntimeError("Tool exited 1.\nSTDERR: Access denied")
+        for e in self.CLEAN_ENTRIES:
+            (pf_dir / e["source_file"]).write_bytes(b"fake")
+        mock_parse.side_effect = list(self.CLEAN_ENTRIES)
 
         result = parse_prefetch(str(pf_dir))
 
-        assert result["error"] is not None
-        assert result["entries"] == []
+        timestamps = [e["last_run_utc"] for e in result["entries"] if e.get("last_run_utc")]
+        assert timestamps == sorted(timestamps, reverse=True)
 
-    @patch("mcp_server.tools.prefetch.run_tool")
-    def test_audit_log_written(self, mock_run, tmp_path):
+    @patch("mcp_server.tools.prefetch._parse_pf_file")
+    def test_context_window_cap(self, mock_parse, tmp_path):
         pf_dir = tmp_path / "Prefetch"
         pf_dir.mkdir()
-        out_dir = tmp_path / "prefetch_out"
+        entries = []
+        for i in range(600):
+            name = f"PROG{i:04d}.EXE-AABB{i:04d}.pf"
+            (pf_dir / name).write_bytes(b"fake")
+            entries.append({
+                "executable_name": f"prog{i}.exe",
+                "full_path": f"C:\\prog{i}.exe",
+                "source_file": name,
+                "run_count": 1,
+                "last_run_utc": f"2024-01-{(i % 28) + 1:02d}T00:00:00Z",
+                "previous_run_times": [],
+                "files_loaded": [],
+                "files_loaded_count": 0,
+                "directories_referenced": [],
+                "volume_name": "",
+                "volume_serial": "",
+                "volume_created": "",
+            })
+        mock_parse.side_effect = entries
 
-        mock_run.return_value = SimpleNamespace(returncode=0, stdout="", stderr="")
-        self._write_csv(out_dir, "prefetch", CLEAN_CSV)
+        result = parse_prefetch(str(pf_dir), include_all=False)
+
+        assert result["entries_capped"] is True
+        assert result["entries_returned"] <= 500
+
+    @patch("mcp_server.tools.prefetch._parse_pf_file")
+    def test_include_all_bypasses_cap(self, mock_parse, tmp_path):
+        pf_dir = tmp_path / "Prefetch"
+        pf_dir.mkdir()
+        entries = []
+        for i in range(600):
+            name = f"PROG{i:04d}.EXE-AABB{i:04d}.pf"
+            (pf_dir / name).write_bytes(b"fake")
+            entries.append({
+                "executable_name": f"prog{i}.exe",
+                "full_path": f"C:\\prog{i}.exe",
+                "source_file": name,
+                "run_count": 1,
+                "last_run_utc": None,
+                "previous_run_times": [],
+                "files_loaded": [],
+                "files_loaded_count": 0,
+                "directories_referenced": [],
+                "volume_name": "",
+                "volume_serial": "",
+                "volume_created": "",
+            })
+        mock_parse.side_effect = entries
+
+        result = parse_prefetch(str(pf_dir), include_all=True)
+
+        assert result["entries_capped"] is False
+        assert result["total_entries"] == 600
+
+    def test_tool_failure_returns_error(self, tmp_path):
+        result = parse_prefetch(str(tmp_path / "nonexistent"))
+        assert result["error"] is not None
+        assert "not found" in result["error"].lower()
+        assert result["entries"] == []
+
+    @patch("mcp_server.tools.prefetch._parse_pf_file")
+    def test_audit_log_written(self, mock_parse, tmp_path):
+        pf_dir = tmp_path / "Prefetch"
+        pf_dir.mkdir()
+        (pf_dir / "NOTEPAD.EXE-AB12CD34.pf").write_bytes(b"fake")
+        mock_parse.return_value = self.CLEAN_ENTRIES[0]
 
         with patch("mcp_server.tools._shared.AUDIT_FILE", tmp_path / "mcp.jsonl"):
-            result = parse_prefetch(str(pf_dir), output_dir=str(out_dir))
+            result = parse_prefetch(str(pf_dir))
 
         log_path = tmp_path / "mcp.jsonl"
         assert log_path.exists()
-
         records = [json.loads(l) for l in log_path.read_text().splitlines() if l.strip()]
         assert len(records) >= 1
         record = records[-1]
-        assert record["tool"] == "PECmd"
+        assert record["tool"] == "pyscca"
         assert record["invocation_id"] == result["invocation_id"]
         assert record["returncode"] == 0
-        assert record["parsed_record_count"] == 2
+        assert record["parsed_record_count"] == 1
 
-    @patch("mcp_server.tools.prefetch.run_tool")
-    def test_return_schema_complete(self, mock_run, tmp_path):
+    @patch("mcp_server.tools.prefetch._parse_pf_file")
+    def test_return_schema_complete(self, mock_parse, tmp_path):
         pf_dir = tmp_path / "Prefetch"
         pf_dir.mkdir()
-        out_dir = tmp_path / "prefetch_out"
+        (pf_dir / "NOTEPAD.EXE-AB12CD34.pf").write_bytes(b"fake")
+        mock_parse.return_value = self.CLEAN_ENTRIES[0]
 
-        mock_run.return_value = SimpleNamespace(returncode=0, stdout="", stderr="")
-        self._write_csv(out_dir, "prefetch", CLEAN_CSV)
-
-        result = parse_prefetch(str(pf_dir), output_dir=str(out_dir))
+        result = parse_prefetch(str(pf_dir))
 
         required_keys = [
             "invocation_id", "tool", "prefetch_path", "run_ts_utc",
@@ -383,3 +399,14 @@ class TestParsePrefetchIntegration:
         ]
         for key in required_keys:
             assert key in result, f"Missing key: {key}"
+
+    def test_empty_prefetch_no_error(self, tmp_path):
+        pf_dir = tmp_path / "Prefetch"
+        pf_dir.mkdir()
+
+        result = parse_prefetch(str(pf_dir))
+
+        assert result["error"] is None
+        assert result["total_entries"] == 0
+        assert result["analyst_note"] is not None
+        assert "disabled" in result["analyst_note"].lower() or                "empty" in result["analyst_note"].lower()
