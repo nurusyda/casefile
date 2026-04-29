@@ -43,3 +43,7 @@ analysis/progress.txt
 analysis/ralph*.log
 .claude/
 reports/
+
+# Local analysis artifacts
+analysis/
+mcp_server/tools/*.pecmd_backup

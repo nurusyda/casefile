@@ -418,6 +418,8 @@ class TestParseRegistryIntegration:
         assert record["tool"] == "RECmd"
         assert record["invocation_id"] == result["invocation_id"]
         assert record["parsed_record_count"] == 2
+        assert "examiner" in record
+        assert record["examiner"] == "casefile"
 
     @patch("mcp_server.tools.registry.run_tool")
     def test_return_schema_complete(self, mock_run, tmp_path):

@@ -386,6 +386,8 @@ class TestParsePrefetchIntegration:
         assert record["invocation_id"] == result["invocation_id"]
         assert record["returncode"] == 0
         assert record["parsed_record_count"] == 1
+        assert "examiner" in record
+        assert record["examiner"] == "casefile"
 
     @patch("mcp_server.tools.prefetch._parse_pf_file")
     def test_return_schema_complete(self, mock_parse, tmp_path):
