@@ -16,6 +16,12 @@ from mcp_server.tools.prefetch import parse_prefetch
 from mcp_server.tools.event_logs import parse_event_logs
 from mcp_server.tools.registry import parse_registry
 from mcp_server.tools.mft import parse_mft
+from mcp_server.tools.findings import (
+    record_finding,
+    get_findings,
+    record_timeline_event,
+    BLOCKED_COMMANDS,
+)
 
 # ── Verified tool paths ──────────────────────────────────────────────────────
 VOL        = "/usr/local/bin/vol"          # symlink → /opt/volatility3/bin/vol
@@ -55,6 +61,10 @@ mcp.tool()(parse_prefetch)
 mcp.tool()(parse_event_logs)
 mcp.tool()(parse_registry)
 mcp.tool()(parse_mft)
+
+mcp.tool()(record_finding)
+mcp.tool()(get_findings)
+mcp.tool()(record_timeline_event)
 
 if __name__ == "__main__":
     mcp.run()

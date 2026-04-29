@@ -1,0 +1,131 @@
+"""Tests for the findings state machine."""
+import json
+import pytest
+
+
+@pytest.fixture(autouse=True)
+def isolated_case_dir(tmp_path, monkeypatch):
+    case_dir = tmp_path / "test_case"
+    case_dir.mkdir()
+    monkeypatch.setenv("CASEFILE_CASE_DIR", str(case_dir))
+    monkeypatch.setenv("CASEFILE_EXAMINER", "testuser")
+    audit_dir = tmp_path / "audit"
+    audit_dir.mkdir()
+    import mcp_server.tools._shared as shared
+    monkeypatch.setattr(shared, "AUDIT_FILE", audit_dir / "mcp.jsonl")
+    return case_dir
+
+
+def test_record_finding_returns_draft_id():
+    from mcp_server.tools.findings import record_finding
+    result = record_finding(
+        title="Test", observation="A", interpretation="B",
+        confidence="CONFIRMED", artifact_source="/a", supporting_tool="parse_amcache",
+    )
+    assert result["status"] == "DRAFT"
+    assert result["finding_id"] == "F-testuser-001"
+
+
+def test_record_finding_sequential_ids():
+    from mcp_server.tools.findings import record_finding
+    r1 = record_finding(title="F1", observation="A", interpretation="B",
+                        confidence="CONFIRMED", artifact_source="/a", supporting_tool="parse_amcache")
+    r2 = record_finding(title="F2", observation="C", interpretation="D",
+                        confidence="INFERRED", artifact_source="/b", supporting_tool="parse_mft")
+    assert r1["finding_id"] == "F-testuser-001"
+    assert r2["finding_id"] == "F-testuser-002"
+
+
+def test_record_finding_writes_json(isolated_case_dir):
+    from mcp_server.tools.findings import record_finding
+    record_finding(title="P", observation="X", interpretation="Y",
+                   confidence="CONFIRMED", artifact_source="/a", supporting_tool="parse_registry")
+    data = json.loads((isolated_case_dir / "findings.json").read_text())
+    assert len(data) == 1
+    assert data[0]["status"] == "DRAFT"
+
+
+def test_record_finding_logs_to_audit(tmp_path, monkeypatch):
+    import mcp_server.tools._shared as shared
+    audit_file = tmp_path / "mcp.jsonl"
+    monkeypatch.setattr(shared, "AUDIT_FILE", audit_file)
+    from mcp_server.tools.findings import record_finding
+    result = record_finding(title="A", observation="X", interpretation="Y",
+                            confidence="CONFIRMED", artifact_source="/a", supporting_tool="parse_amcache")
+    record = json.loads(audit_file.read_text().strip())
+    assert record["tool"] == "record_finding"
+    assert record["finding_id"] == result["finding_id"]
+
+
+def test_get_findings_returns_all():
+    from mcp_server.tools.findings import record_finding, get_findings
+    record_finding(title="F1", observation="A", interpretation="B",
+                   confidence="CONFIRMED", artifact_source="/a", supporting_tool="parse_mft")
+    record_finding(title="F2", observation="C", interpretation="D",
+                   confidence="INFERRED", artifact_source="/b", supporting_tool="parse_registry")
+    result = get_findings()
+    assert result["total"] == 2
+    assert result["total_draft"] == 2
+
+
+def test_get_findings_filters_by_status():
+    from mcp_server.tools.findings import record_finding, get_findings
+    record_finding(title="F1", observation="A", interpretation="B",
+                   confidence="CONFIRMED", artifact_source="/a", supporting_tool="parse_mft")
+    assert get_findings(status="DRAFT")["returned"] == 1
+    assert get_findings(status="APPROVED")["returned"] == 0
+
+
+def test_get_findings_empty():
+    from mcp_server.tools.findings import get_findings
+    assert get_findings()["total"] == 0
+
+
+def test_record_timeline_event_draft_id():
+    from mcp_server.tools.findings import record_timeline_event
+    result = record_timeline_event(
+        timestamp="2018-09-06T18:28:30Z", description="mnemosyne installed",
+        artifact_source="/a", event_type="persistence", supporting_tool="parse_event_logs",
+    )
+    assert result["status"] == "DRAFT"
+    assert result["event_id"] == "T-testuser-001"
+
+
+def test_record_timeline_event_sequential():
+    from mcp_server.tools.findings import record_timeline_event
+    r1 = record_timeline_event(timestamp="2018-08-27T23:57Z", description="E1",
+                                artifact_source="/a", event_type="execution", supporting_tool="parse_event_logs")
+    r2 = record_timeline_event(timestamp="2018-08-28T00:11Z", description="E2",
+                                artifact_source="/b", event_type="persistence", supporting_tool="parse_event_logs")
+    assert r1["event_id"] == "T-testuser-001"
+    assert r2["event_id"] == "T-testuser-002"
+
+
+def test_record_timeline_event_writes_json(isolated_case_dir):
+    from mcp_server.tools.findings import record_timeline_event
+    record_timeline_event(timestamp="2018-09-06T18:28Z", description="mnemosyne",
+                          artifact_source="/a", event_type="persistence", supporting_tool="parse_event_logs")
+    data = json.loads((isolated_case_dir / "timeline.json").read_text())
+    assert len(data) == 1
+    assert data[0]["event_type"] == "persistence"
+
+
+def test_blocked_commands_contains_destructive():
+    from mcp_server.tools.findings import BLOCKED_COMMANDS
+    for cmd in ("rm", "dd", "mkfs", "approve"):
+        assert cmd in BLOCKED_COMMANDS
+
+
+def test_bad_confidence_defaults_to_inferred():
+    from mcp_server.tools.findings import record_finding
+    result = record_finding(title="X", observation="A", interpretation="B",
+                            confidence="MAYBE", artifact_source="/a", supporting_tool="parse_mft")
+    assert result["record"]["confidence"] == "INFERRED"
+
+
+def test_mitre_technique_stored():
+    from mcp_server.tools.findings import record_finding
+    result = record_finding(title="X", observation="A", interpretation="B",
+                            confidence="CONFIRMED", artifact_source="/a",
+                            supporting_tool="parse_amcache", mitre_technique="T1036.004")
+    assert result["record"]["mitre_technique"] == "T1036.004"
