@@ -50,7 +50,7 @@ _VOLUME_PREFIX_RE = __import__("re").compile(
 )
 
 def _strip_volume_prefix(path: str) -> str:
-    """Strip \VOLUME{guid} prefix so path matching works correctly."""
+    """Strip \\VOLUME{guid} prefix so path matching works correctly."""
     return _VOLUME_PREFIX_RE.sub("", path)
 
 _LOLBAS = {
