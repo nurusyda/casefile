@@ -391,6 +391,8 @@ class TestParseEventLogsIntegration:
         assert record["tool"] == "EvtxECmd"
         assert record["invocation_id"] == result["invocation_id"]
         assert record["parsed_record_count"] == 5
+        assert "examiner" in record
+        assert record["examiner"] == "casefile"
 
     @patch("mcp_server.tools.event_logs.run_tool")
     def test_return_schema_complete(self, mock_run, tmp_path):

@@ -30,14 +30,21 @@ def audit_log(
     stderr_excerpt: str,
     parsed_record_count: int,
     duration_ms: int,
+    examiner: Optional[str] = None,
     extra: Optional[dict] = None,
 ) -> None:
-    """Append one structured JSONL record to audit/mcp.jsonl."""
+    """Append one structured JSONL record to audit/mcp.jsonl.
+
+    examiner is read from CASEFILE_EXAMINER env var, defaulting to "casefile".
+    """
+    if examiner is None:
+        examiner = os.environ.get("CASEFILE_EXAMINER", "casefile")
     AUDIT_FILE.parent.mkdir(parents=True, exist_ok=True)
     record = {
         "ts": datetime.now(timezone.utc).isoformat(),
         "invocation_id": invocation_id,
         "tool": tool,
+        "examiner": examiner,
         "cmd": cmd,
         "returncode": returncode,
         "stdout_lines": stdout_lines,

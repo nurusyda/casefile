@@ -309,6 +309,8 @@ class TestParseAmcacheIntegration:
         assert record["invocation_id"] == result["invocation_id"]
         assert record["returncode"] == 0
         assert record["parsed_record_count"] == 2
+        assert "examiner" in record
+        assert record["examiner"] == "casefile"
 
     @patch("mcp_server.tools.amcache.run_tool")
     def test_return_schema_complete(self, mock_run, tmp_path):

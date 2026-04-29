@@ -411,6 +411,8 @@ class TestParseMftIntegration:
         record = records[-1]
         assert record["tool"] == "MFTECmd"
         assert record["invocation_id"] == result["invocation_id"]
+        assert "examiner" in record
+        assert record["examiner"] == "casefile"
 
     @patch("mcp_server.tools.mft.run_tool")
     def test_return_schema_complete(self, mock_run, tmp_path):
