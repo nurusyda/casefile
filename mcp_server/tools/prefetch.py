@@ -20,7 +20,10 @@ from pathlib import Path
 from typing import Any, Optional
 
 import re
-import pyscca
+try:
+    import pyscca
+except ImportError:  # not available outside SIFT
+    pyscca = None
 
 from mcp_server.tools._shared import audit_log
 
