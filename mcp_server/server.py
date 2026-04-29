@@ -15,6 +15,7 @@ from mcp_server.tools.amcache import parse_amcache
 from mcp_server.tools.prefetch import parse_prefetch
 from mcp_server.tools.event_logs import parse_event_logs
 from mcp_server.tools.registry import parse_registry
+from mcp_server.tools.mft import parse_mft
 
 # ── Verified tool paths ──────────────────────────────────────────────────────
 VOL        = "/usr/local/bin/vol"          # symlink → /opt/volatility3/bin/vol
@@ -53,6 +54,7 @@ mcp.tool()(parse_amcache)
 mcp.tool()(parse_prefetch)
 mcp.tool()(parse_event_logs)
 mcp.tool()(parse_registry)
+mcp.tool()(parse_mft)
 
 if __name__ == "__main__":
     mcp.run()
