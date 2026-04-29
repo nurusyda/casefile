@@ -244,7 +244,7 @@ def parse_amcache(
         f"-f {hive} "
         f"--csv {out_dir} "
         f"--csvf {prefix} "
-        f"-q"
+        f""
     )
 
     # ── Run AmcacheParser ─────────────────────────────────────────────────────
