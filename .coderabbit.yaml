@@ -1,0 +1,41 @@
+language: "en-US"
+
+reviews:
+  profile: "assertive"
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  review_status: true
+  collapse_walkthrough: false
+  auto_review:
+    enabled: true
+    drafts: false
+
+  path_instructions:
+    - path: "mcp_server/tools/*.py"
+      instructions: |
+        This is a forensic MCP tool. Review for:
+        - Evidence read-only enforcement (no writes to evidence paths)
+        - Structured JSON output only — no raw shell output returned to LLM
+        - audit_log() called on every invocation
+        - BLOCKED_COMMANDS denylist respected
+        - CONFIRMED vs INFERRED confidence distinction maintained
+
+    - path: "mcp_server/tools/findings.py"
+      instructions: |
+        Review for:
+        - Findings must always be created as DRAFT — never APPROVED
+        - approve must remain in BLOCKED_COMMANDS
+        - Sequential IDs must use examiner from CASEFILE_EXAMINER env var
+        - All writes must be logged to audit/mcp.jsonl with finding_id field
+
+    - path: "tests/*.py"
+      instructions: |
+        Review for:
+        - Tests must not require SIFT tools to be installed (mock run_tool)
+        - Each tool should have: CSV parser tests, flag_suspicious tests,
+          integration tests covering audit log, schema, error handling
+        - New MCP tools must have matching test files
+
+chat:
+  auto_reply: true
