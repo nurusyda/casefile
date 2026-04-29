@@ -35,3 +35,11 @@ cases/
 # OS
 .DS_Store
 Thumbs.db
+analysis/amcache_out/
+analysis/evtx_out/
+analysis/mft_out/
+analysis/registry_out/
+analysis/progress.txt
+analysis/ralph*.log
+.claude/
+reports/

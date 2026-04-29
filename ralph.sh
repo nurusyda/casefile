@@ -6,19 +6,15 @@
 # Usage:
 #   bash ralph.sh [case_dir]
 #
-# Fixes applied (April 29 2026):
-#   - Removed --no-interactive flag (not supported in current Claude Code)
-#   - Added rate limit detection — pause instead of burning all 25 iterations
-#   - Added pre-flight check for .claude/settings.json (MCP tool permissions)
-#
 # Requirements:
-#   - claude (Claude Code CLI) in PATH and logged in
+#   - claude (Claude Code CLI) in PATH
 #   - prd.json in working directory
-#   - MCP server running (casefile venv active)
+#   - MCP server running (or started by this script)
 #
 # The loop runs until:
 #   1. Claude outputs <promise>TASK_COMPLETE</promise>, OR
-#   2. max_iterations is reached (default: 25)
+#   2. All tasks in prd.json have PASSED status, OR
+#   3. max_iterations is reached (default: 25)
 
 set -euo pipefail
 
@@ -29,7 +25,6 @@ PROGRESS_FILE="${CASE_DIR}/analysis/progress.txt"
 LOG_FILE="${CASE_DIR}/analysis/ralph.log"
 MAX_ITER=$(python3 -c "import json; print(json.load(open('${PRD_FILE}'))['max_iterations'])" 2>/dev/null || echo 25)
 COMPLETION_SIGNAL="TASK_COMPLETE"
-RATE_LIMIT_PAUSE=120  # seconds to wait when rate limited
 
 # ─── SETUP ─────────────────────────────────────────────────────────────────────
 mkdir -p "${CASE_DIR}/analysis" "${CASE_DIR}/reports" "${CASE_DIR}/audit"
@@ -39,40 +34,6 @@ log() {
     ts=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
     echo "[${ts}] $*" | tee -a "${LOG_FILE}"
 }
-
-# ─── PRE-FLIGHT: MCP PERMISSIONS ───────────────────────────────────────────────
-# Claude Code requires .claude/settings.json to allow MCP tool calls.
-# Without this, Claude will ask for permission every iteration and never proceed.
-SETTINGS_FILE="${CASE_DIR}/.claude/settings.json"
-if [[ ! -f "${SETTINGS_FILE}" ]]; then
-    log "Creating .claude/settings.json — allowlisting casefile MCP tools..."
-    mkdir -p "${CASE_DIR}/.claude"
-    cat > "${SETTINGS_FILE}" << 'SETTINGS'
-{
-  "permissions": {
-    "allow": [
-      "mcp__casefile__parse_amcache",
-      "mcp__casefile__parse_prefetch",
-      "mcp__casefile__parse_event_logs",
-      "mcp__casefile__parse_registry",
-      "mcp__casefile__parse_mft"
-    ]
-  }
-}
-SETTINGS
-    log "Created ${SETTINGS_FILE}"
-else
-    log "Found existing ${SETTINGS_FILE} — skipping creation"
-fi
-
-# ─── PRE-FLIGHT: CLAUDE CODE LOGIN CHECK ───────────────────────────────────────
-log "Checking Claude Code login status..."
-LOGIN_CHECK=$(claude --version 2>&1 || true)
-if echo "${LOGIN_CHECK}" | grep -qi "not logged in\|please run /login\|login"; then
-    log "ERROR: Claude Code is not logged in. Run: claude /login"
-    exit 1
-fi
-log "Claude Code: ${LOGIN_CHECK}"
 
 log "=== RALPH WIGGUM LOOP START ==="
 log "Case dir: ${CASE_DIR}"
@@ -105,44 +66,16 @@ for task in prd['tasks']:
 print('\n'.join(failed) if failed else 'All tasks passed.')
 PYEOF
         )
-        PROMPT="Iteration ${iteration}. Previous run incomplete. Review ./analysis/progress.txt for what was found. The following tasks need attention:
-
-${FAILED_TASKS}
-
-Continue the investigation. Fix the gaps. Re-output <promise>TASK_COMPLETE</promise> when all criteria are met."
+        PROMPT="Iteration ${iteration}. Previous run incomplete. Review ./analysis/progress.txt for what was found. The following tasks need attention:\n\n${FAILED_TASKS}\n\nContinue the investigation. Fix the gaps. Re-output <promise>TASK_COMPLETE</promise> when all criteria are met."
     fi
 
-    # Run Claude Code (pipe prompt via stdin — no --no-interactive flag)
+    # Run Claude Code (non-interactive, pipe prompt)
     log "Running Claude Code..."
-    CLAUDE_OUTPUT=$(echo "${PROMPT}" | claude 2>&1) || true
+    CLAUDE_OUTPUT=$(echo "${PROMPT}" | claude -p 2>&1) || true
     last_output="${CLAUDE_OUTPUT}"
 
     # Log output summary
     log "Claude output length: ${#CLAUDE_OUTPUT} chars"
-
-    # ── Rate limit detection — pause instead of burning iterations ──────────────
-    if echo "${CLAUDE_OUTPUT}" | grep -qi "hit your limit\|rate limit\|resets\|too many requests"; then
-        log "RATE LIMIT DETECTED — pausing ${RATE_LIMIT_PAUSE}s before retry..."
-        log "Output: $(echo "${CLAUDE_OUTPUT}" | head -3)"
-        sleep "${RATE_LIMIT_PAUSE}"
-        # Don't count this as a real iteration — decrement and retry
-        iteration=$((iteration - 1))
-        continue
-    fi
-
-    # ── Login check — exit immediately if not logged in ─────────────────────────
-    if echo "${CLAUDE_OUTPUT}" | grep -qi "not logged in\|please run /login"; then
-        log "ERROR: Claude Code logged out mid-run. Re-login and restart."
-        exit 1
-    fi
-
-    # ── Unknown option / CLI error — exit with helpful message ──────────────────
-    if echo "${CLAUDE_OUTPUT}" | grep -qi "unknown option\|invalid option\|error:"; then
-        log "ERROR: Claude Code CLI error detected:"
-        echo "${CLAUDE_OUTPUT}" | head -5 | tee -a "${LOG_FILE}"
-        log "Fix the claude invocation in ralph.sh and restart."
-        exit 1
-    fi
 
     # Append to progress file
     {
@@ -151,7 +84,7 @@ Continue the investigation. Fix the gaps. Re-output <promise>TASK_COMPLETE</prom
         echo ""
     } >> "${PROGRESS_FILE}"
 
-    # ── Check for completion signal ──────────────────────────────────────────────
+    # Check for completion signal
     if echo "${CLAUDE_OUTPUT}" | grep -q "${COMPLETION_SIGNAL}"; then
         log "COMPLETION SIGNAL DETECTED — Task complete."
 
