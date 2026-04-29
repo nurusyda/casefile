@@ -150,6 +150,11 @@ class TestFlagSuspicious:
             assert isinstance(f["suspicion_reasons"], list)
             assert len(f["suspicion_reasons"]) > 0
 
+    def test_suspicion_reasons_no_duplicates(self):
+        flagged = _flag_suspicious(self.entries)
+        for f in flagged:
+            assert len(f["suspicion_reasons"]) == len(set(f["suspicion_reasons"])), \
+                f"Duplicate suspicion reasons in {f['executable_name']}: {f['suspicion_reasons']}"
     def test_original_fields_preserved(self):
         flagged = _flag_suspicious(self.entries)
         for f in flagged:
