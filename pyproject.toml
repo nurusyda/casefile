@@ -1,6 +1,6 @@
 [build-system]
 requires = ["setuptools>=70"]
-build-backend = "setuptools.backends.legacy:build"
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "casefile"
@@ -25,6 +25,7 @@ casefile = "mcp_server.server:mcp.run"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
+pythonpath = ["."]
 
 [tool.setuptools.packages.find]
 where = ["."]
