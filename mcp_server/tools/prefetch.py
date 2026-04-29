@@ -371,11 +371,11 @@ def parse_prefetch(
     #   prefetch_Timeline.csv        ← one row per execution timestamp
     # We parse the main output. Timeline is used for enrichment if present.
     main_csvs = [
-        f for f in out_dir.glob(f"{prefix}*.csv")
+        f for f in out_dir.glob("*.csv")
         if "timeline" not in f.name.lower()
     ]
     timeline_csvs = [
-        f for f in out_dir.glob(f"{prefix}*.csv")
+        f for f in out_dir.glob("*.csv")
         if "timeline" in f.name.lower()
     ]
 

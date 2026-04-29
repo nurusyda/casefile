@@ -71,11 +71,13 @@ TIMESTOMP_THRESHOLD_SECONDS = 60
 _SUSPICIOUS_PATHS = [
     "\\windows\\temp\\",
     "\\appdata\\local\\temp\\",
+    "\\appdata\\roaming\\temp\\",
     "\\users\\public\\",
-    "\\programdata\\",
     "\\recycle",
     "\\$recycle",
     "\\downloads\\",
+    "\\windows\\fonts\\",
+    "\\windows\\tasks\\",
 ]
 
 # CRIMSON OSPREY known IOC filenames
@@ -102,25 +104,33 @@ def _parse_mft_csv(csv_text: str) -> list[dict[str, Any]]:
       ZoneIdContents, SIMftEntryFlags, FNMftEntryFlags
     """
     entries: list[dict[str, Any]] = []
-    reader = csv.DictReader(io.StringIO(csv_text))
+    reader = csv.DictReader(io.StringIO(csv_text.replace("\x00", "")))
 
     for row in reader:
-        # Parse both SI and FN timestamp sets
-        si_created    = _norm_ts(row.get("SI_Created") or "")
-        si_modified   = _norm_ts(row.get("SI_LastModified") or "")
-        si_access     = _norm_ts(row.get("SI_LastAccess") or "")
-        si_mft        = _norm_ts(row.get("SI_MFTRecordChanged") or "")
-        fn_created    = _norm_ts(row.get("FN_Created") or "")
-        fn_modified   = _norm_ts(row.get("FN_LastModified") or "")
-        fn_access     = _norm_ts(row.get("FN_LastAccess") or "")
-        fn_mft        = _norm_ts(row.get("FN_MFTRecordChanged") or "")
+        # MFTECmd 1.3+ schema: 0x10=SI timestamps, 0x30=FN timestamps
+        si_created    = _norm_ts(row.get("Created0x10") or "")
+        si_modified   = _norm_ts(row.get("LastModified0x10") or "")
+        si_access     = _norm_ts(row.get("LastAccess0x10") or "")
+        si_mft        = _norm_ts(row.get("LastRecordChange0x10") or "")
+        fn_created    = _norm_ts(row.get("Created0x30") or "")
+        fn_modified   = _norm_ts(row.get("LastModified0x30") or "")
+        fn_access     = _norm_ts(row.get("LastAccess0x30") or "")
+        fn_mft        = _norm_ts(row.get("LastRecordChange0x30") or "")
 
-        # Detect timestomping — $SI creation predates $FN creation
-        timestomped, timestomp_delta_s = _check_timestomping(
-            si_created, fn_created, si_modified, fn_modified
-        )
+        # Use MFTECmd SI<FN flag first, fall back to manual check
+        si_lt_fn = (row.get("SI<FN") or "").strip().upper() == "TRUE"
+        _ts, _delta = _check_timestomping(si_created, fn_created, si_modified, fn_modified)
+        # Only flag SI<FN if delta is meaningful (>60s) or MFTECmd flagged it with real timestamps
+        if si_lt_fn and _delta is not None and abs(_delta) > 60:
+            timestomped, timestomp_delta_s = True, _delta
+        elif _ts:
+            timestomped, timestomp_delta_s = True, _delta
+        else:
+            timestomped, timestomp_delta_s = False, None
 
-        full_path = (row.get("FullPath") or "").strip()
+        parent = (row.get("ParentPath") or "").strip()
+        fname = (row.get("FileName") or "").strip()
+        full_path = f"{parent}\\{fname}" if parent else fname
         filename  = (row.get("FileName") or "").strip()
 
         entry: dict[str, Any] = {
@@ -222,7 +232,7 @@ def _flag_suspicious(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
             )
 
         # Deleted file — may indicate anti-forensic cleanup
-        if e.get("is_deleted"):
+        if e.get("is_deleted") and "PathUnknown" not in e.get("full_path","") and not e.get("filename","").startswith("$"):
             reasons.append(
                 f"DELETED file recovered from MFT: {e['full_path']} "
                 f"(entry {e['mft_entry']})"
@@ -246,7 +256,7 @@ def _flag_suspicious(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 break
 
         # Alternate Data Streams — can hide malware payloads
-        if e.get("has_ads") and not e.get("is_ads"):
+        if e.get("has_ads") and not e.get("is_ads") and not e.get("filename", "").startswith("$"):
             reasons.append(
                 f"File has Alternate Data Stream(s): {e['full_path']} "
                 f"— possible hidden payload"
@@ -461,7 +471,7 @@ def parse_mft(
 
     # ── Find and parse CSV output ─────────────────────────────────────────────
     # MFTECmd --at writes: mft_MFTECmd_Output.csv
-    csv_files = list(out_dir.glob(f"{prefix}*.csv"))
+    csv_files = list(out_dir.glob("*.csv"))
 
     if not csv_files:
         duration_ms = int((time.monotonic() - t_start) * 1000)

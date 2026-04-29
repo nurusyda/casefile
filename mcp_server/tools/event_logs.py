@@ -472,7 +472,7 @@ def parse_event_logs(
         return _error_result(invocation_id, evtx_path, f"Unexpected error: {exc}")
 
     # ── Find and parse CSV output ─────────────────────────────────────────────
-    csv_files = list(out_dir.glob(f"{prefix}*.csv"))
+    csv_files = list(out_dir.glob("*.csv"))
 
     if not csv_files:
         duration_ms = int((time.monotonic() - t_start) * 1000)

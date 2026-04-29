@@ -284,7 +284,7 @@ def parse_amcache(
     #   Amcache_InventoryApplicationFile.csv
     #   Amcache_InventoryApplication.csv
     # We parse ALL matching CSVs and merge.
-    csv_files = list(out_dir.glob(f"{prefix}*.csv"))
+    csv_files = list(out_dir.glob("*.csv"))
     if not csv_files:
         # AmcacheParser sometimes writes no CSV for clean/empty hives
         duration_ms = int((time.monotonic() - t_start) * 1000)

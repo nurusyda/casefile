@@ -29,74 +29,24 @@ from mcp_server.tools.mft import (
 # ── CSV fixtures ──────────────────────────────────────────────────────────────
 
 # Clean MFT entries — normal System32 files, no anomalies
-CLEAN_CSV = (
-    "EntryNumber,SequenceNumber,InUse,ParentEntryNumber,FullPath,FileName,"
-    "Extension,FileSize,ReferenceCount,ReparseTarget,IsDirectory,HasAds,IsAds,"
-    "SI_LastModified,SI_LastAccess,SI_MFTRecordChanged,SI_Created,"
-    "FN_LastModified,FN_LastAccess,FN_MFTRecordChanged,FN_Created,"
-    "ObjectIdFileDroid,LogfileSequenceNumber,SecurityId,ZoneIdContents,"
-    "SIMftEntryFlags,FNMftEntryFlags\n"
-    "100,1,TRUE,80,C:\\Windows\\System32\\notepad.exe,notepad.exe,"
-    ".exe,204800,1,,FALSE,FALSE,FALSE,"
-    "2024-01-10 09:00:00,2024-01-10 09:00:00,2024-01-10 09:00:00,2024-01-10 09:00:00,"
-    "2024-01-10 09:00:00,2024-01-10 09:00:00,2024-01-10 09:00:00,2024-01-10 09:00:00,"
-    ",12345,,,ARCHIVE,ARCHIVE\n"
-    "101,1,TRUE,80,C:\\Windows\\System32\\calc.exe,calc.exe,"
-    ".exe,102400,1,,FALSE,FALSE,FALSE,"
-    "2024-01-11 10:00:00,2024-01-11 10:00:00,2024-01-11 10:00:00,2024-01-11 10:00:00,"
-    "2024-01-11 10:00:00,2024-01-11 10:00:00,2024-01-11 10:00:00,2024-01-11 10:00:00,"
-    ",12346,,,ARCHIVE,ARCHIVE\n"
-)
+CLEAN_CSV = r"""EntryNumber,SequenceNumber,InUse,ParentEntryNumber,ParentSequenceNumber,ParentPath,FileName,Extension,FileSize,ReferenceCount,ReparseTarget,IsDirectory,HasAds,IsAds,SI<FN,uSecZeros,Copied,SiFlags,NameType,Created0x10,Created0x30,LastModified0x10,LastModified0x30,LastRecordChange0x10,LastRecordChange0x30,LastAccess0x10,LastAccess0x30,UpdateSequenceNumber,LogfileSequenceNumber,SecurityId,ObjectIdFileDroid,LoggedUtilStream,ZoneIdContents,SourceFile,ResidentDataBase64,ResidentDataHex,ResidentDataASCII
+100,1,True,80,2,.\Windows\System32,notepad.exe,.exe,204800,1,,False,False,False,False,False,False,Archive,Windows,2024-01-10 09:00:00,,2024-01-10 09:00:00,,2024-01-10 09:00:00,,2024-01-10 09:00:00,,,12345,,,,,/cases/MFT,,,
+101,1,True,80,2,.\Windows\System32,calc.exe,.exe,102400,1,,False,False,False,False,False,False,Archive,Windows,2024-01-11 10:00:00,,2024-01-11 10:00:00,,2024-01-11 10:00:00,,2024-01-11 10:00:00,,,12345,,,,,/cases/MFT,,,
+"""
 
-# Timestomped entry — $SI created BEFORE $FN created by >60s
-TIMESTOMPED_CSV = (
-    "EntryNumber,SequenceNumber,InUse,ParentEntryNumber,FullPath,FileName,"
-    "Extension,FileSize,ReferenceCount,ReparseTarget,IsDirectory,HasAds,IsAds,"
-    "SI_LastModified,SI_LastAccess,SI_MFTRecordChanged,SI_Created,"
-    "FN_LastModified,FN_LastAccess,FN_MFTRecordChanged,FN_Created,"
-    "ObjectIdFileDroid,LogfileSequenceNumber,SecurityId,ZoneIdContents,"
-    "SIMftEntryFlags,FNMftEntryFlags\n"
-    "200,1,TRUE,80,C:\\Windows\\System32\\STUN.exe,STUN.exe,"
-    ".exe,98304,1,,FALSE,FALSE,FALSE,"
-    "2020-01-01 00:00:00,2020-01-01 00:00:00,2020-01-01 00:00:00,2020-01-01 00:00:00,"
-    "2024-03-15 14:00:00,2024-03-15 14:00:00,2024-03-15 14:00:00,2024-03-15 14:00:00,"
-    ",12347,,,ARCHIVE,ARCHIVE\n"
-)
+# Timestomped entry — SI<FN=True, $SI created 2020 vs $FN created 2024
+TIMESTOMPED_CSV = r"""EntryNumber,SequenceNumber,InUse,ParentEntryNumber,ParentSequenceNumber,ParentPath,FileName,Extension,FileSize,ReferenceCount,ReparseTarget,IsDirectory,HasAds,IsAds,SI<FN,uSecZeros,Copied,SiFlags,NameType,Created0x10,Created0x30,LastModified0x10,LastModified0x30,LastRecordChange0x10,LastRecordChange0x30,LastAccess0x10,LastAccess0x30,UpdateSequenceNumber,LogfileSequenceNumber,SecurityId,ObjectIdFileDroid,LoggedUtilStream,ZoneIdContents,SourceFile,ResidentDataBase64,ResidentDataHex,ResidentDataASCII
+200,1,True,80,2,.\Windows\System32,STUN.exe,.exe,98304,1,,False,False,False,True,False,False,Archive,Windows,2020-01-01 00:00:00,2024-03-15 14:00:00,2020-01-01 00:00:00,2024-03-15 14:00:00,2020-01-01 00:00:00,2024-03-15 14:00:00,2020-01-01 00:00:00,2024-03-15 14:00:00,,12345,,,,,/cases/MFT,,,
+"""
 
-# Suspicious entries — deleted file, IOC, ADS, suspicious path
-SUSPICIOUS_CSV = (
-    "EntryNumber,SequenceNumber,InUse,ParentEntryNumber,FullPath,FileName,"
-    "Extension,FileSize,ReferenceCount,ReparseTarget,IsDirectory,HasAds,IsAds,"
-    "SI_LastModified,SI_LastAccess,SI_MFTRecordChanged,SI_Created,"
-    "FN_LastModified,FN_LastAccess,FN_MFTRecordChanged,FN_Created,"
-    "ObjectIdFileDroid,LogfileSequenceNumber,SecurityId,ZoneIdContents,"
-    "SIMftEntryFlags,FNMftEntryFlags\n"
-    # Deleted file
-    "300,2,FALSE,120,C:\\Users\\Public\\evil.exe,evil.exe,"
-    ".exe,65536,0,,FALSE,FALSE,FALSE,"
-    "2024-03-15 14:00:00,2024-03-15 14:00:00,2024-03-15 14:00:00,2024-03-15 14:00:00,"
-    "2024-03-15 14:00:00,2024-03-15 14:00:00,2024-03-15 14:00:00,2024-03-15 14:00:00,"
-    ",12348,,,ARCHIVE,ARCHIVE\n"
-    # File with ADS
-    "301,1,TRUE,80,C:\\Windows\\legit.exe,legit.exe,"
-    ".exe,40960,1,,FALSE,TRUE,FALSE,"
-    "2024-03-15 14:01:00,2024-03-15 14:01:00,2024-03-15 14:01:00,2024-03-15 14:01:00,"
-    "2024-03-15 14:01:00,2024-03-15 14:01:00,2024-03-15 14:01:00,2024-03-15 14:01:00,"
-    ",12349,,,ARCHIVE,ARCHIVE\n"
-    # Known IOC
-    "302,1,TRUE,80,C:\\Windows\\System32\\msedge.exe,msedge.exe,"
-    ".exe,204800,1,,FALSE,FALSE,FALSE,"
-    "2024-03-15 14:02:00,2024-03-15 14:02:00,2024-03-15 14:02:00,2024-03-15 14:02:00,"
-    "2024-03-15 14:02:00,2024-03-15 14:02:00,2024-03-15 14:02:00,2024-03-15 14:02:00,"
-    ",12350,,,ARCHIVE,ARCHIVE\n"
-    # Downloaded file (Zone.Identifier)
-    "303,1,TRUE,90,C:\\Users\\jsmith\\Downloads\\tool.exe,tool.exe,"
-    ".exe,512000,1,,FALSE,FALSE,FALSE,"
-    "2024-03-15 14:03:00,2024-03-15 14:03:00,2024-03-15 14:03:00,2024-03-15 14:03:00,"
-    "2024-03-15 14:03:00,2024-03-15 14:03:00,2024-03-15 14:03:00,2024-03-15 14:03:00,"
-    ",12351,,3,ARCHIVE,ARCHIVE\n"
-)
-
+# Suspicious entries — deleted, ADS, suspicious path, IOC, Zone.Identifier
+SUSPICIOUS_CSV = r"""EntryNumber,SequenceNumber,InUse,ParentEntryNumber,ParentSequenceNumber,ParentPath,FileName,Extension,FileSize,ReferenceCount,ReparseTarget,IsDirectory,HasAds,IsAds,SI<FN,uSecZeros,Copied,SiFlags,NameType,Created0x10,Created0x30,LastModified0x10,LastModified0x30,LastRecordChange0x10,LastRecordChange0x30,LastAccess0x10,LastAccess0x30,UpdateSequenceNumber,LogfileSequenceNumber,SecurityId,ObjectIdFileDroid,LoggedUtilStream,ZoneIdContents,SourceFile,ResidentDataBase64,ResidentDataHex,ResidentDataASCII
+300,2,False,80,2,.\Users\Public,evil.exe,.exe,65536,1,,False,False,False,False,False,False,Archive,Windows,2024-01-10 09:00:00,,2024-01-10 09:00:00,,2024-01-10 09:00:00,,2024-01-10 09:00:00,,,12345,,,,,/cases/MFT,,,
+301,1,True,80,2,.\Windows,legit.exe,.exe,40960,1,,False,True,False,False,False,False,Archive,Windows,2024-01-10 09:00:00,,2024-01-10 09:00:00,,2024-01-10 09:00:00,,2024-01-10 09:00:00,,,12345,,,,,/cases/MFT,,,
+302,1,True,80,2,.\Windows\Temp,malware.exe,.exe,12345,1,,False,False,False,False,False,False,Archive,Windows,2024-03-15 14:00:00,,2024-03-15 14:00:00,,2024-03-15 14:00:00,,2024-03-15 14:00:00,,,12345,,,,,/cases/MFT,,,
+303,1,True,80,2,.\Windows\System32,msedge.exe,.exe,98304,1,,False,False,False,False,False,False,Archive,Windows,2024-03-15 14:00:00,,2024-03-15 14:00:00,,2024-03-15 14:00:00,,2024-03-15 14:00:00,,,12345,,,,,/cases/MFT,,,
+304,1,True,80,2,.\Users\tdungan\Downloads,tool.exe,.exe,55000,1,,False,False,False,False,False,False,Archive,Windows,2024-03-15 14:00:00,,2024-03-15 14:00:00,,2024-03-15 14:00:00,,2024-03-15 14:00:00,,,12345,,,,3,/cases/MFT,,,
+"""
 
 # ── _parse_mft_csv ────────────────────────────────────────────────────────────
 
@@ -120,7 +70,7 @@ class TestParseMftCSV:
         assert "T" in e["si_created_utc"]
 
     def test_fn_timestamps_parsed(self):
-        entries = _parse_mft_csv(CLEAN_CSV)
+        entries = _parse_mft_csv(TIMESTOMPED_CSV)
         e = entries[0]
         assert e["fn_created_utc"] is not None
 
