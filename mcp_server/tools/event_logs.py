@@ -411,7 +411,7 @@ def parse_event_logs(
         out_dir = base.parent / "evtx_out"
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    prefix = "evtx"
+    prefix = evtx.stem if not evtx.is_dir() else "evtx"
 
     # ── Build EvtxECmd command ────────────────────────────────────────────────
     # EvtxECmd flags:
@@ -436,8 +436,7 @@ def parse_event_logs(
         f"{input_flag} "
         f"{inc_flag} "
         f"--csv {out_dir} "
-        f"--csvf {prefix} "
-        f"-q"
+        f"--csvf {prefix}.csv"
     ).strip()
 
     # ── Run EvtxECmd ──────────────────────────────────────────────────────────
