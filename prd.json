@@ -1,0 +1,108 @@
+{
+  "version": "1.0",
+  "case": "CRIMSON OSPREY",
+  "description": "Acceptance criteria for the Ralph Wiggum self-correction loop. Each task has pass criteria. The loop runs until all tasks pass or max_iterations is reached.",
+  "max_iterations": 25,
+  "completion_signal": "TASK_COMPLETE",
+
+  "tasks": [
+    {
+      "id": "T01",
+      "name": "malware_presence",
+      "description": "Confirm presence of STUN.exe on the compromised host",
+      "required_label": "CONFIRMED",
+      "pass_criteria": [
+        "STUN.exe appears in at least one of: Amcache, Prefetch, MFT, EventLog 4688",
+        "Finding includes: tool name, file path, timestamp_utc",
+        "Label is CONFIRMED (not INFERRED)"
+      ],
+      "failure_action": "Retry parse_amcache() and parse_prefetch() with filename_filter=['STUN.exe']"
+    },
+    {
+      "id": "T02",
+      "name": "execution_evidence",
+      "description": "Establish execution evidence for malicious binaries",
+      "required_label": "CONFIRMED",
+      "pass_criteria": [
+        "At least one binary from IOC list appears in Amcache OR Prefetch",
+        "Run timestamp in UTC present",
+        "SHA1 hash recorded (Amcache) or run_count recorded (Prefetch)"
+      ],
+      "failure_action": "Retry parse_amcache() then parse_prefetch() — check both sources"
+    },
+    {
+      "id": "T03",
+      "name": "persistence_mechanism",
+      "description": "Identify how the attacker maintained access across reboots",
+      "required_label": "INFERRED",
+      "pass_criteria": [
+        "At least one persistence artifact found: Run key, service, scheduled task",
+        "Artifact source cited: RECmd batch file + registry hive path",
+        "Label is CONFIRMED or INFERRED with supporting artifact"
+      ],
+      "failure_action": "Retry parse_registry() with batch_file targeting Run keys and services"
+    },
+    {
+      "id": "T04",
+      "name": "lateral_movement",
+      "description": "Confirm lateral movement to 172.16.6.12 (R&D subnet)",
+      "required_label": "CONFIRMED",
+      "pass_criteria": [
+        "net.exe or net use command found in EventLog (4688) or Prefetch",
+        "UNC path \\\\172.16.6.12 present in artifact",
+        "Timestamp in UTC for the movement event"
+      ],
+      "failure_action": "Retry parse_event_logs(event_ids=[4688]) filtering for net.exe; retry parse_prefetch(filename_filter=['net.exe'])"
+    },
+    {
+      "id": "T05",
+      "name": "timeline_integrity",
+      "description": "Build a coherent UTC timeline of attacker activity",
+      "required_label": "CONFIRMED",
+      "pass_criteria": [
+        "Timeline has at least 3 events with UTC timestamps",
+        "Events are in chronological order",
+        "Each event cites a specific MCP invocation_id",
+        "No timestamp conflicts between sources (flag any $SI/$FN mismatches as CONFIRMED timestomping)"
+      ],
+      "failure_action": "parse_mft() with filename_filter on known IOCs to fill timeline gaps"
+    },
+    {
+      "id": "T06",
+      "name": "audit_trail",
+      "description": "Every finding traces to a logged MCP invocation",
+      "required_label": "CONFIRMED",
+      "pass_criteria": [
+        "./audit/mcp.jsonl exists and is non-empty",
+        "Every CONFIRMED finding references an invocation_id from mcp.jsonl",
+        "No finding cites a source that does not appear in mcp.jsonl"
+      ],
+      "failure_action": "Cross-check report findings against mcp.jsonl entries. Remove any finding without a matching invocation_id."
+    },
+    {
+      "id": "T07",
+      "name": "completion_promise",
+      "description": "Agent outputs completion promise block",
+      "required_label": "CONFIRMED",
+      "pass_criteria": [
+        "Output contains <promise>TASK_COMPLETE</promise> block",
+        "confirmed_findings count is >= 1",
+        "report path exists on disk"
+      ],
+      "failure_action": "Agent has not completed. Continue investigation."
+    }
+  ],
+
+  "scoring": {
+    "description": "Used in accuracy report to compare against Protocol SIFT baseline",
+    "checkpoints": [
+      {"id": "CP1", "question": "Malware present on host?",             "task_ref": "T01"},
+      {"id": "CP2", "question": "Execution evidence found?",            "task_ref": "T02"},
+      {"id": "CP3", "question": "Persistence mechanism identified?",    "task_ref": "T03"},
+      {"id": "CP4", "question": "Lateral movement confirmed?",          "task_ref": "T04"},
+      {"id": "CP5", "question": "Coherent UTC timeline produced?",      "task_ref": "T05"},
+      {"id": "CP6", "question": "All findings traceable to artifacts?", "task_ref": "T06"}
+    ],
+    "note": "Each checkpoint scored independently. Partial credit awarded. Follows CFA-Bench methodology."
+  }
+}
