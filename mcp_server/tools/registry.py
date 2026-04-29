@@ -385,8 +385,7 @@ def parse_registry(
         f"-d {hive_path} "
         f"--bn {batch} "
         f"--csv {out_dir} "
-        f"--csvf {prefix} "
-        f"-q"
+        f"--csvf {prefix}.csv"
     )
 
     # ── Run RECmd ─────────────────────────────────────────────────────────────
@@ -421,7 +420,7 @@ def parse_registry(
         return _error_result(invocation_id, hive_dir, f"Unexpected error: {exc}")
 
     # ── Find and parse CSV output ─────────────────────────────────────────────
-    csv_files = list(out_dir.glob("*.csv"))
+    csv_files = list(out_dir.glob("*.csv")) or list(out_dir.glob("**/*.csv"))
 
     if not csv_files:
         duration_ms = int((time.monotonic() - t_start) * 1000)
