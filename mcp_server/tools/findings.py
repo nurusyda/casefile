@@ -326,8 +326,9 @@ def cli_approve(argv=None) -> None:
     """
     import sys
     args = argv if argv is not None else sys.argv[1:]
-    if not args:
+    if len(args) != 1:
         print("Usage: casefile-approve <finding_id>", file=sys.stderr)
+        print("Exactly one argument required — extra arguments are not accepted.", file=sys.stderr)
         sys.exit(1)
     finding_id = args[0]
     try:

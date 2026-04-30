@@ -10,7 +10,8 @@
       "cwd": "/home/sansproject/casefile",
       "env": {
         "PYTHONPATH": "/home/sansproject/casefile"
-      }
+      },
+      "description": "CaseFile MCP server \u2014 anti-hallucination DFIR tools. Runs parse_amcache, parse_prefetch, parse_event_logs, parse_registry, parse_mft, record_finding, get_findings, record_timeline_event. approve_finding is NOT exposed as MCP tool \u2014 human CLI gate only."
     }
   }
 }

@@ -36,6 +36,8 @@ reviews:
         - Each tool should have: CSV parser tests, flag_suspicious tests,
           integration tests covering audit log, schema, error handling
         - New MCP tools must have matching test files
+        - approve_finding tests must call the function directly (not via MCP)
+        - cli_approve must not be tested via MCP — it requires a TTY
 
 chat:
   auto_reply: true

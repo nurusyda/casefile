@@ -4,7 +4,7 @@ Tests for parse_prefetch()
 Run on any machine (no SIFT required):
     pytest tests/test_prefetch.py -v
 
-Mocks run_tool() so PECmd.dll is never invoked.
+Mocks _parse_pf_file() so pyscca/libscca is never invoked.
 """
 
 import json
@@ -416,4 +416,5 @@ class TestParsePrefetchIntegration:
         assert result["error"] is None
         assert result["total_entries"] == 0
         assert result["analyst_note"] is not None
-        assert "disabled" in result["analyst_note"].lower() or                "empty" in result["analyst_note"].lower()
+        assert ("disabled" in result["analyst_note"].lower()
+                or "empty" in result["analyst_note"].lower())

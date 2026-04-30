@@ -2,7 +2,7 @@
 **Case:** SRL-CRIMSON-OSPREY (evidence: SRL-2018)  
 **Host:** BASE-RD-01 (base-rd-01.shieldbase.lan)  
 **Evidence:** `/home/sansproject/cases/SRL-2018/evidence/base-rd-01-cdrive.E01`  
-**Examiner:** DFIR Orchestrator (Claude)  
+**Examiner:** casefile (AI-drafted — findings require human approval via `casefile-approve`)  
 **Report Date:** 2026-04-29 UTC  
 **Audit Log:** `./audit/mcp.jsonl`
 

@@ -18,6 +18,7 @@
 
 set -euo pipefail
 
+# shellcheck disable=SC2016  # expressions in single quotes are intentional
 # ─── CONFIG ────────────────────────────────────────────────────────────────────
 CASE_DIR="${1:-.}"
 PRD_FILE="${CASE_DIR}/prd.json"

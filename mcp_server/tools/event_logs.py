@@ -81,8 +81,9 @@ from mcp_server.tools._shared import audit_log, run_tool
 # NOTE: EvtxECmd is in a subdirectory unlike the other EZ Tools
 EVTXECMD_BIN = "dotnet /opt/zimmermantools/EvtxeCmd/EvtxECmd.dll"
 
-# Default Event IDs to collect when caller passes none
-# These are the highest-value IDs for a typical intrusion investigation
+# Default Event IDs to collect when caller passes none.
+# These are the highest-value IDs for a typical intrusion investigation.
+# Callers may override with event_ids=[] to collect ALL events (very large output).
 DEFAULT_EVENT_IDS = [
     4624,   # Logon success
     4625,   # Logon failure
@@ -532,7 +533,7 @@ def parse_event_logs(
 
     # ── Cap for context window safety ─────────────────────────────────────────
     # Event logs can have tens of thousands of events — 1000 cap for safety
-    CAP = 1000
+    CAP = 1000  # context window safety limit — LLM cannot process 10K+ events
     total = len(all_entries)
     if not include_all and total > CAP:
         susp_keys = {(e["event_id"], e["record_number"]) for e in suspicious}

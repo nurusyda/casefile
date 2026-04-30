@@ -5,6 +5,7 @@ Run on any machine (no SIFT required):
     pytest tests/test_amcache.py -v
 
 These tests mock run_tool() so AmcacheParser.dll is never invoked.
+pyscca is not required — AmcacheParser uses a separate code path.
 They exercise the CSV parser, suspicious-flag logic, context-window cap,
 error handling, and audit log output.
 """

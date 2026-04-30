@@ -74,9 +74,10 @@ from typing import Any, Optional
 from mcp_server.tools._shared import audit_log, run_tool
 
 # Verified paths on Protocol SIFT, April 28 2026
-# NOTE: RECmd is in a subdirectory
+# NOTE: RECmd is in a subdirectory — unlike other EZ Tools at /opt/zimmermantools/
 RECMD_BIN        = "dotnet /opt/zimmermantools/RECmd/RECmd.dll"
 KROLL_BATCH_FILE = "/opt/zimmermantools/RECmd/BatchExamples/Kroll_Batch.reb"
+# Override KROLL_BATCH_FILE via parse_registry(batch_file=...) for custom extractions.
 
 # Registry categories that are HIGH VALUE for persistence investigation
 _PERSISTENCE_CATEGORIES = {

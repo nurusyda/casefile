@@ -1,4 +1,10 @@
-"""Tests for the findings state machine."""
+"""Tests for the findings state machine.
+
+Covers: record_finding, get_findings, record_timeline_event, approve_finding.
+Note: approve_finding is intentionally NOT registered as an MCP tool.
+The human-in-the-loop gate is enforced via cli_approve() which requires a TTY.
+These tests call approve_finding() directly to verify the approval logic.
+"""
 import json
 import pytest
 

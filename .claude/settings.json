@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__casefile__parse_amcache",
+      "mcp__casefile__parse_prefetch",
+      "mcp__casefile__parse_event_logs",
+      "mcp__casefile__parse_registry",
+      "mcp__casefile__parse_mft",
+      "Bash(mkdir*)",
+      "Bash(free*)",
+      "Bash(ls*)",
+      "mcp__casefile__record_finding",
+      "mcp__casefile__get_findings",
+      "mcp__casefile__record_timeline_event"
+    ]
+  }
+}
