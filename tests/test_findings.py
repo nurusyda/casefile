@@ -200,10 +200,14 @@ def test_approve_finding_writes_audit_log(isolated_case_dir):
 
 def test_approve_finding_not_found(isolated_case_dir):
     from mcp_server.tools.findings import record_finding, approve_finding
+    import json
     record_finding(title="T", observation="O", interpretation="I",
                    confidence="CONFIRMED", artifact_source="/a", supporting_tool="parse_amcache")
     result = approve_finding("F-testuser-999")
     assert "error" in result
+    import mcp_server.tools._shared as shared
+    records = [json.loads(l) for l in shared.AUDIT_FILE.read_text().splitlines() if l.strip()]
+    assert any(r["tool"] == "approve_finding" and r["returncode"] == 1 for r in records)
 
 def test_approve_finding_already_approved(isolated_case_dir):
     from mcp_server.tools.findings import record_finding, approve_finding
@@ -216,5 +220,9 @@ def test_approve_finding_already_approved(isolated_case_dir):
 
 def test_approve_finding_no_findings_file(isolated_case_dir):
     from mcp_server.tools.findings import approve_finding
+    import json
     result = approve_finding("F-testuser-001")
     assert "error" in result
+    import mcp_server.tools._shared as shared
+    records = [json.loads(l) for l in shared.AUDIT_FILE.read_text().splitlines() if l.strip()]
+    assert any(r["tool"] == "approve_finding" and r["returncode"] == 1 for r in records)
