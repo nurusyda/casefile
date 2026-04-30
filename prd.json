@@ -1,10 +1,9 @@
 {
   "version": "1.0",
   "case": "CRIMSON OSPREY",
-  "description": "Acceptance criteria for the Ralph Wiggum self-correction loop. Each task has pass criteria. The loop runs until all tasks pass or max_iterations is reached.",
+  "description": "Acceptance criteria for the Ralph Wiggum self-correction loop. Each task has pass criteria. The loop runs until all tasks pass or max_iterations is reached. Block status: Block 1 (findings SM), Block 2 (examiner audit), Block 3 (approve gate) complete. Block 4 (evidence deny rule) in progress.",
   "max_iterations": 25,
   "completion_signal": "TASK_COMPLETE",
-
   "tasks": [
     {
       "id": "T01",
@@ -28,7 +27,7 @@
         "Run timestamp in UTC present",
         "SHA1 hash recorded (Amcache) or run_count recorded (Prefetch)"
       ],
-      "failure_action": "Retry parse_amcache() then parse_prefetch() — check both sources"
+      "failure_action": "Retry parse_amcache() then parse_prefetch() \u2014 check both sources"
     },
     {
       "id": "T03",
@@ -92,16 +91,39 @@
       "failure_action": "Agent has not completed. Continue investigation."
     }
   ],
-
   "scoring": {
     "description": "Used in accuracy report to compare against Protocol SIFT baseline",
     "checkpoints": [
-      {"id": "CP1", "question": "Malware present on host?",             "task_ref": "T01"},
-      {"id": "CP2", "question": "Execution evidence found?",            "task_ref": "T02"},
-      {"id": "CP3", "question": "Persistence mechanism identified?",    "task_ref": "T03"},
-      {"id": "CP4", "question": "Lateral movement confirmed?",          "task_ref": "T04"},
-      {"id": "CP5", "question": "Coherent UTC timeline produced?",      "task_ref": "T05"},
-      {"id": "CP6", "question": "All findings traceable to artifacts?", "task_ref": "T06"}
+      {
+        "id": "CP1",
+        "question": "Malware present on host?",
+        "task_ref": "T01"
+      },
+      {
+        "id": "CP2",
+        "question": "Execution evidence found?",
+        "task_ref": "T02"
+      },
+      {
+        "id": "CP3",
+        "question": "Persistence mechanism identified?",
+        "task_ref": "T03"
+      },
+      {
+        "id": "CP4",
+        "question": "Lateral movement confirmed?",
+        "task_ref": "T04"
+      },
+      {
+        "id": "CP5",
+        "question": "Coherent UTC timeline produced?",
+        "task_ref": "T05"
+      },
+      {
+        "id": "CP6",
+        "question": "All findings traceable to artifacts?",
+        "task_ref": "T06"
+      }
     ],
     "note": "Each checkpoint scored independently. Partial credit awarded. Follows CFA-Bench methodology."
   }

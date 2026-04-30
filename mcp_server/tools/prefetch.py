@@ -42,17 +42,6 @@ _HIGH_CONFIDENCE_PATHS = [
     "\\windows\\temp\\perfmon\\",
 ]
 
-# Volume device path prefix — filter out before suspicious path matching
-# pyscca returns paths as \VOLUME{guid}\... which causes false positives
-# against \programdata\ and \users\ fragments
-_VOLUME_PREFIX_RE = __import__("re").compile(
-    r"^\\?volume\{[0-9a-f\-]+\}", __import__("re").IGNORECASE
-)
-
-def _strip_volume_prefix(path: str) -> str:
-    """Strip \\VOLUME{guid} prefix so path matching works correctly."""
-    return _VOLUME_PREFIX_RE.sub("", path)
-
 _LOLBAS = {
     "certutil.exe", "mshta.exe", "regsvr32.exe", "rundll32.exe",
     "msiexec.exe", "wscript.exe", "cscript.exe", "powershell.exe",

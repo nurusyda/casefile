@@ -3,6 +3,9 @@ Tests for parse_event_logs()
 
 Run on any machine (no SIFT required):
     pytest tests/test_event_logs.py -v
+
+Covers: CSV parser, suspicious flag logic, DEFAULT_EVENT_IDS,
+context window cap, audit log output, and error handling.
 """
 
 import json

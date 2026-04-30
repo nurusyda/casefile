@@ -3,6 +3,10 @@ Tests for parse_registry()
 
 Run on any machine (no SIFT required):
     pytest tests/test_registry.py -v
+
+Covers: CSV parser, suspicious flag logic, category summary,
+context window cap, audit log, batch file validation, error handling.
+Tests use a fake Kroll_Batch.reb so RECmd path validation passes.
 """
 
 import json

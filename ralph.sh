@@ -53,6 +53,7 @@ while [ "${iteration}" -lt "${MAX_ITER}" ]; do
         PROMPT="Read CLAUDE.md and prd.json. Begin the CRIMSON OSPREY investigation. Work through the OODA loop. Call MCP tools. Document all findings with CONFIRMED/INFERRED/HYPOTHESIS labels. Output the <promise>TASK_COMPLETE</promise> block when done."
     else
         # Feed progress back to Claude with specific failures
+        # shellcheck disable=SC2016  # Python heredoc single-quoted literals are intentional
         FAILED_TASKS=$(python3 - <<'PYEOF'
 import json, sys, os
 

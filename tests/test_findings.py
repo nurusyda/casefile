@@ -1,4 +1,10 @@
-"""Tests for the findings state machine."""
+"""Tests for the findings state machine.
+
+Covers: record_finding, get_findings, record_timeline_event, approve_finding.
+Note: approve_finding is intentionally NOT registered as an MCP tool.
+The human-in-the-loop gate is enforced via cli_approve() which requires a TTY.
+These tests call approve_finding() directly to verify the approval logic.
+"""
 import json
 import pytest
 
@@ -226,3 +232,19 @@ def test_approve_finding_no_findings_file(isolated_case_dir):
     import mcp_server.tools._shared as shared
     records = [json.loads(l) for l in shared.AUDIT_FILE.read_text().splitlines() if l.strip()]
     assert any(r["tool"] == "approve_finding" and r["returncode"] == 1 for r in records)
+
+
+def test_cli_approve_rejects_no_args():
+    from mcp_server.tools.findings import cli_approve
+    import pytest
+    with pytest.raises(SystemExit) as e:
+        cli_approve([])
+    assert e.value.code == 1
+
+
+def test_cli_approve_rejects_extra_args():
+    from mcp_server.tools.findings import cli_approve
+    import pytest
+    with pytest.raises(SystemExit) as e:
+        cli_approve(["F-testuser-001", "extra"])
+    assert e.value.code == 1

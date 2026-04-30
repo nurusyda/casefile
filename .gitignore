@@ -41,8 +41,6 @@ analysis/mft_out/
 analysis/registry_out/
 analysis/progress.txt
 analysis/ralph*.log
-.claude/
-reports/
 
 # Local analysis artifacts
 analysis/

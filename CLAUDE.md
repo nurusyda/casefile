@@ -34,7 +34,7 @@ You have five forensic MCP functions. Use them. Never bypass them with raw shell
 | MCP Function          | What it does                                    | Tool behind it   |
 |-----------------------|-------------------------------------------------|------------------|
 | `parse_amcache()`     | SHA1 hashes + execution presence                | AmcacheParser    |
-| `parse_prefetch()`    | Program execution history + LOLBAS detection    | PECmd            |
+| `parse_prefetch()`    | Program execution history + LOLBAS detection    | pyscca/libscca   |
 | `parse_event_logs()`  | Filtered Windows events + IOC matching          | EvtxECmd         |
 | `parse_registry()`    | Persistence, Run keys, USB, UserAssist          | RECmd            |
 | `parse_mft()`         | Full filesystem timeline + timestomping         | MFTECmd          |
@@ -162,7 +162,7 @@ MFTECMD     = "dotnet /opt/zimmermantools/MFTECmd.dll"
 AMCACHE     = "dotnet /opt/zimmermantools/AmcacheParser.dll"
 EVTXECMD    = "dotnet /opt/zimmermantools/EvtxeCmd/EvtxECmd.dll"
 RECMD       = "dotnet /opt/zimmermantools/RECmd/RECmd.dll"
-PREFETCH    = "dotnet /opt/zimmermantools/PECmd.dll"
+PREFETCH    = "pyscca (libscca) — PECmd.dll replaced (MAM decompression unsupported on Linux/WSL2)"
 ```
 
 Warning: `/opt/volatility3-2.20.0/vol.py` does NOT exist on this install. Use VOL above.
@@ -209,4 +209,5 @@ Cross-reference all findings against these. Any match = CONFIRMED lead.
 - You CANNOT write to /cases/, /mnt/, /media/, /evidence/
 - You CANNOT assert CONFIRMED without a traceable artifact
 
-These restrictions are architectural. They exist in code, not just in this file.
+Evidence path restrictions are enforced via CLAUDE.md (prompt) and .claude/settings.json
+(MCP allow-list). Architectural deny rule for evidence paths is Block 4 — in progress.

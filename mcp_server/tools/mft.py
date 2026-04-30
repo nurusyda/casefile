@@ -434,8 +434,7 @@ def parse_mft(
         f"-f {mft} "
         f"--at "
         f"--csv {out_dir} "
-        f"--csvf {prefix} "
-
+        f"--csvf {prefix}"
     )
 
     # ── Run MFTECmd ───────────────────────────────────────────────────────────

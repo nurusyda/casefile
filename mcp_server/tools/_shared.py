@@ -19,6 +19,10 @@ from typing import Optional
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 AUDIT_FILE  = _REPO_ROOT / "audit" / "mcp.jsonl"
 
+# Sentinel used when CASEFILE_EXAMINER env var is not set.
+# Overridden at runtime — never hardcode examiner identity in tool calls.
+_DEFAULT_EXAMINER = "casefile"
+
 
 def audit_log(
     *,
@@ -38,7 +42,7 @@ def audit_log(
     examiner is read from CASEFILE_EXAMINER env var, defaulting to "casefile".
     """
     if examiner is None:
-        examiner = os.environ.get("CASEFILE_EXAMINER", "casefile")
+        examiner = os.environ.get("CASEFILE_EXAMINER", _DEFAULT_EXAMINER)
     AUDIT_FILE.parent.mkdir(parents=True, exist_ok=True)
     record = {
         "ts": datetime.now(timezone.utc).isoformat(),

@@ -2,6 +2,7 @@
 **Case:** SRL-2018 (CRIMSON OSPREY)
 **Evidence:** `base-rd-01-cdrive.E01` (SHA256: `12a622aa073dbbda3a4983014328a6085c8247ce93fe47fd6ba7483ed9d19aab`)
 **Date:** 2026-04-29
+**Updated:** 2026-04-30 — Block 3 (approve gate) complete
 **Methodology:** CFA-Bench 6-checkpoint evaluation
 
 ---

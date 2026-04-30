@@ -3,6 +3,10 @@ Tests for parse_mft()
 
 Run on any machine (no SIFT required):
     pytest tests/test_mft.py -v
+
+Covers: CSV parser, timestomping detection, filename filter,
+suspicious flag logic, context window cap, audit log, error handling.
+The --at flag is verified to be present in every MFTECmd invocation.
 """
 
 import json
