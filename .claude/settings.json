@@ -13,6 +13,17 @@
       "Bash(free -h)",
       "Bash(ls -la *)",
       "Bash(sha256sum *)"
+    ],
+    "deny": [
+      "Write(/mnt/evidence/*)",
+      "Edit(/mnt/evidence/*)",
+      "Write(cases/*/evidence/*)",
+      "Edit(cases/*/evidence/*)",
+      "Bash(chmod * /mnt/evidence/*)",
+      "Bash(chmod * cases/*/evidence/*)",
+      "Write(**/audit/mcp.jsonl)",
+      "Write(**/approvals.jsonl)",
+      "Write(mcp_server/tools/findings.json)"
     ]
   }
 }

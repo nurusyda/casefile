@@ -258,7 +258,8 @@ class TestParsePrefetchIntegration:
         (pf_dir / "EXPLORER.EXE-DE34EF56.pf").write_bytes(b"fake")
         mock_parse.side_effect = list(self.CLEAN_ENTRIES)
 
-        result = parse_prefetch(str(pf_dir))
+        with patch.dict("os.environ", {"CASEFILE_EXAMINER": "casefile"}, clear=False):
+            result = parse_prefetch(str(pf_dir))
 
         assert result["error"] is None
         assert result["total_entries"] == 2
@@ -271,7 +272,8 @@ class TestParsePrefetchIntegration:
         pf_file.write_bytes(b"fake")
         mock_parse.return_value = self.SUSPICIOUS_ENTRY
 
-        result = parse_prefetch(str(pf_file))
+        with patch.dict("os.environ", {"CASEFILE_EXAMINER": "casefile"}, clear=False):
+            result = parse_prefetch(str(pf_file))
 
         assert result["error"] is None
         assert result["total_entries"] > 0
@@ -283,7 +285,8 @@ class TestParsePrefetchIntegration:
         (pf_dir / "STUN.EXE-FF001122.pf").write_bytes(b"fake")
         mock_parse.return_value = self.SUSPICIOUS_ENTRY
 
-        result = parse_prefetch(str(pf_dir))
+        with patch.dict("os.environ", {"CASEFILE_EXAMINER": "casefile"}, clear=False):
+            result = parse_prefetch(str(pf_dir))
 
         assert len(result["suspicious"]) > 0
         for s in result["suspicious"]:
@@ -298,7 +301,8 @@ class TestParsePrefetchIntegration:
             (pf_dir / e["source_file"]).write_bytes(b"fake")
         mock_parse.side_effect = list(self.CLEAN_ENTRIES)
 
-        result = parse_prefetch(str(pf_dir))
+        with patch.dict("os.environ", {"CASEFILE_EXAMINER": "casefile"}, clear=False):
+            result = parse_prefetch(str(pf_dir))
 
         timestamps = [e["last_run_utc"] for e in result["entries"] if e.get("last_run_utc")]
         assert timestamps == sorted(timestamps, reverse=True)
@@ -327,7 +331,8 @@ class TestParsePrefetchIntegration:
             })
         mock_parse.side_effect = entries
 
-        result = parse_prefetch(str(pf_dir), include_all=False)
+        with patch.dict("os.environ", {"CASEFILE_EXAMINER": "casefile"}, clear=False):
+            result = parse_prefetch(str(pf_dir), include_all=False)
 
         assert result["entries_capped"] is True
         assert result["entries_returned"] <= 500
@@ -356,13 +361,15 @@ class TestParsePrefetchIntegration:
             })
         mock_parse.side_effect = entries
 
-        result = parse_prefetch(str(pf_dir), include_all=True)
+        with patch.dict("os.environ", {"CASEFILE_EXAMINER": "casefile"}, clear=False):
+            result = parse_prefetch(str(pf_dir), include_all=True)
 
         assert result["entries_capped"] is False
         assert result["total_entries"] == 600
 
     def test_tool_failure_returns_error(self, tmp_path):
-        result = parse_prefetch(str(tmp_path / "nonexistent"))
+        with patch.dict("os.environ", {"CASEFILE_EXAMINER": "casefile"}, clear=False):
+            result = parse_prefetch(str(tmp_path / "nonexistent"))
         assert result["error"] is not None
         assert "not found" in result["error"].lower()
         assert result["entries"] == []
@@ -375,7 +382,8 @@ class TestParsePrefetchIntegration:
         mock_parse.return_value = self.CLEAN_ENTRIES[0]
 
         with patch("mcp_server.tools._shared.AUDIT_FILE", tmp_path / "mcp.jsonl"):
-            result = parse_prefetch(str(pf_dir))
+            with patch.dict("os.environ", {"CASEFILE_EXAMINER": "casefile"}, clear=False):
+                result = parse_prefetch(str(pf_dir))
 
         log_path = tmp_path / "mcp.jsonl"
         assert log_path.exists()
@@ -396,7 +404,8 @@ class TestParsePrefetchIntegration:
         (pf_dir / "NOTEPAD.EXE-AB12CD34.pf").write_bytes(b"fake")
         mock_parse.return_value = self.CLEAN_ENTRIES[0]
 
-        result = parse_prefetch(str(pf_dir))
+        with patch.dict("os.environ", {"CASEFILE_EXAMINER": "casefile"}, clear=False):
+            result = parse_prefetch(str(pf_dir))
 
         required_keys = [
             "invocation_id", "tool", "prefetch_path", "run_ts_utc",
@@ -411,7 +420,8 @@ class TestParsePrefetchIntegration:
         pf_dir = tmp_path / "Prefetch"
         pf_dir.mkdir()
 
-        result = parse_prefetch(str(pf_dir))
+        with patch.dict("os.environ", {"CASEFILE_EXAMINER": "casefile"}, clear=False):
+            result = parse_prefetch(str(pf_dir))
 
         assert result["error"] is None
         assert result["total_entries"] == 0

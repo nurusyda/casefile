@@ -233,7 +233,8 @@ class TestParseRegistryIntegration:
         mock_run.return_value = SimpleNamespace(returncode=0, stdout="", stderr="")
         self._write_csv(out_dir, "registry", CLEAN_CSV)
 
-        result = parse_registry(
+        with patch.dict("os.environ", {"CASEFILE_EXAMINER": "casefile"}, clear=False):
+            result = parse_registry(
             str(hive_dir),
             batch_file=str(batch),
             output_dir=str(out_dir),
@@ -254,7 +255,8 @@ class TestParseRegistryIntegration:
         mock_run.return_value = SimpleNamespace(returncode=0, stdout="", stderr="")
         self._write_csv(out_dir, "registry", SUSPICIOUS_CSV)
 
-        result = parse_registry(
+        with patch.dict("os.environ", {"CASEFILE_EXAMINER": "casefile"}, clear=False):
+            result = parse_registry(
             str(hive_dir),
             batch_file=str(batch),
             output_dir=str(out_dir),
@@ -274,7 +276,8 @@ class TestParseRegistryIntegration:
         mock_run.return_value = SimpleNamespace(returncode=0, stdout="", stderr="")
         self._write_csv(out_dir, "registry", SUSPICIOUS_CSV)
 
-        result = parse_registry(
+        with patch.dict("os.environ", {"CASEFILE_EXAMINER": "casefile"}, clear=False):
+            result = parse_registry(
             str(hive_dir),
             batch_file=str(batch),
             output_dir=str(out_dir),
@@ -284,14 +287,16 @@ class TestParseRegistryIntegration:
         assert "run" in result["category_summary"]
 
     def test_missing_hive_dir_returns_error(self, tmp_path):
-        result = parse_registry(str(tmp_path / "nonexistent"))
+        with patch.dict("os.environ", {"CASEFILE_EXAMINER": "casefile"}, clear=False):
+            result = parse_registry(str(tmp_path / "nonexistent"))
         assert result["error"] is not None
         assert "not found" in result["error"].lower()
 
     def test_missing_batch_file_returns_error(self, tmp_path):
         hive_dir = tmp_path / "registry"
         hive_dir.mkdir()
-        result = parse_registry(
+        with patch.dict("os.environ", {"CASEFILE_EXAMINER": "casefile"}, clear=False):
+            result = parse_registry(
             str(hive_dir),
             batch_file=str(tmp_path / "nonexistent.reb"),
         )
@@ -320,7 +325,8 @@ class TestParseRegistryIntegration:
         )
         self._write_csv(out_dir, "registry", header + rows)
 
-        result = parse_registry(
+        with patch.dict("os.environ", {"CASEFILE_EXAMINER": "casefile"}, clear=False):
+            result = parse_registry(
             str(hive_dir),
             batch_file=str(batch),
             output_dir=str(out_dir),
@@ -353,7 +359,8 @@ class TestParseRegistryIntegration:
         )
         self._write_csv(out_dir, "registry", header + rows)
 
-        result = parse_registry(
+        with patch.dict("os.environ", {"CASEFILE_EXAMINER": "casefile"}, clear=False):
+            result = parse_registry(
             str(hive_dir),
             batch_file=str(batch),
             output_dir=str(out_dir),
@@ -374,7 +381,8 @@ class TestParseRegistryIntegration:
         mock_run.return_value = SimpleNamespace(returncode=0, stdout="", stderr="")
         # No CSV written
 
-        result = parse_registry(
+        with patch.dict("os.environ", {"CASEFILE_EXAMINER": "casefile"}, clear=False):
+            result = parse_registry(
             str(hive_dir),
             batch_file=str(batch),
             output_dir=str(out_dir),
@@ -392,7 +400,8 @@ class TestParseRegistryIntegration:
 
         mock_run.side_effect = RuntimeError("Tool exited 1.\nSTDERR: Hive locked")
 
-        result = parse_registry(str(hive_dir), batch_file=str(batch))
+        with patch.dict("os.environ", {"CASEFILE_EXAMINER": "casefile"}, clear=False):
+            result = parse_registry(str(hive_dir), batch_file=str(batch))
 
         assert result["error"] is not None
         assert result["entries"] == []
@@ -408,7 +417,8 @@ class TestParseRegistryIntegration:
         self._write_csv(out_dir, "registry", CLEAN_CSV)
 
         with patch("mcp_server.tools._shared.AUDIT_FILE", tmp_path / "mcp.jsonl"):
-            result = parse_registry(
+            with patch.dict("os.environ", {"CASEFILE_EXAMINER": "casefile"}, clear=False):
+                result = parse_registry(
                 str(hive_dir),
                 batch_file=str(batch),
                 output_dir=str(out_dir),
@@ -435,7 +445,8 @@ class TestParseRegistryIntegration:
         mock_run.return_value = SimpleNamespace(returncode=0, stdout="", stderr="")
         self._write_csv(out_dir, "registry", CLEAN_CSV)
 
-        result = parse_registry(
+        with patch.dict("os.environ", {"CASEFILE_EXAMINER": "casefile"}, clear=False):
+            result = parse_registry(
             str(hive_dir),
             batch_file=str(batch),
             output_dir=str(out_dir),
@@ -481,7 +492,8 @@ class TestParseRegistryIntegration:
         mock_run.return_value = SimpleNamespace(returncode=0, stdout="", stderr="")
         self._write_csv(out_dir, "registry", SUSPICIOUS_CSV)
 
-        result = parse_registry(
+        with patch.dict("os.environ", {"CASEFILE_EXAMINER": "casefile"}, clear=False):
+            result = parse_registry(
             str(hive_dir),
             batch_file=str(batch),
             output_dir=str(out_dir),
