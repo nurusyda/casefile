@@ -129,3 +129,100 @@ def test_mitre_technique_stored():
                             confidence="CONFIRMED", artifact_source="/a",
                             supporting_tool="parse_amcache", mitre_technique="T1036.004")
     assert result["record"]["mitre_technique"] == "T1036.004"
+
+
+# -- approve_finding ----------------------------------------------------------
+
+def test_approve_finding_flips_status(isolated_case_dir):
+    from mcp_server.tools.findings import record_finding, approve_finding
+    r = record_finding(title="T", observation="O", interpretation="I",
+                       confidence="CONFIRMED", artifact_source="/a", supporting_tool="parse_amcache")
+    result = approve_finding(r["finding_id"])
+    assert result["status"] == "APPROVED"
+
+def test_approve_finding_sets_approved_by(isolated_case_dir):
+    from mcp_server.tools.findings import record_finding, approve_finding
+    r = record_finding(title="T", observation="O", interpretation="I",
+                       confidence="CONFIRMED", artifact_source="/a", supporting_tool="parse_amcache")
+    result = approve_finding(r["finding_id"])
+    assert result["approved_by"] == "testuser"
+
+def test_approve_finding_sets_approved_at(isolated_case_dir):
+    from mcp_server.tools.findings import record_finding, approve_finding
+    r = record_finding(title="T", observation="O", interpretation="I",
+                       confidence="CONFIRMED", artifact_source="/a", supporting_tool="parse_amcache")
+    result = approve_finding(r["finding_id"])
+    assert result["approved_at"] is not None
+
+def test_approve_finding_content_hash_present(isolated_case_dir):
+    from mcp_server.tools.findings import record_finding, approve_finding
+    r = record_finding(title="T", observation="O", interpretation="I",
+                       confidence="CONFIRMED", artifact_source="/a", supporting_tool="parse_amcache")
+    result = approve_finding(r["finding_id"])
+    assert "content_hash" in result
+    assert len(result["content_hash"]) == 64
+
+def test_approve_finding_persists_to_json(isolated_case_dir):
+    from mcp_server.tools.findings import record_finding, approve_finding
+    import json
+    r = record_finding(title="T", observation="O", interpretation="I",
+                       confidence="CONFIRMED", artifact_source="/a", supporting_tool="parse_amcache")
+    approve_finding(r["finding_id"])
+    data = json.loads((isolated_case_dir / "findings.json").read_text())
+    assert data[0]["status"] == "APPROVED"
+    assert data[0]["approved_by"] == "testuser"
+    assert "content_hash" in data[0]
+
+def test_approve_finding_writes_approvals_jsonl(isolated_case_dir):
+    from mcp_server.tools.findings import record_finding, approve_finding
+    import json
+    r = record_finding(title="T", observation="O", interpretation="I",
+                       confidence="CONFIRMED", artifact_source="/a", supporting_tool="parse_amcache")
+    approve_finding(r["finding_id"])
+    approvals_file = isolated_case_dir / "approvals.jsonl"
+    assert approvals_file.exists()
+    rec = json.loads(approvals_file.read_text().strip())
+    assert rec["finding_id"] == r["finding_id"]
+    assert rec["approved_by"] == "testuser"
+    assert "content_hash" in rec
+
+def test_approve_finding_writes_audit_log(isolated_case_dir):
+    from mcp_server.tools.findings import record_finding, approve_finding
+    import json
+    r = record_finding(title="T", observation="O", interpretation="I",
+                       confidence="CONFIRMED", artifact_source="/a", supporting_tool="parse_amcache")
+    approve_finding(r["finding_id"])
+    import mcp_server.tools._shared as shared
+    records = [json.loads(l) for l in shared.AUDIT_FILE.read_text().splitlines() if l.strip()]
+    approve_records = [rec for rec in records if rec["tool"] == "approve_finding"]
+    assert len(approve_records) == 1
+    assert approve_records[0]["finding_id"] == r["finding_id"]
+
+def test_approve_finding_not_found(isolated_case_dir):
+    from mcp_server.tools.findings import record_finding, approve_finding
+    import json
+    record_finding(title="T", observation="O", interpretation="I",
+                   confidence="CONFIRMED", artifact_source="/a", supporting_tool="parse_amcache")
+    result = approve_finding("F-testuser-999")
+    assert "error" in result
+    import mcp_server.tools._shared as shared
+    records = [json.loads(l) for l in shared.AUDIT_FILE.read_text().splitlines() if l.strip()]
+    assert any(r["tool"] == "approve_finding" and r["returncode"] == 1 for r in records)
+
+def test_approve_finding_already_approved(isolated_case_dir):
+    from mcp_server.tools.findings import record_finding, approve_finding
+    r = record_finding(title="T", observation="O", interpretation="I",
+                       confidence="CONFIRMED", artifact_source="/a", supporting_tool="parse_amcache")
+    approve_finding(r["finding_id"])
+    result = approve_finding(r["finding_id"])
+    assert "error" in result
+    assert "already" in result["error"].lower()
+
+def test_approve_finding_no_findings_file(isolated_case_dir):
+    from mcp_server.tools.findings import approve_finding
+    import json
+    result = approve_finding("F-testuser-001")
+    assert "error" in result
+    import mcp_server.tools._shared as shared
+    records = [json.loads(l) for l in shared.AUDIT_FILE.read_text().splitlines() if l.strip()]
+    assert any(r["tool"] == "approve_finding" and r["returncode"] == 1 for r in records)

@@ -1,6 +1,7 @@
 """
 mcp_server/tools/findings.py — Investigation state machine for CaseFile.
 """
+import hashlib
 import json
 import os
 import uuid
@@ -14,6 +15,7 @@ BLOCKED_COMMANDS = frozenset({
     "rm", "rmdir", "dd", "mkfs", "format", "shred", "wipe",
     "chmod", "chown", "mv", "truncate", "fdisk", "parted",
     "approve",
+    "approve_finding",
 })
 
 
@@ -222,4 +224,94 @@ def record_timeline_event(
         "status": "DRAFT",
         "message": f"Timeline event staged as DRAFT. Run `casefile approve {event_id}` to approve.",
         "record": record,
+    }
+
+
+def approve_finding(finding_id: str) -> dict:
+    """Approve a DRAFT finding — HUMAN-ONLY gate.
+
+    This function is intentionally excluded from the agent's callable tools
+    via BLOCKED_COMMANDS. It must only be invoked by a human examiner.
+
+    Looks up finding_id in findings.json, flips status DRAFT -> APPROVED,
+    stamps approved_at / approved_by from CASEFILE_EXAMINER, computes a
+    SHA-256 content hash for chain-of-custody, appends a record to
+    approvals.jsonl, and writes an audit log entry on EVERY code path
+    (success and failure) for full invocation traceability.
+
+    Returns the updated finding record on success, or an error dict.
+    """
+    invocation_id = str(uuid.uuid4())
+    examiner = _examiner()
+
+    def _audit(returncode: int, error: str = "") -> None:
+        audit_log(
+            tool="approve_finding",
+            invocation_id=invocation_id,
+            cmd="approve_finding (in-process)",
+            returncode=returncode,
+            stdout_lines=0 if returncode != 0 else 1,
+            stderr_excerpt=error[:500],
+            parsed_record_count=0 if returncode != 0 else 1,
+            duration_ms=0,
+            extra={"finding_id": finding_id, "examiner": examiner},
+        )
+
+    case_dir = _case_dir()
+    findings_file = case_dir / "findings.json"
+
+    if not findings_file.exists():
+        err = f"No findings file found. Finding {finding_id!r} does not exist."
+        _audit(1, err)
+        return {"error": err, "finding_id": finding_id}
+
+    try:
+        data: list = json.loads(findings_file.read_text(encoding="utf-8"))
+    except Exception as exc:
+        err = f"Failed to read findings.json: {exc}"
+        _audit(1, err)
+        return {"error": err, "finding_id": finding_id}
+
+    match = next((f for f in data if f.get("id") == finding_id), None)
+    if match is None:
+        err = f"Finding {finding_id!r} not found."
+        _audit(1, err)
+        return {"error": err, "finding_id": finding_id}
+
+    if match.get("status") == "APPROVED":
+        err = f"Finding {finding_id!r} is already APPROVED."
+        _audit(1, err)
+        return {"error": err, "finding_id": finding_id, "record": match}
+
+    if match.get("status") != "DRAFT":
+        err = f"Finding {finding_id!r} has unexpected status {match.get('status')!r}. Expected DRAFT."
+        _audit(1, err)
+        return {"error": err, "finding_id": finding_id}
+
+    now = datetime.now(timezone.utc).isoformat()
+    match["status"] = "APPROVED"
+    match["approved_at"] = now
+    match["approved_by"] = examiner
+
+    content_hash = hashlib.sha256(
+        json.dumps(match, sort_keys=True, default=str).encode("utf-8")
+    ).hexdigest()
+    match["content_hash"] = content_hash
+
+    _write_json(findings_file, data)
+
+    approvals_file = case_dir / "approvals.jsonl"
+    with approvals_file.open("a", encoding="utf-8") as fh:
+        fh.write(json.dumps({"ts": now, "finding_id": finding_id, "approved_by": examiner, "content_hash": content_hash}) + "\n")
+
+    _audit(0)
+
+    return {
+        "finding_id": finding_id,
+        "status": "APPROVED",
+        "approved_by": examiner,
+        "approved_at": now,
+        "content_hash": content_hash,
+        "message": f"Finding {finding_id} approved by {examiner}.",
+        "record": match,
     }
