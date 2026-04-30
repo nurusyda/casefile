@@ -2,7 +2,7 @@ import json
 import pathlib
 import pytest
 
-SETTINGS_PATH = pathlib.Path(".claude/settings.json")
+SETTINGS_PATH = pathlib.Path(__file__).resolve().parent.parent / ".claude/settings.json"
 
 @pytest.fixture(scope="module")
 def settings():
@@ -50,3 +50,9 @@ def test_allow_list_contains_all_mcp_tools(settings):
     ]
     for tool in expected:
         assert tool in allow, f"Missing from allow list: {tool}"
+
+def test_deny_blocks_chmod_case_evidence(settings):
+    assert "Bash(chmod * cases/*/evidence/*)" in settings["permissions"]["deny"]
+
+def test_deny_blocks_findings_json_write(settings):
+    assert "Write(mcp_server/tools/findings.json)" in settings["permissions"]["deny"]

@@ -22,7 +22,9 @@
       "Bash(chmod * /mnt/evidence/*)",
       "Bash(chmod * cases/*/evidence/*)",
       "Write(**/audit/mcp.jsonl)",
+      "Edit(**/audit/mcp.jsonl)",
       "Write(**/approvals.jsonl)",
+      "Edit(**/approvals.jsonl)",
       "Write(mcp_server/tools/findings.json)"
     ]
   }

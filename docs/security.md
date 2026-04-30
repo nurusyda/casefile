@@ -41,5 +41,4 @@ Every finding carries:
 1. `finding_id` — `F-{examiner}-{n:03d}` format
 2. `artifact_source` — path to the raw artifact
 3. `supporting_tool` — which parse tool produced the evidence
-4. `invocation_id` — links back to `audit/mcp.jsonl` entry
 5. SHA-256 hash — computed at approval time, written to `approvals.jsonl`
