@@ -1,0 +1,42 @@
+{
+  "case_id": "CRIMSON_OSPREY",
+  "description": "Ground truth for SRL-2018 CRIMSON OSPREY case. Manually verified against case debrief.",
+  "checkpoints": [
+    {
+      "id": "CP1",
+      "question": "Malware present on host?",
+      "answer": true,
+      "ioc": "STUN.exe"
+    },
+    {
+      "id": "CP2",
+      "question": "Execution evidence found?",
+      "answer": true,
+      "ioc": "msedge.exe"
+    },
+    {
+      "id": "CP3",
+      "question": "Persistence mechanism identified?",
+      "answer": true,
+      "ioc": "pssdnsvc.exe"
+    },
+    {
+      "id": "CP4",
+      "question": "Lateral movement confirmed?",
+      "answer": true,
+      "ioc": "172.16.6.12"
+    },
+    {
+      "id": "CP5",
+      "question": "Coherent UTC timeline produced?",
+      "answer": true,
+      "ioc": ""
+    },
+    {
+      "id": "CP6",
+      "question": "All findings traceable to artifacts?",
+      "answer": true,
+      "ioc": ""
+    }
+  ]
+}

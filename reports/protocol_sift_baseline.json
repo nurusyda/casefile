@@ -1,0 +1,58 @@
+{
+  "case_id": "CRIMSON_OSPREY",
+  "tool": "Protocol SIFT",
+  "description": "Protocol SIFT baseline \u2014 run on same SRL-2018 evidence, findings scored manually",
+  "methodology": "CFA-Bench",
+  "checkpoints": [
+    {
+      "id": "CP1",
+      "question": "Malware present on host?",
+      "protocol_sift_answer": true,
+      "hallucinated": false,
+      "notes": "STUN.exe detected"
+    },
+    {
+      "id": "CP2",
+      "question": "Execution evidence found?",
+      "protocol_sift_answer": true,
+      "hallucinated": true,
+      "notes": "Execution time fabricated \u2014 not in artifact"
+    },
+    {
+      "id": "CP3",
+      "question": "Persistence mechanism identified?",
+      "protocol_sift_answer": true,
+      "hallucinated": true,
+      "notes": "Service name guessed, not parsed from registry"
+    },
+    {
+      "id": "CP4",
+      "question": "Lateral movement confirmed?",
+      "protocol_sift_answer": false,
+      "hallucinated": false,
+      "notes": "Not detected"
+    },
+    {
+      "id": "CP5",
+      "question": "Coherent UTC timeline produced?",
+      "protocol_sift_answer": true,
+      "hallucinated": true,
+      "notes": "Timestamps not sourced from artifacts"
+    },
+    {
+      "id": "CP6",
+      "question": "All findings traceable to artifacts?",
+      "protocol_sift_answer": false,
+      "hallucinated": false,
+      "notes": "No invocation_id, no tool citation"
+    }
+  ],
+  "summary": {
+    "checkpoints_total": 6,
+    "correct": 2,
+    "hallucinated": 3,
+    "hallucination_rate": 0.5,
+    "score": "2/6"
+  },
+  "note": "Baseline established April 2026 against SRL-2018 CRIMSON OSPREY evidence set"
+}

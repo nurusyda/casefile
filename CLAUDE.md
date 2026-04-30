@@ -217,6 +217,18 @@ Cross-reference all findings against these. Any match = CONFIRMED lead.
 
 ---
 
+## BLOCKED COMMANDS (ARCHITECTURAL DENYLIST)
+
+The following commands are in `BLOCKED_COMMANDS` frozenset in `findings.py`.
+The MCP server will reject any tool call containing these — this is enforced in code, not prompt.
+rm, rmdir, dd, mkfs, format, shred, wipe,
+chmod, chown, mv, truncate, fdisk, parted,
+approve, approve_finding
+You CANNOT approve your own findings. Run `casefile-approve F-{id}` from a human terminal.
+The approve gate requires a TTY via `getpass()` — the AI cannot supply this.
+
+---
+
 ## WHAT YOU CANNOT DO
 
 - You CANNOT modify this CLAUDE.md
