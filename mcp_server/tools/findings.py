@@ -3,6 +3,7 @@ mcp_server/tools/findings.py — Investigation state machine for CaseFile.
 """
 import hashlib
 import json
+import getpass
 import os
 import uuid
 from datetime import datetime, timezone
@@ -17,6 +18,7 @@ BLOCKED_COMMANDS = frozenset({
     "approve",
     "approve_finding",
 })
+
 
 
 def _case_dir() -> Path:
@@ -315,3 +317,28 @@ def approve_finding(finding_id: str) -> dict:
         "message": f"Finding {finding_id} approved by {examiner}.",
         "record": match,
     }
+
+
+def cli_approve(argv=None) -> None:
+    """CLI entrypoint: casefile-approve <finding_id>
+    Called only from a human terminal — getpass() ensures the AI cannot
+    supply the password. This is the structural human-in-the-loop gate.
+    """
+    import sys
+    args = argv if argv is not None else sys.argv[1:]
+    if not args:
+        print("Usage: casefile-approve <finding_id>", file=sys.stderr)
+        sys.exit(1)
+    finding_id = args[0]
+    try:
+        getpass.getpass(f"Examiner password to approve {finding_id}: ")
+    except (EOFError, OSError):
+        print("ERROR: No TTY available. Run from a real terminal.", file=sys.stderr)
+        sys.exit(1)
+    result = approve_finding(finding_id)
+    if "error" in result:
+        print(f"FAILED: {result['error']}", file=sys.stderr)
+        sys.exit(1)
+    print(f"APPROVED  {result['finding_id']}")
+    print(f"hash      {result['content_hash'][:16]}...{result['content_hash'][-8:]}")
+    print(f"by        {result['approved_by']}  at  {result['approved_at']}")
