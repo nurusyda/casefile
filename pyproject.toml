@@ -21,6 +21,7 @@ dev = [
 
 [project.scripts]
 casefile = "mcp_server.server:mcp.run"
+casefile-approve = "mcp_server.tools.findings:cli_approve"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
