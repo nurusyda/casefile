@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "case": "CRIMSON OSPREY",
-  "description": "Acceptance criteria for the Ralph Wiggum self-correction loop. Each task has pass criteria. The loop runs until all tasks pass or max_iterations is reached. Block status: Block 1 (findings SM), Block 2 (examiner audit), Block 3 (approve gate) complete. Block 4 (evidence deny rule) in progress.",
+  "description": "Acceptance criteria for the Ralph Wiggum self-correction loop. Each task has pass criteria. The loop runs until all tasks pass or max_iterations is reached. Blocks 1-4 complete.",
   "max_iterations": 25,
   "completion_signal": "TASK_COMPLETE",
   "tasks": [
@@ -126,5 +126,44 @@
       }
     ],
     "note": "Each checkpoint scored independently. Partial credit awarded. Follows CFA-Bench methodology."
-  }
+  },
+  "investigation_stories": [
+    {
+      "id": "IS-01",
+      "name": "CRIMSON OSPREY \u2014 Initial Compromise",
+      "description": "Attacker dropped STUN.exe in System32, masqueraded msedge.exe x7, established C2 to 172.15.1.20",
+      "entry_point": "parse_amcache(filename_filter=['STUN.exe', 'msedge.exe'])",
+      "expected_label": "CONFIRMED",
+      "ground_truth": {
+        "malware_present": true,
+        "ioc": "STUN.exe",
+        "path": "C:\\Windows\\System32\\STUN.exe"
+      }
+    },
+    {
+      "id": "IS-02",
+      "name": "CRIMSON OSPREY \u2014 Lateral Movement",
+      "description": "Attacker used net.exe PID 9128 to mount H: from 172.16.6.12 R&D subnet",
+      "entry_point": "parse_event_logs(event_ids=[4688]) then parse_prefetch(filename_filter=['net.exe'])",
+      "expected_label": "CONFIRMED",
+      "ground_truth": {
+        "lateral_movement": true,
+        "target_ip": "172.16.6.12",
+        "tool": "net.exe",
+        "pid": 9128
+      }
+    },
+    {
+      "id": "IS-03",
+      "name": "CRIMSON OSPREY \u2014 Persistence",
+      "description": "pssdnsvc.exe registered as service with name/path mismatch; atmfd.dll absent from filesystem",
+      "entry_point": "parse_registry() targeting services and Run keys",
+      "expected_label": "INFERRED",
+      "ground_truth": {
+        "persistence": true,
+        "mechanism": "service",
+        "artifact": "pssdnsvc.exe"
+      }
+    }
+  ]
 }
