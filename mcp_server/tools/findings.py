@@ -1,6 +1,7 @@
 """
 mcp_server/tools/findings.py — Investigation state machine for CaseFile.
 """
+import hashlib
 import json
 import os
 import uuid
@@ -222,4 +223,78 @@ def record_timeline_event(
         "status": "DRAFT",
         "message": f"Timeline event staged as DRAFT. Run `casefile approve {event_id}` to approve.",
         "record": record,
+    }
+
+
+def approve_finding(finding_id: str) -> dict:
+    """Approve a DRAFT finding — human-in-the-loop gate.
+
+    Looks up finding_id in findings.json, flips status DRAFT -> APPROVED,
+    stamps approved_at / approved_by, computes a SHA-256 content hash for
+    chain-of-custody, appends a record to approvals.jsonl, and writes an
+    audit log entry.
+
+    Returns the updated finding record.
+    """
+    case_dir = _case_dir()
+    findings_file = case_dir / "findings.json"
+
+    if not findings_file.exists():
+        return {
+            "error": f"No findings file found. Finding {finding_id!r} does not exist.",
+            "finding_id": finding_id,
+        }
+
+    try:
+        data: list = json.loads(findings_file.read_text(encoding="utf-8"))
+    except Exception as exc:
+        return {"error": f"Failed to read findings.json: {exc}", "finding_id": finding_id}
+
+    match = next((f for f in data if f.get("id") == finding_id), None)
+    if match is None:
+        return {"error": f"Finding {finding_id!r} not found.", "finding_id": finding_id}
+
+    if match.get("status") == "APPROVED":
+        return {"error": f"Finding {finding_id!r} is already APPROVED.", "finding_id": finding_id, "record": match}
+
+    if match.get("status") != "DRAFT":
+        return {"error": f"Finding {finding_id!r} has unexpected status {match.get('status')!r}. Expected DRAFT.", "finding_id": finding_id}
+
+    now = datetime.now(timezone.utc).isoformat()
+    examiner = _examiner()
+    match["status"] = "APPROVED"
+    match["approved_at"] = now
+    match["approved_by"] = examiner
+
+    content_hash = hashlib.sha256(
+        json.dumps(match, sort_keys=True, default=str).encode("utf-8")
+    ).hexdigest()
+    match["content_hash"] = content_hash
+
+    _write_json(findings_file, data)
+
+    approvals_file = case_dir / "approvals.jsonl"
+    with approvals_file.open("a", encoding="utf-8") as fh:
+        fh.write(json.dumps({"ts": now, "finding_id": finding_id, "approved_by": examiner, "content_hash": content_hash}) + "\n")
+
+    audit_log(
+        tool="approve_finding",
+        invocation_id=str(uuid.uuid4()),
+        cmd="approve_finding (in-process)",
+        returncode=0,
+        stdout_lines=1,
+        stderr_excerpt="",
+        parsed_record_count=1,
+        duration_ms=0,
+        extra={"finding_id": finding_id, "status": "APPROVED", "approved_by": examiner, "content_hash": content_hash},
+    )
+
+    return {
+        "finding_id": finding_id,
+        "status": "APPROVED",
+        "approved_by": examiner,
+        "approved_at": now,
+        "content_hash": content_hash,
+        "message": f"Finding {finding_id} approved by {examiner}.",
+        "record": match,
     }

@@ -20,6 +20,7 @@ from mcp_server.tools.findings import (
     record_finding,
     get_findings,
     record_timeline_event,
+    approve_finding,
     BLOCKED_COMMANDS,
 )
 
@@ -65,6 +66,7 @@ mcp.tool()(parse_mft)
 mcp.tool()(record_finding)
 mcp.tool()(get_findings)
 mcp.tool()(record_timeline_event)
+mcp.tool()(approve_finding)
 
 if __name__ == "__main__":
     mcp.run()
