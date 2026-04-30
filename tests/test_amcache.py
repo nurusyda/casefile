@@ -193,7 +193,8 @@ class TestParseAmcacheIntegration:
         )
         self._make_fake_csv(out_dir, "Amcache", CLEAN_CSV)
 
-        result = parse_amcache(str(hive), output_dir=str(out_dir))
+        with patch.dict("os.environ", {"CASEFILE_EXAMINER": "casefile"}, clear=False):
+            result = parse_amcache(str(hive), output_dir=str(out_dir))
 
         assert result["error"] is None
         assert result["total_entries"] == 2
@@ -212,7 +213,8 @@ class TestParseAmcacheIntegration:
         )
         self._make_fake_csv(out_dir, "Amcache", SUSPICIOUS_CSV)
 
-        result = parse_amcache(str(hive), output_dir=str(out_dir))
+        with patch.dict("os.environ", {"CASEFILE_EXAMINER": "casefile"}, clear=False):
+            result = parse_amcache(str(hive), output_dir=str(out_dir))
 
         assert result["error"] is None
         assert len(result["suspicious"]) > 0
@@ -221,7 +223,8 @@ class TestParseAmcacheIntegration:
             assert "suspicion_reasons" in s
 
     def test_missing_hive_returns_error(self, tmp_path):
-        result = parse_amcache(str(tmp_path / "nonexistent.hve"))
+        with patch.dict("os.environ", {"CASEFILE_EXAMINER": "casefile"}, clear=False):
+            result = parse_amcache(str(tmp_path / "nonexistent.hve"))
         assert result["error"] is not None
         assert "not found" in result["error"].lower()
         assert result["total_entries"] == 0
@@ -245,7 +248,8 @@ class TestParseAmcacheIntegration:
         )
         self._make_fake_csv(out_dir, "Amcache", header + rows)
 
-        result = parse_amcache(str(hive), output_dir=str(out_dir), include_all=False)
+        with patch.dict("os.environ", {"CASEFILE_EXAMINER": "casefile"}, clear=False):
+            result = parse_amcache(str(hive), output_dir=str(out_dir), include_all=False)
 
         assert result["total_entries"] == 600
         assert result["entries_returned"] <= 500
@@ -267,7 +271,8 @@ class TestParseAmcacheIntegration:
         )
         self._make_fake_csv(out_dir, "Amcache", header + rows)
 
-        result = parse_amcache(str(hive), output_dir=str(out_dir), include_all=True)
+        with patch.dict("os.environ", {"CASEFILE_EXAMINER": "casefile"}, clear=False):
+            result = parse_amcache(str(hive), output_dir=str(out_dir), include_all=True)
 
         assert result["entries_returned"] == 600
         assert result["entries_capped"] is False
@@ -281,7 +286,8 @@ class TestParseAmcacheIntegration:
             "Tool exited 1.\nCMD: dotnet ...\nSTDERR: Hive corrupt"
         )
 
-        result = parse_amcache(str(hive))
+        with patch.dict("os.environ", {"CASEFILE_EXAMINER": "casefile"}, clear=False):
+            result = parse_amcache(str(hive))
 
         assert result["error"] is not None
         assert "Tool exited" in result["error"] or "corrupt" in result["error"].lower()
@@ -298,7 +304,8 @@ class TestParseAmcacheIntegration:
 
         # Redirect audit log to tmp_path
         with patch("mcp_server.tools._shared.AUDIT_FILE", tmp_path / "mcp.jsonl"):
-            result = parse_amcache(str(hive), output_dir=str(out_dir))
+            with patch.dict("os.environ", {"CASEFILE_EXAMINER": "casefile"}, clear=False):
+                result = parse_amcache(str(hive), output_dir=str(out_dir))
 
         log_path = tmp_path / "mcp.jsonl"
         assert log_path.exists(), "Audit log was not created"
@@ -323,7 +330,8 @@ class TestParseAmcacheIntegration:
         mock_run.return_value = SimpleNamespace(returncode=0, stdout="", stderr="")
         self._make_fake_csv(out_dir, "Amcache", CLEAN_CSV)
 
-        result = parse_amcache(str(hive), output_dir=str(out_dir))
+        with patch.dict("os.environ", {"CASEFILE_EXAMINER": "casefile"}, clear=False):
+            result = parse_amcache(str(hive), output_dir=str(out_dir))
 
         required_keys = [
             "invocation_id", "tool", "amcache_path", "run_ts_utc",
@@ -349,7 +357,8 @@ class TestParseAmcacheIntegration:
         )
         self._make_fake_csv(out_dir, "Amcache", csv_content)
 
-        result = parse_amcache(str(hive), output_dir=str(out_dir))
+        with patch.dict("os.environ", {"CASEFILE_EXAMINER": "casefile"}, clear=False):
+            result = parse_amcache(str(hive), output_dir=str(out_dir))
         timestamps = [
             e["first_run_utc"] for e in result["entries"]
             if e.get("first_run_utc")

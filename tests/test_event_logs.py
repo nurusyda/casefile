@@ -215,7 +215,8 @@ class TestParseEventLogsIntegration:
         mock_run.return_value = SimpleNamespace(returncode=0, stdout="", stderr="")
         self._write_csv(out_dir, "evtx", CLEAN_CSV)
 
-        result = parse_event_logs(str(evtx_dir), output_dir=str(out_dir))
+        with patch.dict("os.environ", {"CASEFILE_EXAMINER": "casefile"}, clear=False):
+            result = parse_event_logs(str(evtx_dir), output_dir=str(out_dir))
 
         assert result["error"] is None
         assert result["total_entries"] == 2
@@ -231,13 +232,15 @@ class TestParseEventLogsIntegration:
         mock_run.return_value = SimpleNamespace(returncode=0, stdout="", stderr="")
         self._write_csv(out_dir, "Security", SUSPICIOUS_CSV)
 
-        result = parse_event_logs(str(evtx_file), output_dir=str(out_dir))
+        with patch.dict("os.environ", {"CASEFILE_EXAMINER": "casefile"}, clear=False):
+            result = parse_event_logs(str(evtx_file), output_dir=str(out_dir))
 
         assert result["error"] is None
         assert result["total_entries"] > 0
 
     def test_missing_path_returns_error(self, tmp_path):
-        result = parse_event_logs(str(tmp_path / "nonexistent"))
+        with patch.dict("os.environ", {"CASEFILE_EXAMINER": "casefile"}, clear=False):
+            result = parse_event_logs(str(tmp_path / "nonexistent"))
         assert result["error"] is not None
         assert "not found" in result["error"].lower()
 
@@ -270,7 +273,8 @@ class TestParseEventLogsIntegration:
         mock_run.return_value = SimpleNamespace(returncode=0, stdout="", stderr="")
         self._write_csv(out_dir, "evtx", CLEAN_CSV)
 
-        result = parse_event_logs(str(evtx_dir), output_dir=str(out_dir))
+        with patch.dict("os.environ", {"CASEFILE_EXAMINER": "casefile"}, clear=False):
+            result = parse_event_logs(str(evtx_dir), output_dir=str(out_dir))
 
         assert result["event_ids_filter"] == DEFAULT_EVENT_IDS
         cmd_used = mock_run.call_args[0][0]
@@ -285,7 +289,8 @@ class TestParseEventLogsIntegration:
         mock_run.return_value = SimpleNamespace(returncode=0, stdout="", stderr="")
         self._write_csv(out_dir, "evtx", SUSPICIOUS_CSV)
 
-        result = parse_event_logs(str(evtx_dir), output_dir=str(out_dir))
+        with patch.dict("os.environ", {"CASEFILE_EXAMINER": "casefile"}, clear=False):
+            result = parse_event_logs(str(evtx_dir), output_dir=str(out_dir))
 
         assert len(result["suspicious"]) > 0
         for s in result["suspicious"]:
@@ -300,7 +305,8 @@ class TestParseEventLogsIntegration:
         mock_run.return_value = SimpleNamespace(returncode=0, stdout="", stderr="")
         self._write_csv(out_dir, "evtx", SUSPICIOUS_CSV)
 
-        result = parse_event_logs(str(evtx_dir), output_dir=str(out_dir))
+        with patch.dict("os.environ", {"CASEFILE_EXAMINER": "casefile"}, clear=False):
+            result = parse_event_logs(str(evtx_dir), output_dir=str(out_dir))
 
         counts = result["event_id_counts"]
         assert isinstance(counts, dict)
@@ -317,7 +323,8 @@ class TestParseEventLogsIntegration:
         mock_run.return_value = SimpleNamespace(returncode=0, stdout="", stderr="")
         self._write_csv(out_dir, "evtx", SUSPICIOUS_CSV)
 
-        result = parse_event_logs(str(evtx_dir), output_dir=str(out_dir))
+        with patch.dict("os.environ", {"CASEFILE_EXAMINER": "casefile"}, clear=False):
+            result = parse_event_logs(str(evtx_dir), output_dir=str(out_dir))
 
         timestamps = [e["timestamp_utc"] for e in result["entries"] if e.get("timestamp_utc")]
         assert timestamps == sorted(timestamps)
@@ -339,7 +346,8 @@ class TestParseEventLogsIntegration:
         )
         self._write_csv(out_dir, "evtx", header + rows)
 
-        result = parse_event_logs(str(evtx_dir), output_dir=str(out_dir), include_all=False)
+        with patch.dict("os.environ", {"CASEFILE_EXAMINER": "casefile"}, clear=False):
+            result = parse_event_logs(str(evtx_dir), output_dir=str(out_dir), include_all=False)
 
         assert result["total_entries"] == 1200
         assert result["entries_returned"] <= 1000
@@ -355,7 +363,8 @@ class TestParseEventLogsIntegration:
         mock_run.return_value = SimpleNamespace(returncode=0, stdout="", stderr="")
         # No CSV files written
 
-        result = parse_event_logs(str(evtx_dir), output_dir=str(out_dir))
+        with patch.dict("os.environ", {"CASEFILE_EXAMINER": "casefile"}, clear=False):
+            result = parse_event_logs(str(evtx_dir), output_dir=str(out_dir))
 
         assert result["error"] is None
         assert result["total_entries"] == 0
@@ -369,7 +378,8 @@ class TestParseEventLogsIntegration:
 
         mock_run.side_effect = RuntimeError("Tool exited 1.\nSTDERR: File locked")
 
-        result = parse_event_logs(str(evtx_dir))
+        with patch.dict("os.environ", {"CASEFILE_EXAMINER": "casefile"}, clear=False):
+            result = parse_event_logs(str(evtx_dir))
 
         assert result["error"] is not None
         assert result["entries"] == []
@@ -384,7 +394,8 @@ class TestParseEventLogsIntegration:
         self._write_csv(out_dir, "evtx", SUSPICIOUS_CSV)
 
         with patch("mcp_server.tools._shared.AUDIT_FILE", tmp_path / "mcp.jsonl"):
-            result = parse_event_logs(str(evtx_dir), output_dir=str(out_dir))
+            with patch.dict("os.environ", {"CASEFILE_EXAMINER": "casefile"}, clear=False):
+                result = parse_event_logs(str(evtx_dir), output_dir=str(out_dir))
 
         log_path = tmp_path / "mcp.jsonl"
         assert log_path.exists()
@@ -406,7 +417,8 @@ class TestParseEventLogsIntegration:
         mock_run.return_value = SimpleNamespace(returncode=0, stdout="", stderr="")
         self._write_csv(out_dir, "evtx", CLEAN_CSV)
 
-        result = parse_event_logs(str(evtx_dir), output_dir=str(out_dir))
+        with patch.dict("os.environ", {"CASEFILE_EXAMINER": "casefile"}, clear=False):
+            result = parse_event_logs(str(evtx_dir), output_dir=str(out_dir))
 
         required = [
             "invocation_id", "tool", "evtx_path", "event_ids_filter",

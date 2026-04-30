@@ -275,7 +275,8 @@ class TestParseMftIntegration:
         mock_run.return_value = SimpleNamespace(returncode=0, stdout="", stderr="")
         self._write_csv(out_dir, "mft", CLEAN_CSV)
 
-        result = parse_mft(str(mft_file), output_dir=str(out_dir))
+        with patch.dict("os.environ", {"CASEFILE_EXAMINER": "casefile"}, clear=False):
+            result = parse_mft(str(mft_file), output_dir=str(out_dir))
 
         assert result["error"] is None
         assert result["tool"] == "MFTECmd"
@@ -290,7 +291,8 @@ class TestParseMftIntegration:
         mock_run.return_value = SimpleNamespace(returncode=0, stdout="", stderr="")
         self._write_csv(out_dir, "mft", TIMESTOMPED_CSV)
 
-        result = parse_mft(str(mft_file), output_dir=str(out_dir))
+        with patch.dict("os.environ", {"CASEFILE_EXAMINER": "casefile"}, clear=False):
+            result = parse_mft(str(mft_file), output_dir=str(out_dir))
 
         assert len(result["timestomped"]) == 1
         ts = result["timestomped"][0]
@@ -306,7 +308,8 @@ class TestParseMftIntegration:
         mock_run.return_value = SimpleNamespace(returncode=0, stdout="", stderr="")
         self._write_csv(out_dir, "mft", SUSPICIOUS_CSV)
 
-        result = parse_mft(
+        with patch.dict("os.environ", {"CASEFILE_EXAMINER": "casefile"}, clear=False):
+            result = parse_mft(
             str(mft_file),
             output_dir=str(out_dir),
             filename_filter=["msedge.exe"],
@@ -317,7 +320,8 @@ class TestParseMftIntegration:
             assert "msedge" in e["filename"].lower()
 
     def test_missing_mft_returns_error(self, tmp_path):
-        result = parse_mft(str(tmp_path / "nonexistent"))
+        with patch.dict("os.environ", {"CASEFILE_EXAMINER": "casefile"}, clear=False):
+            result = parse_mft(str(tmp_path / "nonexistent"))
         assert result["error"] is not None
         assert "not found" in result["error"].lower()
 
@@ -344,7 +348,8 @@ class TestParseMftIntegration:
         mock_run.return_value = SimpleNamespace(returncode=0, stdout="", stderr="")
         self._write_csv(out_dir, "mft", SUSPICIOUS_CSV)
 
-        result = parse_mft(str(mft_file), output_dir=str(out_dir))
+        with patch.dict("os.environ", {"CASEFILE_EXAMINER": "casefile"}, clear=False):
+            result = parse_mft(str(mft_file), output_dir=str(out_dir))
 
         assert len(result["suspicious"]) > 0
 
@@ -374,7 +379,8 @@ class TestParseMftIntegration:
         )
         self._write_csv(out_dir, "mft", header + rows)
 
-        result = parse_mft(
+        with patch.dict("os.environ", {"CASEFILE_EXAMINER": "casefile"}, clear=False):
+            result = parse_mft(
             str(mft_file),
             output_dir=str(out_dir),
             filename_filter=["file"],  # matches all 600
@@ -391,7 +397,8 @@ class TestParseMftIntegration:
 
         mock_run.side_effect = RuntimeError("Tool exited 1.\nSTDERR: Out of memory")
 
-        result = parse_mft(str(mft_file))
+        with patch.dict("os.environ", {"CASEFILE_EXAMINER": "casefile"}, clear=False):
+            result = parse_mft(str(mft_file))
 
         assert result["error"] is not None
         assert result["entries"] == []
@@ -406,7 +413,8 @@ class TestParseMftIntegration:
         self._write_csv(out_dir, "mft", CLEAN_CSV)
 
         with patch("mcp_server.tools._shared.AUDIT_FILE", tmp_path / "mcp.jsonl"):
-            result = parse_mft(str(mft_file), output_dir=str(out_dir))
+            with patch.dict("os.environ", {"CASEFILE_EXAMINER": "casefile"}, clear=False):
+                result = parse_mft(str(mft_file), output_dir=str(out_dir))
 
         log_path = tmp_path / "mcp.jsonl"
         assert log_path.exists()
@@ -427,7 +435,8 @@ class TestParseMftIntegration:
         mock_run.return_value = SimpleNamespace(returncode=0, stdout="", stderr="")
         self._write_csv(out_dir, "mft", CLEAN_CSV)
 
-        result = parse_mft(str(mft_file), output_dir=str(out_dir))
+        with patch.dict("os.environ", {"CASEFILE_EXAMINER": "casefile"}, clear=False):
+            result = parse_mft(str(mft_file), output_dir=str(out_dir))
 
         required = [
             "invocation_id", "tool", "mft_path", "run_ts_utc",
