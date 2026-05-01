@@ -90,10 +90,12 @@ def _sha256_of_file(path: Path, chunk: int = 1024 * 1024) -> str:
         for block in iter(lambda: fh.read(chunk), b""):
             h.update(block)
     digest = h.hexdigest()
-    try:
-        sidecar.write_text(digest, encoding="utf-8")
-    except OSError:
-        pass  # read-only evidence mount — sidecar is optional
+    # Never write sidecar into evidence paths — forensic hygiene (CLAUDE.md Law 1)
+    if not any(str(path).startswith(prefix) for prefix in _EVIDENCE_PREFIXES):
+        try:
+            sidecar.write_text(digest, encoding="utf-8")
+        except OSError:
+            pass  # sidecar is optional
     return digest
 
 
@@ -106,9 +108,13 @@ def _cache_path(sha256_short: str, plugin: str) -> Path:
     return _case_dir() / "memory_cache" / sha256_short / f"{plugin}.json"
 
 
+# Evidence paths that must remain read-only (matches CLAUDE.md Law 1)
+_EVIDENCE_PREFIXES = ("/cases/", "/mnt/", "/media/", "/evidence/")
+
+
 # ── Volatility output parsers ───────────────────────────────────────────────────
 
-def _parse_volatility_text(stdout: str, plugin: str) -> list[dict[str, Any]]:
+def _parse_volatility_text(stdout: str) -> list[dict[str, Any]]:
     """
     Volatility3 default output is TSV-like: header line, blank line, rows.
     We parse it ourselves rather than relying on `-r json` because some plugins
@@ -201,7 +207,7 @@ def parse_memory(
         audit_log(
             tool="Volatility3",
             invocation_id=invocation_id,
-            cmd=f"<rejected: bad image path>",
+            cmd="<rejected: bad image path>",
             returncode=-1,
             stdout_lines=0,
             stderr_excerpt=str(e),
@@ -255,7 +261,7 @@ def parse_memory(
             timeout=timeout_sec,
             check=False,
         )
-    except subprocess.TimeoutExpired:
+    except subprocess.TimeoutExpired as err:
         duration_ms = int((time.monotonic() - t_start) * 1000)
         audit_log(
             tool="Volatility3",
@@ -268,8 +274,8 @@ def parse_memory(
             duration_ms=duration_ms,
             extra={"plugin": plugin, "image_sha256": image_sha256, "timeout": True},
         )
-        raise MemoryToolError(f"Volatility timed out after {timeout_sec}s")
-    except FileNotFoundError as e:
+        raise MemoryToolError(f"Volatility timed out after {timeout_sec}s") from err
+    except FileNotFoundError as err:
         # vol binary missing — distinct error so callers can detect this case
         duration_ms = int((time.monotonic() - t_start) * 1000)
         audit_log(
@@ -284,7 +290,7 @@ def parse_memory(
             extra={"plugin": plugin, "image_sha256": image_sha256,
                    "rejection_reason": "vol_binary_missing"},
         )
-        raise MemoryToolError(f"Volatility binary not found at {VOL_BIN}: {e}")
+        raise MemoryToolError(f"Volatility binary not found at {VOL_BIN}: {err}") from err
 
     if result.returncode != 0:
         duration_ms = int((time.monotonic() - t_start) * 1000)
@@ -305,7 +311,7 @@ def parse_memory(
         )
 
     # ── Parse ──
-    records = _parse_volatility_text(result.stdout, plugin)
+    records = _parse_volatility_text(result.stdout)
     duration_ms = int((time.monotonic() - t_start) * 1000)
 
     payload: dict[str, Any] = {

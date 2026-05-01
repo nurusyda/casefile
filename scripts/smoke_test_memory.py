@@ -47,7 +47,7 @@ def main() -> int:
     pids = {r.get("PID") for r in csrss}
     print(f"  csrss PIDs    : {sorted(pids)}")
     if "4048" in pids:
-        print(f"  → IMPERSONATOR PID 4048 CONFIRMED IN MEMORY")
+        print("  → IMPERSONATOR PID 4048 CONFIRMED IN MEMORY")
 
     print("\n=== Run 2: pslist (should hit cache, near-instant) ===")
     r2 = parse_memory(IMAGE, plugin="windows.pslist")
