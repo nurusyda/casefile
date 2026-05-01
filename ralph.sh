@@ -125,17 +125,17 @@ PYEOF
     log "No completion signal. Continuing..."
 
     # Write self-correction record to audit/ralph.jsonl
-    python3 - << PYEOF2
+    RALPH_JSONL="${RALPH_JSONL}" CASE_DIR="${CASE_DIR}" ITERATION="${iteration}" MAX_ITER="${MAX_ITER}" python3 - <<'PYEOF2'
 import json, datetime, os
 record = {
     "timestamp_utc": datetime.datetime.utcnow().isoformat() + "Z",
-    "iteration": ${iteration},
-    "max_iterations": ${MAX_ITER},
+    "iteration": int(os.environ["ITERATION"]),
+    "max_iterations": int(os.environ["MAX_ITER"]),
     "event": "self_correction",
     "action": "retry",
-    "case_dir": "${CASE_DIR}"
+    "case_dir": os.environ["CASE_DIR"]
 }
-with open("${CASE_DIR}/audit/ralph.jsonl", "a") as f:
+with open(os.environ["RALPH_JSONL"], "a", encoding="utf-8") as f:
     f.write(json.dumps(record) + "\n")
 PYEOF2
 

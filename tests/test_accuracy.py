@@ -149,3 +149,61 @@ def test_ground_truth_sha256_present(tmp_case):
     result = call_report(tmp_case, gt)
     assert "ground_truth_sha256" in result
     assert len(result["ground_truth_sha256"]) == 64
+
+
+def test_empty_ioc_checkpoint_no_crash(tmp_case):
+    """CP5/CP6-style checkpoints with empty ioc string should not crash or false-match."""
+    findings = [{"finding_id": "F-001", "status": "APPROVED", "confidence": "CONFIRMED",
+                 "observation": "timeline produced", "interpretation": "", "artifact_source": ""}]
+    case_dir = make_findings(findings, tmp_case)
+    gt = make_ground_truth(
+        [{"id": "CP5", "question": "Coherent UTC timeline produced?", "answer": True, "ioc": ""}],
+        tmp_case
+    )
+    result = call_report(case_dir, gt)
+    assert "accuracy_metrics" in result
+    assert result["accuracy_metrics"]["checkpoints_total"] == 1
+
+
+def test_audit_log_entry_on_success(tmp_case, monkeypatch):
+    """generate_accuracy_report() must write an audit log entry on success."""
+    audit_calls = []
+
+    import mcp_server.tools.accuracy as acc
+    original = acc.audit_log
+
+    def mock_audit(**kwargs):
+        audit_calls.append(kwargs)
+
+    monkeypatch.setattr(acc, "audit_log", mock_audit)
+
+    gt = make_ground_truth([], tmp_case)
+    with __import__("unittest.mock", fromlist=["patch"]).patch.dict(
+        "os.environ", {"CASEFILE_CASE_DIR": str(tmp_case)}, clear=False
+    ):
+        acc.generate_accuracy_report(case_id="TEST", ground_truth_file=gt)
+
+    assert len(audit_calls) == 1
+    assert audit_calls[0]["tool"] == "generate_accuracy_report"
+    assert audit_calls[0]["returncode"] == 0
+
+
+def test_audit_log_entry_on_missing_gt(tmp_case, monkeypatch):
+    """generate_accuracy_report() must write an audit log entry even on error."""
+    audit_calls = []
+
+    import mcp_server.tools.accuracy as acc
+
+    def mock_audit(**kwargs):
+        audit_calls.append(kwargs)
+
+    monkeypatch.setattr(acc, "audit_log", mock_audit)
+
+    with __import__("unittest.mock", fromlist=["patch"]).patch.dict(
+        "os.environ", {"CASEFILE_CASE_DIR": str(tmp_case)}, clear=False
+    ):
+        result = acc.generate_accuracy_report(case_id="TEST", ground_truth_file="/nonexistent/gt.json")
+
+    assert "error" in result
+    assert len(audit_calls) == 1
+    assert audit_calls[0]["returncode"] == 1
