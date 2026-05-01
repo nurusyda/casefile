@@ -39,6 +39,23 @@ You have five forensic MCP functions. Use them. Never bypass them with raw shell
 | `parse_registry()`    | Persistence, Run keys, USB, UserAssist          | RECmd            |
 | `parse_mft()`         | Full filesystem timeline + timestomping         | MFTECmd          |
 
+## INFERENCE CONSTRAINT LEVELS PER TOOL
+
+Each tool has a maximum inference level you may assert without corroboration:
+
+| MCP Function          | Max Solo Inference | Requires Corroboration For        |
+|-----------------------|--------------------|-----------------------------------|
+| `parse_amcache()`     | CONFIRMED          | Execution time (not in Amcache)   |
+| `parse_prefetch()`    | CONFIRMED          | Network/registry activity         |
+| `parse_event_logs()`  | CONFIRMED          | File-level attribution            |
+| `parse_registry()`    | INFERRED           | Actual execution (use Amcache)    |
+| `parse_mft()`         | INFERRED           | Who wrote the file (use event logs)|
+
+Rule: You may not assert CONFIRMED on a finding that requires corroboration unless you have
+run the corroborating tool and its output supports the claim.
+
+---
+
 **Why this matters:** Raw tool output contains 300K+ lines. Passing it to your context causes hallucination.
 Structured MCP JSON gives you pre-parsed, capped, field-validated data. This is the architecture.
 
@@ -200,6 +217,18 @@ Cross-reference all findings against these. Any match = CONFIRMED lead.
 
 ---
 
+## BLOCKED COMMANDS (ARCHITECTURAL DENYLIST)
+
+The following commands are in `BLOCKED_COMMANDS` frozenset in `findings.py`.
+The MCP server will reject any tool call containing these — this is enforced in code, not prompt.
+rm, rmdir, dd, mkfs, format, shred, wipe,
+chmod, chown, mv, truncate, fdisk, parted,
+approve, approve_finding
+You CANNOT approve your own findings. Run `casefile-approve F-{id}` from a human terminal.
+The approve gate requires a TTY via `getpass()` — the AI cannot supply this.
+
+---
+
 ## WHAT YOU CANNOT DO
 
 - You CANNOT modify this CLAUDE.md
@@ -210,4 +239,4 @@ Cross-reference all findings against these. Any match = CONFIRMED lead.
 - You CANNOT assert CONFIRMED without a traceable artifact
 
 Evidence path restrictions are enforced via CLAUDE.md (prompt) and .claude/settings.json
-(MCP allow-list). Architectural deny rule for evidence paths is Block 4 — in progress.
+(MCP deny-list). Architectural deny rules are active — see docs/security.md.

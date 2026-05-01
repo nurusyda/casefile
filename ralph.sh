@@ -25,6 +25,7 @@ PROGRESS_FILE="${CASE_DIR}/analysis/progress.txt"
 LOG_FILE="${CASE_DIR}/analysis/ralph.log"
 MAX_ITER=$(python3 -c "import json; print(json.load(open('${PRD_FILE}'))['max_iterations'])" 2>/dev/null || echo 25)
 COMPLETION_SIGNAL="TASK_COMPLETE"
+RALPH_JSONL="${CASE_DIR}/audit/ralph.jsonl"
 
 # ─── SETUP ─────────────────────────────────────────────────────────────────────
 mkdir -p "${CASE_DIR}/analysis" "${CASE_DIR}/reports" "${CASE_DIR}/audit"
@@ -122,6 +123,21 @@ PYEOF
     fi
 
     log "No completion signal. Continuing..."
+
+    # Write self-correction record to audit/ralph.jsonl
+    RALPH_JSONL="${RALPH_JSONL}" CASE_DIR="${CASE_DIR}" ITERATION="${iteration}" MAX_ITER="${MAX_ITER}" python3 - <<'PYEOF2'
+import json, datetime, os
+record = {
+    "timestamp_utc": datetime.datetime.utcnow().isoformat() + "Z",
+    "iteration": int(os.environ["ITERATION"]),
+    "max_iterations": int(os.environ["MAX_ITER"]),
+    "event": "self_correction",
+    "action": "retry",
+    "case_dir": os.environ["CASE_DIR"]
+}
+with open(os.environ["RALPH_JSONL"], "a", encoding="utf-8") as f:
+    f.write(json.dumps(record) + "\n")
+PYEOF2
 
     # RAM check between iterations
     FREE_RAM=$(free -h | awk '/^Mem:/ {print $4}')
