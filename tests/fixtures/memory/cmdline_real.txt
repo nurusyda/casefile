@@ -1,0 +1,133 @@
+Volatility 3 Framework 2.27.0
+
+PID	Process	Args
+
+4	System	-
+388	smss.exe	\SystemRoot\System32\smss.exe
+540	smss.exe	-
+552	csrss.exe	%SystemRoot%\system32\csrss.exe ObjectDirectory=\Windows SharedSection=1024,20480,768 Windows=On SubSystemType=Windows ServerDll=basesrv,1 ServerDll=winsrv:UserServerDllInitialization,3 ServerDll=sxssrv,4 ProfileControl=Off MaxRequestThreads=16
+624	smss.exe	-
+632	wininit.exe	wininit.exe
+648	csrss.exe	%SystemRoot%\system32\csrss.exe ObjectDirectory=\Windows SharedSection=1024,20480,768 Windows=On SubSystemType=Windows ServerDll=basesrv,1 ServerDll=winsrv:UserServerDllInitialization,3 ServerDll=sxssrv,4 ProfileControl=Off MaxRequestThreads=16
+724	winlogon.exe	winlogon.exe
+740	services.exe	C:\WINDOWS\system32\services.exe
+772	lsass.exe	C:\WINDOWS\system32\lsass.exe
+868	svchost.exe	C:\WINDOWS\system32\svchost.exe -k DcomLaunch -p
+892	fontdrvhost.ex	"fontdrvhost.exe"
+900	fontdrvhost.ex	"fontdrvhost.exe"
+988	svchost.exe	C:\WINDOWS\system32\svchost.exe -k RPCSS -p
+432	dwm.exe	"dwm.exe"
+556	svchost.exe	C:\WINDOWS\system32\svchost.exe -k netsvcs -p
+652	svchost.exe	C:\WINDOWS\System32\svchost.exe -k NetworkService
+848	svchost.exe	C:\WINDOWS\System32\svchost.exe -k LocalServiceNetworkRestricted -p
+692	svchost.exe	C:\WINDOWS\system32\svchost.exe -k LocalService -p
+1064	svchost.exe	C:\WINDOWS\System32\svchost.exe -k LocalSystemNetworkRestricted -p
+1072	svchost.exe	C:\WINDOWS\system32\svchost.exe -k LocalService
+1100	svchost.exe	C:\WINDOWS\system32\svchost.exe -k NetworkService -p
+1152	svchost.exe	C:\WINDOWS\system32\svchost.exe -k LocalServiceNoNetwork -p
+1392	vmacthlp.exe	"C:\Program Files\VMware\VMware Tools\vmacthlp.exe"
+1484	MemCompression	-
+1592	svchost.exe	C:\WINDOWS\System32\svchost.exe -k LocalServiceNetworkRestricted -p
+1696	svchost.exe	C:\WINDOWS\system32\svchost.exe -k netsvcs
+1812	svchost.exe	C:\WINDOWS\System32\svchost.exe -k LocalServiceNetworkRestricted -p
+1844	svchost.exe	C:\WINDOWS\system32\svchost.exe -k LocalServiceNetworkRestricted -p
+1868	svchost.exe	C:\WINDOWS\system32\svchost.exe -k NetworkServiceNetworkRestricted -p
+1040	spoolsv.exe	C:\WINDOWS\System32\spoolsv.exe
+2152	armsvc.exe	"C:\Program Files (x86)\Common Files\Adobe\ARM\1.0\armsvc.exe"
+2164	svchost.exe	C:\WINDOWS\System32\svchost.exe -k utcsvc -p
+2176	HipMgmt.exe	"C:\Program Files (x86)\McAfee\Host Intrusion Prevention\HipMgmt.exe"
+2184	masvc.exe	"C:\Program Files\McAfee\Agent\masvc.exe" /ServiceStart
+2196	FireSvc.exe	"C:\Program Files\McAfee\Host Intrusion Prevention\FireSvc.exe"
+2204	VsTskMgr.exe	"C:\Program Files (x86)\McAfee\VirusScan Enterprise\VsTskMgr.exe"
+2228	macmnsvc.exe	"C:\Program Files\McAfee\Agent\macmnsvc.exe" /ServiceStart
+2248	mfemms.exe	"C:\Program Files\Common Files\McAfee\SystemCore\mfemms.exe"
+2360	SecurityHealth	C:\WINDOWS\system32\SecurityHealthService.exe
+2400	VGAuthService.	"C:\Program Files\VMware\VMware Tools\VMware VGAuth\VGAuthService.exe"
+2416	vmtoolsd.exe	"C:\Program Files\VMware\VMware Tools\vmtoolsd.exe"
+2432	ManagementAgen	"C:\Program Files\VMware\VMware Tools\VMware CAF\pme\bin\ManagementAgentHost.exe"
+2876	WmiPrvSE.exe	C:\WINDOWS\system32\wbem\wmiprvse.exe
+1388	mfevtps.exe	"C:\WINDOWS\system32\mfevtps.exe"
+2572	FireTray.exe	-
+3232	mfeann.exe	"C:\Program Files (x86)\McAfee\VirusScan Enterprise\mfeann.exe"
+3248	conhost.exe	\??\C:\WINDOWS\system32\conhost.exe 0x4
+3552	svchost.exe	C:\WINDOWS\system32\svchost.exe -k appmodel -p
+3584	mfevtps.exe	"C:\WINDOWS\system32\mfevtps.exe" -mms
+3756	macompatsvc.ex	"C:\Program Files\McAfee\Agent\x86\macompatsvc.exe"
+3948	mfemactl.exe	"C:\Program Files\McAfee\Agent\x86\\mfemactl.exe" --log "C:\ProgramData\McAfee\Agent\logs" --ppid 2184 --interface 4D454F57010000000000000000000000C000000000000046000000000500000078454986526A705C0E45E2DD14D7EC8C023800008808600F7FF7D2A44DDF7D3900000000 
+4016	mfefire.exe	"C:\Program Files\Common Files\McAfee\SystemCore\mfefire.exe" -mms
+4064	mfehcs.exe	"C:\Program Files\Common Files\McAfee\SystemCore\mfehcs.exe" -mms
+1892	mcshield.exe	"C:\Program Files\Common Files\McAfee\SystemCore\mcshield.exe"
+4332	msdtc.exe	C:\WINDOWS\System32\msdtc.exe
+2860	OfficeClickToR	"C:\Program Files\Common Files\Microsoft Shared\ClickToRun\OfficeClickToRun.exe" /service
+5252	AppVShNotify.e	"C:\Program Files\Common Files\Microsoft Shared\ClickToRun\AppVShNotify.exe"
+5544	sihost.exe	sihost.exe
+5576	svchost.exe	C:\WINDOWS\system32\svchost.exe -k UnistackSvcGroup
+5644	taskhostw.exe	taskhostw.exe {222A245B-E637-4AE9-A93F-A59CA119A75E}
+5832	ctfmon.exe	"ctfmon.exe"
+5952	userinit.exe	-
+5988	explorer.exe	C:\WINDOWS\Explorer.EXE
+660	ShellExperienc	"C:\WINDOWS\SystemApps\ShellExperienceHost_cw5n1h2txyewy\ShellExperienceHost.exe" -ServerName:App.AppXtk181tbxbce2qsex02s8tw7hfxa9xb3t.mca
+5808	SearchUI.exe	"C:\Windows\SystemApps\Microsoft.Windows.Cortana_cw5n1h2txyewy\SearchUI.exe" -ServerName:CortanaUI.AppXa50dqqa5gqv4a428c9y1jjw7m3btvepj.mca
+5132	RuntimeBroker.	C:\Windows\System32\RuntimeBroker.exe -Embedding
+6664	backgroundTask	-
+7136	RuntimeBroker.	C:\Windows\System32\RuntimeBroker.exe -Embedding
+6800	backgroundTask	-
+7096	officebackgrou	-
+3964	SkypeHost.exe	"C:\Program Files\WindowsApps\Microsoft.SkypeApp_12.1815.210.0_x64__kzf8qxf38zg5c\SkypeHost.exe" -ServerName:SkypeHost.ServerServer
+8	backgroundTask	-
+7080	HxTsr.exe	-
+7444	backgroundTask	-
+7656	backgroundTask	-
+7676	MSASCuiL.exe	"C:\Program Files\Windows Defender\MSASCuiL.exe" 
+7752	vmtoolsd.exe	"C:\Program Files\VMware\VMware Tools\vmtoolsd.exe" -n vmusr
+7804	OneDrive.exe	"C:\Users\tdungan\AppData\Local\Microsoft\OneDrive\OneDrive.exe" /background
+7868	Dashlane.exe	"C:\Users\tdungan\AppData\Roaming\Dashlane\Dashlane.exe" autoLaunchAtStartup
+7892	DashlanePlugin	"C:\Users\tdungan\AppData\Roaming\Dashlane\DashlanePlugin.exe" ws
+7944	runonce.exe	-
+8128	OUTLOOK.EXE	"C:\Program Files (x86)\Microsoft Office\root\Office16\OUTLOOK.EXE" /restore
+6036	UpdaterUI.exe	"C:\Program Files\McAfee\Agent\x86\UpdaterUI.exe" /StartedFromRunKey
+4384	backgroundTask	-
+7392	shstat.exe	-
+2284	mctray.exe	/load
+9152	iexplore.exe	"C:\Program Files\Internet Explorer\iexplore.exe" -startmanager -Embedding
+8508	iexplore.exe	"C:\Program Files (x86)\Internet Explorer\IEXPLORE.EXE" SCODEF:9152 CREDAT:9474 /prefetch:2
+9088	svchost.exe	C:\WINDOWS\system32\svchost.exe -k LocalServiceAndNoImpersonation -p
+7236	SearchIndexer.	C:\WINDOWS\system32\SearchIndexer.exe /Embedding
+5492	RuntimeBroker.	C:\Windows\System32\RuntimeBroker.exe -Embedding
+5064	ApplicationFra	C:\WINDOWS\system32\ApplicationFrameHost.exe -Embedding
+9036	WinStore.App.e	"C:\Program Files\WindowsApps\Microsoft.WindowsStore_11807.1001.13.0_x64__8wekyb3d8bbwe\WinStore.App.exe" -ServerName:App.AppXc75wvwned5vhz4xyxxecvgdjhdkgsdza.mca
+4860	RuntimeBroker.	C:\Windows\System32\RuntimeBroker.exe -Embedding
+5556	SystemSettings	"C:\Windows\ImmersiveControlPanel\SystemSettings.exe" -ServerName:microsoft.windows.immersivecontrolpanel
+6988	RuntimeBroker.	C:\Windows\System32\RuntimeBroker.exe -Embedding
+8712	powershell.exe	-
+1740	conhost.exe	\??\C:\WINDOWS\system32\conhost.exe 0x4
+5848	powershell.exe	"c:\windows\syswow64\windowspowershell\v1.0\powershell.exe" -Version 5.1 -s -NoLogo -NoProfile
+6572	conhost.exe	\??\C:\WINDOWS\system32\conhost.exe 0x4
+6768	rundll32.exe	-
+8840	WmiPrvSE.exe	C:\WINDOWS\sysWOW64\wbem\wmiprvse.exe -Embedding
+4936	WmiPrvSE.exe	C:\WINDOWS\system32\wbem\wmiprvse.exe
+8500	LogonUI.exe	"LogonUI.exe" /flags:0x0 /state0:0xa33aa055 /state1:0x41c64e6d
+5452	rundll32.exe	-
+5588	rundll32.exe	-
+5948	cmd.exe	C:\WINDOWS\system32\cmd.exe /C c:\windows\temp\perfmon\p.exe
+3436	conhost.exe	\??\C:\WINDOWS\system32\conhost.exe 0x4
+8260	p.exe	c:\windows\temp\perfmon\p.exe
+2216	rundll32.exe	-
+4108	rundll32.exe	-
+8148	rundll32.exe	-
+7792	svchost.exe	-
+4976	SettingSyncHos	C:\WINDOWS\system32\SettingSyncHost.exe -Embedding
+8200	smss.exe	-
+4048	csrss.exe	%SystemRoot%\system32\csrss.exe ObjectDirectory=\Windows SharedSection=1024,20480,768 Windows=On SubSystemType=Windows ServerDll=basesrv,1 ServerDll=winsrv:UserServerDllInitialization,3 ServerDll=sxssrv,4 ProfileControl=Off MaxRequestThreads=16
+6440	winlogon.exe	winlogon.exe
+5560	LogonUI.exe	"LogonUI.exe" /flags:0x0 /state0:0xa29c0055 /state1:0x41c64e6d
+2408	dwm.exe	"dwm.exe"
+3424	fontdrvhost.ex	"fontdrvhost.exe"
+6192	svchost.exe	C:\WINDOWS\System32\svchost.exe -k netsvcs -p
+5768	rundll32.exe	-
+11948	WmiPrvSE.exe	C:\WINDOWS\system32\wbem\wmiprvse.exe
+1424	rundll32.exe	-
+7552	rundll32.exe	-
+1096	subject_srv.ex	C:\windows\subject_srv.exe -s "base-hunt.shieldbase.lan:5682" -l 3262 -v "F-Response Subject" -k "155522845"
+6952	WmiApSrv.exe	C:\WINDOWS\system32\wbem\WmiApSrv.exe
+7352	backgroundTask	-
