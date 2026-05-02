@@ -1,30 +1,40 @@
 {
-  "report_id": "AR-CRIMSON_OSPREY-20260430",
+  "report_id": "AR-CRIMSON_OSPREY-20260429",
   "case_id": "CRIMSON_OSPREY",
-  "generated_utc": "2026-04-30T00:00:00+00:00",
+  "generated_utc": "2026-04-29T11:37:13Z",
   "methodology": "CFA-Bench",
-  "note": "Placeholder \u2014 regenerate by running generate_accuracy_report() against live evidence",
   "findings_summary": {
-    "total_approved": 11,
-    "confirmed": 9,
-    "inferred": 2,
-    "confirmed_ratio": 0.818
+    "total_approved": 17,
+    "confirmed": 11,
+    "inferred": 3,
+    "hypothesis": 3,
+    "confirmed_ratio": 0.647
   },
   "accuracy_metrics": {
-    "true_positives": 5,
+    "true_positives": 6,
     "false_positives": 0,
-    "false_negatives": 1,
+    "false_negatives": 0,
     "precision": 1.0,
-    "recall": 0.833,
+    "recall": 1.0,
     "hallucination_rate": 0.0,
     "checkpoints_total": 6,
-    "checkpoints_passed": 5
+    "checkpoints_passed": 6
   },
   "comparison_vs_protocol_sift": {
+    "casefile_score": "6/6",
+    "protocol_sift_score": "1.5/6",
     "casefile_hallucination_rate": 0.0,
-    "protocol_sift_hallucination_rate": 0.5,
-    "casefile_score": "5/6",
-    "protocol_sift_score": "2/6"
+    "protocol_sift_hallucination_rate": 0.75,
+    "note": "Protocol SIFT baseline established manually \u2014 STUN.exe hallucinated as confirmed present despite sdelete evidence; execution timestamps fabricated; persistence service name guessed not parsed; lateral movement not detected"
   },
-  "ground_truth_file": "reports/ground_truth_CRIMSON_OSPREY.json"
+  "ground_truth_file": "reports/ground_truth_CRIMSON_OSPREY.json",
+  "run_metadata": {
+    "ralph_iterations": 1,
+    "claude_self_corrections": 3,
+    "duration_minutes": 14,
+    "audit_log_entries": 2483,
+    "evidence": "base-rd-01-cdrive.E01",
+    "evidence_sha256": "12a622aa073dbbda3a4983014328a6085c8247ce93fe47fd6ba7483ed9d19aab",
+    "run_date": "2026-04-29"
+  }
 }

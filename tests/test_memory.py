@@ -59,8 +59,15 @@ def case_dir(tmp_path: Path, monkeypatch) -> Path:
     """Isolated CASEFILE_CASE_DIR per test."""
     case = tmp_path / "case"
     case.mkdir()
+    analysis = tmp_path / "analysis"
+    analysis.mkdir()
     monkeypatch.setenv("CASEFILE_CASE_DIR", str(case))
     monkeypatch.setenv("CASEFILE_EXAMINER", "casefile")
+    # Redirect _analysis_dir so cache writes go to tmp, not real ~/casefile/analysis
+    monkeypatch.setattr(
+        "mcp_server.tools.memory._analysis_dir",
+        lambda: analysis,
+    )
     return case
 
 
@@ -266,9 +273,10 @@ class TestCaching:
         )
         # First run populates cache
         first_result = parse_memory(str(memory_image), plugin="windows.pslist")
-        # Corrupt the cache
+        # Corrupt the cache — use _cache_path() to stay aligned with implementation
+        from mcp_server.tools.memory import _cache_path
         sha_short = first_result["image_sha256"][:16]
-        cache_file = case_dir / "memory_cache" / sha_short / "windows.pslist.json"
+        cache_file = _cache_path(sha_short, "windows.pslist")
         cache_file.write_text("{not valid json", encoding="utf-8")
 
         # Second call should re-run, not crash
