@@ -266,17 +266,17 @@ class TestCaching:
 
     @patch("mcp_server.tools.memory.subprocess.run")
     def test_corrupt_cache_falls_through_to_rerun(
-        self, mock_run, memory_image, case_dir, audit_redirect, monkeypatch, tmp_path
+        self, mock_run, memory_image, case_dir, audit_redirect
     ):
         mock_run.return_value = SimpleNamespace(
             returncode=0, stdout=PSLIST_REAL, stderr=""
         )
         # First run populates cache
         first_result = parse_memory(str(memory_image), plugin="windows.pslist")
-        # Corrupt the cache — find it under analysis_dir, not case_dir
-        from mcp_server.tools.memory import _analysis_dir, _cache_path
+        # Corrupt the cache — use _cache_path() to stay aligned with implementation
+        from mcp_server.tools.memory import _cache_path
         sha_short = first_result["image_sha256"][:16]
-        cache_file = _analysis_dir() / "memory_cache" / sha_short / "windows.pslist.json"
+        cache_file = _cache_path(sha_short, "windows.pslist")
         cache_file.write_text("{not valid json", encoding="utf-8")
 
         # Second call should re-run, not crash
