@@ -80,7 +80,7 @@ def _hash_cache_path(path: Path) -> Path:
     image path string. Never writes beside the evidence file.
     """
     key = hashlib.sha256(str(path).encode("utf-8")).hexdigest()
-    return _case_dir() / "memory_cache" / "sha256" / f"{key}.txt"
+    return _analysis_dir() / "memory_cache" / "sha256" / f"{key}.txt"
 
 
 def _sha256_of_file(path: Path, chunk: int = 1024 * 1024) -> str:
@@ -112,8 +112,16 @@ def _case_dir() -> Path:
     return Path(raw).expanduser().resolve()
 
 
+def _repo_root() -> Path:
+    return Path(__file__).resolve().parents[2]
+
+
+def _analysis_dir() -> Path:
+    return _repo_root() / "analysis"
+
+
 def _cache_path(sha256_short: str, plugin: str) -> Path:
-    return _case_dir() / "memory_cache" / sha256_short / f"{plugin}.json"
+    return _analysis_dir() / "memory_cache" / sha256_short / f"{plugin}.json"
 
 
 # ── Volatility output parsers ───────────────────────────────────────────────────
@@ -249,6 +257,8 @@ def parse_memory(
     if use_cache and cache_file.exists():
         try:
             cached = json.loads(cache_file.read_text(encoding="utf-8"))
+            if not isinstance(cached, dict):
+                raise ValueError("cache payload must be a JSON object")
             if cached.get("schema_version") == CACHE_SCHEMA_VERSION:
                 duration_ms = int((time.monotonic() - t_start) * 1000)
                 audit_log(
@@ -270,7 +280,7 @@ def parse_memory(
                 cached["cached"] = True
                 cached["duration_ms"] = duration_ms
                 return cached
-        except (json.JSONDecodeError, OSError):
+        except (json.JSONDecodeError, OSError, ValueError, TypeError, AttributeError):
             # Corrupt cache — ignore and re-run
             pass
 
