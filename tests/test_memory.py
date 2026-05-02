@@ -315,3 +315,17 @@ class TestSubprocessErrors:
 
         records = _read_audit(audit_redirect)
         assert records[-1]["rejection_reason"] == "vol_binary_missing"
+
+
+class TestHashFailure:
+    @patch("mcp_server.tools.memory._sha256_of_file")
+    def test_hash_failure_logged_and_raises(
+        self, mock_hash, memory_image, case_dir, audit_redirect
+    ):
+        mock_hash.side_effect = OSError("Permission denied")
+        with pytest.raises(MemoryToolError, match="Unable to hash"):
+            parse_memory(str(memory_image), plugin="windows.pslist")
+
+        records = _read_audit(audit_redirect)
+        assert records[-1]["rejection_reason"] == "image_hash_failed"
+        assert records[-1]["returncode"] == -1

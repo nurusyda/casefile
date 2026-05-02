@@ -74,15 +74,24 @@ def _validate_image_path(image_path: str) -> Path:
     return p
 
 
+def _hash_cache_path(path: Path) -> Path:
+    """
+    Returns a path under case_dir/memory_cache/sha256/ keyed by the
+    image path string. Never writes beside the evidence file.
+    """
+    key = hashlib.sha256(str(path).encode("utf-8")).hexdigest()
+    return _case_dir() / "memory_cache" / "sha256" / f"{key}.txt"
+
+
 def _sha256_of_file(path: Path, chunk: int = 1024 * 1024) -> str:
     """
     Stream sha256 — memory images can be multi-GB.
-    Writes a .sha256 sidecar file next to the image after first hash so
-    subsequent calls skip re-streaming (900MB image takes ~10s otherwise).
+    Digest is cached under case_dir/memory_cache/sha256/ (never beside
+    the evidence file) so subsequent calls skip re-streaming.
     """
-    sidecar = path.with_suffix(path.suffix + ".sha256")
-    if sidecar.exists():
-        cached_hash = sidecar.read_text(encoding="utf-8").strip()
+    cache = _hash_cache_path(path)
+    if cache.exists():
+        cached_hash = cache.read_text(encoding="utf-8").strip()
         if len(cached_hash) == 64 and all(c in "0123456789abcdef" for c in cached_hash):
             return cached_hash
     h = hashlib.sha256()
@@ -90,12 +99,11 @@ def _sha256_of_file(path: Path, chunk: int = 1024 * 1024) -> str:
         for block in iter(lambda: fh.read(chunk), b""):
             h.update(block)
     digest = h.hexdigest()
-    # Never write sidecar into evidence paths — forensic hygiene (CLAUDE.md Law 1)
-    if not any(str(path).startswith(prefix) for prefix in _EVIDENCE_PREFIXES):
-        try:
-            sidecar.write_text(digest, encoding="utf-8")
-        except OSError:
-            pass  # sidecar is optional
+    try:
+        cache.parent.mkdir(parents=True, exist_ok=True)
+        cache.write_text(digest, encoding="utf-8")
+    except OSError:
+        pass  # cache is optional
     return digest
 
 
@@ -106,10 +114,6 @@ def _case_dir() -> Path:
 
 def _cache_path(sha256_short: str, plugin: str) -> Path:
     return _case_dir() / "memory_cache" / sha256_short / f"{plugin}.json"
-
-
-# Evidence paths that must remain read-only (matches CLAUDE.md Law 1)
-_EVIDENCE_PREFIXES = ("/cases/", "/mnt/", "/media/", "/evidence/")
 
 
 # ── Volatility output parsers ───────────────────────────────────────────────────
@@ -218,7 +222,26 @@ def parse_memory(
         )
         raise
 
-    image_sha256 = _sha256_of_file(image)
+    try:
+        image_sha256 = _sha256_of_file(image)
+    except OSError as err:
+        duration_ms = int((time.monotonic() - t_start) * 1000)
+        audit_log(
+            tool="Volatility3",
+            invocation_id=invocation_id,
+            cmd="<rejected: image hash failed>",
+            returncode=-1,
+            stdout_lines=0,
+            stderr_excerpt=str(err),
+            parsed_record_count=0,
+            duration_ms=duration_ms,
+            extra={
+                "plugin": plugin,
+                "image_path_input": image_path,
+                "rejection_reason": "image_hash_failed",
+            },
+        )
+        raise MemoryToolError(f"Unable to hash memory image: {err}") from err
     sha_short = image_sha256[:16]
     cache_file = _cache_path(sha_short, plugin)
 
