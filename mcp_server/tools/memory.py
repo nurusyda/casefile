@@ -15,8 +15,8 @@ Inference Constraint Level: HIGH
 from __future__ import annotations
 
 import hashlib
-import json
 import os
+import json
 import shlex
 import subprocess
 import time
@@ -105,11 +105,6 @@ def _sha256_of_file(path: Path, chunk: int = 1024 * 1024) -> str:
     except OSError:
         pass  # cache is optional
     return digest
-
-
-def _case_dir() -> Path:
-    raw = os.environ.get("CASEFILE_CASE_DIR", str(Path.home() / "cases" / "active"))
-    return Path(raw).expanduser().resolve()
 
 
 def _repo_root() -> Path:
