@@ -228,78 +228,81 @@ def correlate_evidence(
     invocation_id = f"correlation_{uuid.uuid4().hex[:12]}"
     t_start = time.monotonic()
 
-    # --- Input validation ---------------------------------------------------
-    if not process_name or not isinstance(process_name, str):
-        raise CorrelationToolError(
-            "process_name is required and must be a non-empty string"
-        )
-
-    process_name = process_name.strip()
-    if not process_name:
-        raise CorrelationToolError(
-            "process_name must not be blank after stripping whitespace"
-        )
-
-    resolved_case_dir = case_dir or os.environ.get("CASEFILE_CASE_DIR", "")
-    if not resolved_case_dir:
-        raise CorrelationToolError(
-            "case_dir must be provided or CASEFILE_CASE_DIR must be set"
-        )
-
-    # --- Call each parser (stubs for Commit 1) ------------------------------
-    amcache = _call_parse_amcache(process_name, resolved_case_dir)
-    prefetch = _call_parse_prefetch(process_name, resolved_case_dir)
-    memory = _call_parse_memory(process_name, resolved_case_dir)
-    mft = _call_parse_mft(process_name, resolved_case_dir)
-
-    # --- Determine verdict --------------------------------------------------
-    verdict, verdict_reasoning = _decide_verdict(amcache, prefetch, memory, mft)
-
-    # --- Collect supporting invocation IDs ----------------------------------
-    supporting_invocation_ids: list[str] = [
-        sr.invocation_id
-        for sr in (amcache, prefetch, memory, mft)
-        if sr.present and sr.invocation_id
-    ]
-
-    # --- Build return schema ------------------------------------------------
-    result: dict[str, Any] = {
-        "process_name": process_name,
-        "amcache": amcache.to_dict(),
-        "prefetch": prefetch.to_dict(),
-        "memory": memory.to_dict(),
-        "mft": mft.to_dict(),
-        "verdict": verdict,
-        "verdict_reasoning": verdict_reasoning,
-        "confidence": _VERDICT_CONFIDENCE[verdict],
-        "supporting_invocation_ids": supporting_invocation_ids,
-        "invocation_id": invocation_id,
-    }
-
-    # --- Audit logging ------------------------------------------------------
-    elapsed_ms = (time.monotonic() - t_start) * 1000
-    examiner = os.environ.get("CASEFILE_EXAMINER", "unknown")
-    sources_present = [
-        sr.source for sr in (amcache, prefetch, memory, mft) if sr.present
-    ]
-    audit_log(
-        tool="correlate_evidence",
-        invocation_id=invocation_id,
-        cmd=f"correlate_evidence(process_name={process_name!r})",
-        returncode=0,
-        stdout_lines=0,
-        stderr_excerpt="",
-        parsed_record_count=len(sources_present) or 1,
-        duration_ms=round(elapsed_ms),
-        examiner=examiner,
-        extra={
+    # --- Audit state (populated inside try, consumed in finally) ------------
+    _verdict: Optional[str] = None
+    _sources_present: list[str] = []
+    _resolved_case_dir: str = ""
+    _returncode: int = 1
+    try:
+        # --- Input validation -----------------------------------------------
+        if not process_name or not isinstance(process_name, str):
+            raise CorrelationToolError(
+                "process_name is required and must be a non-empty string"
+            )
+        process_name = process_name.strip()
+        if not process_name:
+            raise CorrelationToolError(
+                "process_name must not be blank after stripping whitespace"
+            )
+        _resolved_case_dir = case_dir or os.environ.get("CASEFILE_CASE_DIR", "")
+        if not _resolved_case_dir:
+            raise CorrelationToolError(
+                "case_dir must be provided or CASEFILE_CASE_DIR must be set"
+            )
+        # --- Call each parser (stubs for Commit 1) --------------------------
+        amcache = _call_parse_amcache(process_name, _resolved_case_dir)
+        prefetch = _call_parse_prefetch(process_name, _resolved_case_dir)
+        memory = _call_parse_memory(process_name, _resolved_case_dir)
+        mft = _call_parse_mft(process_name, _resolved_case_dir)
+        # --- Determine verdict ----------------------------------------------
+        verdict, verdict_reasoning = _decide_verdict(amcache, prefetch, memory, mft)
+        _verdict = verdict
+        # --- Collect supporting invocation IDs ------------------------------
+        supporting_invocation_ids: list[str] = [
+            sr.invocation_id
+            for sr in (amcache, prefetch, memory, mft)
+            if sr.present and sr.invocation_id
+        ]
+        # --- Build return schema --------------------------------------------
+        result: dict[str, Any] = {
+            "process_name": process_name,
+            "amcache": amcache.to_dict(),
+            "prefetch": prefetch.to_dict(),
+            "memory": memory.to_dict(),
+            "mft": mft.to_dict(),
+            "verdict": verdict,
+            "verdict_reasoning": verdict_reasoning,
+            "confidence": _VERDICT_CONFIDENCE[verdict],
+            "supporting_invocation_ids": supporting_invocation_ids,
+            "invocation_id": invocation_id,
+        }
+        _sources_present = [
+            sr.source for sr in (amcache, prefetch, memory, mft) if sr.present
+        ]
+        _returncode = 0
+        return result
+    finally:
+        # --- Audit logging — always fires, even on validation error ---------
+        elapsed_ms = (time.monotonic() - t_start) * 1000
+        examiner = os.environ.get("CASEFILE_EXAMINER", "unknown")
+        _extra: dict = {
             "params": {
                 "process_name": process_name,
-                "case_dir": resolved_case_dir,
+                "case_dir": _resolved_case_dir,
             },
-            "verdict": verdict,
-            "sources_present": sources_present,
-        },
-    )
-
-    return result
+            "sources_present": _sources_present,
+        }
+        if _verdict is not None:
+            _extra["verdict"] = _verdict
+        audit_log(
+            tool="correlate_evidence",
+            invocation_id=invocation_id,
+            cmd=f"correlate_evidence(process_name={process_name!r})",
+            returncode=_returncode,
+            stdout_lines=0,
+            stderr_excerpt="",
+            parsed_record_count=len(_sources_present) or 1,
+            duration_ms=round(elapsed_ms),
+            examiner=examiner,
+            extra=_extra,
+        )
