@@ -30,6 +30,11 @@ call_deepseek_api() {
     local file_content
     file_content=$(head -c 10240 -- "$file_path")
 
+    local file_size=$(wc -c < "$file_path")
+    if [[ "$file_size" -gt 10240 ]]; then
+        echo "  ⚠️  File exceeds 10KB ($file_size bytes) — reviewing first 10KB only" >&2
+    fi
+
     local user_prompt
     user_prompt=$(jq -n --arg path "$file_path" --arg content "$file_content" \
         '"Review file: " + $path + "\n\nContent:\n" + $content + "\n\nApply CaseFile 7-Law rules."')

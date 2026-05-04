@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-monster_check.py — Local "Semi-CodeRabbit" for the vhir_cli / SANS Find-Evil project.
+monster_check.py — Local "Semi-CodeRabbit" for the casefile / SANS Find-Evil project.
 
 Captures staged git changes, ships them to DeepSeek V4-Pro for a rigorous review
 (security, logic flaws, architecture drift), and streams a colorized verdict to
@@ -86,7 +86,8 @@ def run_git(args: list[str]) -> str:
 
 
 def ensure_git_repo() -> None:
-    out = subprocess.run(
+    try:
+        out = subprocess.run(
         ["git", "rev-parse", "--is-inside-work-tree"],
         capture_output=True, text=True,
     )
@@ -118,14 +119,14 @@ def capture_diff(mode: str) -> tuple[str, str]:
 # --------------------------------------------------------------------------- #
 SYSTEM_PROMPT = """\
 You are MONSTER-CHECK, a ruthless senior code reviewer embedded in the SANS
-Find-Evil Hackathon `vhir_cli` project. You are the local stand-in for
+Find-Evil Hackathon `casefile` project. You are the local stand-in for
 CodeRabbit, but faster and more opinionated. Your job is to catch the bugs
 that would otherwise burn an hour of CI time and embarrass the author.
 
 ═══════════════════════════════════════════════════════════════════════════
 PROJECT CONTEXT (treat as ground truth)
 ═══════════════════════════════════════════════════════════════════════════
-• Codebase: `vhir_cli` — a Python DFIR / forensics CLI built on Click,
+• Codebase: `casefile` — a Python DFIR / forensics CLI built on Click,
   installed via pyproject.toml, deployed to SANS SIFT Workstations.
 • Hackathon hard rules:
     - Must run fully LOCAL on a SIFT box. No paid cloud APIs in runtime path.
@@ -133,10 +134,10 @@ PROJECT CONTEXT (treat as ground truth)
       production code paths. (Dev-time tools like THIS reviewer are fine.)
     - Evidence handling must preserve chain-of-custody and be reproducible.
 • Architectural conventions:
-    - CLI commands live under `src/vhir_cli/commands/<name>.py` and follow
+    - CLI commands live under `mcp_server/tools/<name>.py and src/casefile/commands/<name>.py` and follow
       the Click group pattern established by existing commands.
     - Identity, approval auth, gateway, verification, and case I/O are
-      centralized in `src/vhir_cli/` siblings — DO NOT reimplement them
+      centralized in `src/casefile/` siblings — DO NOT reimplement them
       inside command modules.
     - Subprocess calls in DFIR code paths must NEVER use `shell=True` and
       must pass arguments as a list. Forensic tools running on adversary
@@ -171,7 +172,7 @@ REVIEW DIMENSIONS — score every diff on ALL of these
     - Missing input validation on Click options/arguments.
 
 3. ARCHITECTURE DRIFT
-    - Does this violate `vhir_cli` structure? (e.g., a new command not
+    - Does this violate `casefile` structure? (e.g., a new command not
       under `commands/`, or duplicating logic from `gateway.py` /
       `identity.py` / `approval_auth.py` / `verification.py`).
     - Does it introduce a paid API or non-local dependency, breaking
@@ -385,7 +386,7 @@ def review_diff(diff: str, summary: str, model: str) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(
         prog="monster_check",
-        description="Local Semi-CodeRabbit for vhir_cli (DeepSeek V4-Pro).",
+        description="Local Semi-CodeRabbit for casefile (DeepSeek V4-Pro).",
     )
     diff_group = parser.add_mutually_exclusive_group()
     diff_group.add_argument(
