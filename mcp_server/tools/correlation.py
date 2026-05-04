@@ -44,6 +44,14 @@ VERDICTS = frozenset({
     "NOT_FOUND",
 })
 
+_VERDICT_CONFIDENCE: dict[str, str] = {
+    "CONFIRMED_RUNNING":    "CONFIRMED",
+    "CONFIRMED_HISTORICAL": "CONFIRMED",
+    "MEMORY_ONLY":          "CONFIRMED",
+    "INSTALLED_NEVER_RAN":  "INFERRED",
+    "NOT_FOUND":            "HYPOTHESIS",
+}
+
 
 # --------------------------------------------------------------------------- #
 # SourceResult dataclass
@@ -251,7 +259,7 @@ def correlate_evidence(
     supporting_invocation_ids: list[str] = [
         sr.invocation_id
         for sr in (amcache, prefetch, memory, mft)
-        if sr.invocation_id
+        if sr.present and sr.invocation_id
     ]
 
     # --- Build return schema ------------------------------------------------
@@ -263,6 +271,7 @@ def correlate_evidence(
         "mft": mft.to_dict(),
         "verdict": verdict,
         "verdict_reasoning": verdict_reasoning,
+        "confidence": _VERDICT_CONFIDENCE[verdict],
         "supporting_invocation_ids": supporting_invocation_ids,
         "invocation_id": invocation_id,
     }
