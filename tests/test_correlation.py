@@ -427,7 +427,7 @@ class TestAmcachePrefetchIntegration:
 
     # ── _call_parse_amcache ─────────────────────────────────────────────────
 
-    def test_amcache_found(self, tmp_path, patch_resolve_case_dir):
+    def test_amcache_found(self, tmp_path):
         """parse_amcache returns entry matching process_name → present=True."""
         from mcp_server.tools.correlation import _call_parse_amcache
 
