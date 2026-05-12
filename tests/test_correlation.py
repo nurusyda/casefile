@@ -427,7 +427,8 @@ class TestAmcachePrefetchIntegration:
 
     # ── _call_parse_amcache ─────────────────────────────────────────────────
 
-    def test_amcache_found(self, tmp_path, patch_resolve_case_dir):
+    @pytest.mark.usefixtures("patch_resolve_case_dir")
+    def test_amcache_found(self, tmp_path):
         """parse_amcache returns entry matching process_name → present=True."""
         from mcp_server.tools.correlation import _call_parse_amcache
 
@@ -661,6 +662,46 @@ class TestAmcachePrefetchIntegration:
         assert result["prefetch"]["present"] is True
         assert "amcache-verdict-001" in result["supporting_invocation_ids"]
         assert "prefetch-verdict-001" in result["supporting_invocation_ids"]
+
+    def test_verdict_confirmed_running_when_memory_present(self, tmp_path, monkeypatch):
+        """amcache + memory present → CONFIRMED_RUNNING with memory support IDs."""
+        img = tmp_path / "memory.img"
+        img.touch()
+        monkeypatch.setenv("CASEFILE_MEMORY_IMAGE", str(img))
+
+        audit_dir = tmp_path / "audit"
+        audit_dir.mkdir()
+        monkeypatch.setattr("mcp_server.tools._shared.AUDIT_FILE", audit_dir / "mcp.jsonl")
+
+        (tmp_path / "Amcache.hve").touch()
+
+        from mcp_server.tools.correlation import SourceResult
+        amcache_source = SourceResult(
+            source="amcache",
+            present=True,
+            invocation_id="amcache-verdict-002",
+            details={"name": "subject_srv.exe"},
+            error=None,
+        )
+        memory_source = SourceResult(
+            source="memory",
+            present=True,
+            invocation_id="memory-verdict-001",
+            details={"pid": "1096", "ppid": "740"},
+            error=None,
+        )
+        with (
+            patch("mcp_server.tools.correlation._call_parse_amcache", return_value=amcache_source),
+            patch("mcp_server.tools.correlation._call_parse_memory", return_value=memory_source),
+        ):
+            result = correlate_evidence("subject_srv.exe", case_dir=str(tmp_path))
+
+        assert result["verdict"] == "CONFIRMED_RUNNING"
+        assert result["confidence"] == "CONFIRMED"
+        assert set(result["supporting_invocation_ids"]) == {
+            "amcache-verdict-002",
+            "memory-verdict-001",
+        }
 
 
 # --------------------------------------------------------------------------- #

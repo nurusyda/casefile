@@ -128,9 +128,9 @@ Machine: WSL2 Ubuntu 22.04, sansproject@LAPTOP-TF8ADCBO, ~/casefile/,
 venv at ~/casefile/venv/
 
 CURRENT STATE OF THE REPO (as of this review):
-  - MCP Server: FastMCP framework, 9 registered tools (correlate_evidence
-    pending registration). All tools are typed Python functions returning
-    structured JSON — Claude Code never receives raw shell output.
+  - MCP Server: FastMCP framework with typed tool registration in
+    mcp_server/server.py. All tools return structured JSON; no raw shell
+    output is sent to the reviewer.
   - Parser tools: parse_amcache(), parse_prefetch(), parse_event_logs(),
     parse_registry(), parse_mft(), parse_memory() — each wraps an EZ Tool
     or Volatility 3 plugin behind a structured interface.
