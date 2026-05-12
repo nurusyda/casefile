@@ -490,10 +490,11 @@ def build_auto_context() -> str:
         try:
             r = subprocess.run(
                 ["grep", "-n"] + ([flags] if flags else []) + [pattern, path],
-                capture_output=True, text=True,
+                capture_output=True, text=True, check=False,
             )
-            return [l.strip() for l in r.stdout.splitlines() if l.strip()]
-        except Exception:
+            return [line.strip() for line in r.stdout.splitlines() if line.strip()]
+        except Exception as exc:
+            facts.append(f"  [auto-context grep failed: {exc}]")
             return []
 
     # MCP tool registrations
@@ -515,13 +516,13 @@ def build_auto_context() -> str:
     try:
         r = subprocess.run(
             ["python3", "-m", "pytest", "tests/", "--co", "-q"],
-            capture_output=True, text=True,
+            capture_output=True, text=True, check=False,
         )
-        lines = [l for l in r.stdout.splitlines() if "selected" in l or "test" in l.lower()]
+        lines = [line for line in r.stdout.splitlines() if "selected" in line or "test" in line.lower()]
         if lines:
             facts.append(f"pytest --co: {lines[-1].strip()}")
-    except Exception:
-        pass
+    except Exception as exc:
+        facts.append(f"  [pytest collection failed: {exc}]")
 
     # approve_finding not in MCP tools (Law 5)
     corr = "mcp_server/tools/correlation.py"
@@ -547,7 +548,7 @@ def build_auto_context() -> str:
         return ""
     return "AUTO-VERIFIED REPO STATE (confirmed by grep — do not contradict):\n" + "\n".join(facts)
 
-def review_diff(diff: str, summary: str, model: str, context: str = "") -> None:
+def review_diff(diff: str, summary: str, model: str, combined_context: str = "") -> None:
     try:
         from openai import OpenAI
     except ImportError:
@@ -563,8 +564,6 @@ def review_diff(diff: str, summary: str, model: str, context: str = "") -> None:
     )
 
 
-    auto_facts = build_auto_context()
-    combined_context = "\n".join(filter(None, [auto_facts, context or ""]))
     context_block = ("## VERIFIED (do not re-litigate):\n" + combined_context + "\n\n") if combined_context else ""
     user_message = (
         f"{context_block}{summary}\n\n"
@@ -688,15 +687,22 @@ def main() -> None:
         else:
             die(f"No {mode} changes to review.", code=0)
 
-    if len(diff.encode("utf-8")) > args.max_diff_bytes:
+    auto_facts = build_auto_context()
+    combined_context = "\n".join(filter(None, [auto_facts, args.context or ""]))
+
+    diff_bytes = len(diff.encode("utf-8"))
+    context_bytes = len(combined_context.encode("utf-8"))
+    payload_bytes = diff_bytes + context_bytes
+    if payload_bytes > args.max_diff_bytes:
         die(
-            f"Diff is {len(diff.encode('utf-8')):,} bytes "
-            f"(limit {args.max_diff_bytes:,}). "
-            f"Commit in smaller chunks or raise --max-diff-bytes.",
+            f"Review payload is {payload_bytes:,} bytes "
+            f"(diff {diff_bytes:,} + context {context_bytes:,}, "
+            f"limit {args.max_diff_bytes:,}). "
+            f"Reduce diff/context or raise --max-diff-bytes.",
         )
 
     print(f"{C.GREY}{summary}{C.RESET}")
-    review_diff(diff, summary, args.model, context=args.context)
+    review_diff(diff, summary, args.model, combined_context=combined_context)
 
 
 if __name__ == "__main__":

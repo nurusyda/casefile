@@ -40,7 +40,6 @@ def case_dir(tmp_path, monkeypatch):
     audit.mkdir()
     monkeypatch.setenv("CASEFILE_CASE_DIR", str(case))
     monkeypatch.setenv("CASEFILE_EXAMINER", "test-examiner")
-    monkeypatch.setattr("mcp_server.tools.correlation._resolve_case_dir", Path)
     # Redirect AUDIT_FILE to tmp_path so tests don't write to real repo
     audit_file = audit / "mcp.jsonl"
     monkeypatch.setattr("mcp_server.tools._shared.AUDIT_FILE", audit_file)
@@ -62,7 +61,6 @@ def _sr(source: str, present: bool = False, inv: str = "") -> SourceResult:
 @pytest.fixture
 def patch_resolve_case_dir(monkeypatch):
     """Bypass CASEFILE_CASE_ROOT confinement: treat case_dir as absolute."""
-    monkeypatch.setattr("mcp_server.tools.correlation._resolve_case_dir", Path)
     return monkeypatch
 
 
@@ -428,7 +426,7 @@ class TestAmcachePrefetchIntegration:
 
     # ── _call_parse_amcache ─────────────────────────────────────────────────
 
-    def test_amcache_found(self, tmp_path, monkeypatch, patch_resolve_case_dir):
+    def test_amcache_found(self, tmp_path, patch_resolve_case_dir):
         """parse_amcache returns entry matching process_name → present=True."""
         from mcp_server.tools.correlation import _call_parse_amcache
 
@@ -464,7 +462,6 @@ class TestAmcachePrefetchIntegration:
 
     def test_amcache_found_case_insensitive(self, tmp_path, monkeypatch):
         """Match is case-insensitive: SUBJECT_SRV.EXE matches subject_srv.exe."""
-        monkeypatch.setattr("mcp_server.tools.correlation._resolve_case_dir", Path)
         from mcp_server.tools.correlation import _call_parse_amcache
 
         (tmp_path / "Amcache.hve").touch()
@@ -484,7 +481,6 @@ class TestAmcachePrefetchIntegration:
 
     def test_amcache_not_found(self, tmp_path, monkeypatch):
         """parse_amcache returns entries but none match → present=False, invocation_id set."""
-        monkeypatch.setattr("mcp_server.tools.correlation._resolve_case_dir", Path)
         from mcp_server.tools.correlation import _call_parse_amcache
 
         (tmp_path / "Amcache.hve").touch()
@@ -506,7 +502,6 @@ class TestAmcachePrefetchIntegration:
 
     def test_amcache_parser_error(self, tmp_path, monkeypatch):
         """parse_amcache returns non-null error → present=False, error field set."""
-        monkeypatch.setattr("mcp_server.tools.correlation._resolve_case_dir", Path)
         from mcp_server.tools.correlation import _call_parse_amcache
 
         (tmp_path / "Amcache.hve").touch()
@@ -525,7 +520,6 @@ class TestAmcachePrefetchIntegration:
 
     def test_amcache_file_missing(self, tmp_path, monkeypatch):
         """No Amcache.hve in case_dir → present=False, no error (just absent)."""
-        monkeypatch.setattr("mcp_server.tools.correlation._resolve_case_dir", Path)
         from mcp_server.tools.correlation import _call_parse_amcache
 
         # Do NOT create Amcache.hve
@@ -536,7 +530,6 @@ class TestAmcachePrefetchIntegration:
 
     def test_amcache_parser_raises(self, tmp_path, monkeypatch):
         """parse_amcache raises unexpectedly → present=False, error=str(exc)."""
-        monkeypatch.setattr("mcp_server.tools.correlation._resolve_case_dir", Path)
         from mcp_server.tools.correlation import _call_parse_amcache
 
         (tmp_path / "Amcache.hve").touch()
@@ -554,7 +547,6 @@ class TestAmcachePrefetchIntegration:
 
     def test_prefetch_found(self, tmp_path, monkeypatch):
         """parse_prefetch returns entry matching process_name → present=True."""
-        monkeypatch.setattr("mcp_server.tools.correlation._resolve_case_dir", Path)
         from mcp_server.tools.correlation import _call_parse_prefetch
 
         pf_dir = tmp_path / "Prefetch"
@@ -589,7 +581,6 @@ class TestAmcachePrefetchIntegration:
 
     def test_prefetch_not_found(self, tmp_path, monkeypatch):
         """No matching entry → present=False, invocation_id set."""
-        monkeypatch.setattr("mcp_server.tools.correlation._resolve_case_dir", Path)
         from mcp_server.tools.correlation import _call_parse_prefetch
 
         pf_dir = tmp_path / "Prefetch"
@@ -612,7 +603,6 @@ class TestAmcachePrefetchIntegration:
 
     def test_prefetch_dir_missing(self, tmp_path, monkeypatch):
         """No Prefetch/ directory → present=False, no error."""
-        monkeypatch.setattr("mcp_server.tools.correlation._resolve_case_dir", Path)
         from mcp_server.tools.correlation import _call_parse_prefetch
 
         # Do NOT create Prefetch/
@@ -623,7 +613,6 @@ class TestAmcachePrefetchIntegration:
 
     def test_prefetch_parser_raises(self, tmp_path, monkeypatch):
         """parse_prefetch raises → present=False, error=str(exc)."""
-        monkeypatch.setattr("mcp_server.tools.correlation._resolve_case_dir", Path)
         from mcp_server.tools.correlation import _call_parse_prefetch
 
         pf_dir = tmp_path / "Prefetch"
@@ -640,7 +629,6 @@ class TestAmcachePrefetchIntegration:
 
     def test_verdict_confirmed_historical_when_both_present(self, tmp_path, monkeypatch):
         """amcache + prefetch both present, no memory → verdict = CONFIRMED_HISTORICAL."""
-        monkeypatch.setattr("mcp_server.tools.correlation._resolve_case_dir", Path)
         monkeypatch.delenv("CASEFILE_MEMORY_IMAGE", raising=False)
         audit_dir = tmp_path / "audit"
         audit_dir.mkdir()
@@ -688,7 +676,6 @@ class TestMemoryMftIntegration:
 
     def test_memory_found(self, tmp_path, monkeypatch):
         """parse_memory returns record matching process_name → present=True."""
-        monkeypatch.setattr("mcp_server.tools.correlation._resolve_case_dir", Path)
         from mcp_server.tools.correlation import _call_parse_memory
 
         # Create fake image one level above case_dir (mirrors real layout)
@@ -716,7 +703,6 @@ class TestMemoryMftIntegration:
 
     def test_memory_found_case_insensitive(self, tmp_path, monkeypatch):
         """Match is case-insensitive: SUBJECT_SRV.EXE matches subject_srv.exe."""
-        monkeypatch.setattr("mcp_server.tools.correlation._resolve_case_dir", Path)
         from mcp_server.tools.correlation import _call_parse_memory
 
         img = tmp_path / "memory.img"
@@ -739,7 +725,6 @@ class TestMemoryMftIntegration:
 
     def test_memory_found_kernel_truncated(self, tmp_path, monkeypatch):
         """Windows kernel truncates ImageFileName to 14 chars — still matches."""
-        monkeypatch.setattr("mcp_server.tools.correlation._resolve_case_dir", Path)
         from mcp_server.tools.correlation import _call_parse_memory
 
         img = tmp_path / "memory.img"
@@ -764,7 +749,6 @@ class TestMemoryMftIntegration:
 
     def test_memory_not_found(self, tmp_path, monkeypatch):
         """No matching record → present=False, invocation_id set."""
-        monkeypatch.setattr("mcp_server.tools.correlation._resolve_case_dir", Path)
         from mcp_server.tools.correlation import _call_parse_memory
 
         img = tmp_path / "memory.img"
@@ -789,7 +773,6 @@ class TestMemoryMftIntegration:
 
     def test_memory_image_missing(self, tmp_path, monkeypatch):
         """No image file found → present=False, no error."""
-        monkeypatch.setattr("mcp_server.tools.correlation._resolve_case_dir", Path)
         monkeypatch.delenv("CASEFILE_MEMORY_IMAGE", raising=False)
         from mcp_server.tools.correlation import _call_parse_memory
 
@@ -804,7 +787,6 @@ class TestMemoryMftIntegration:
 
     def test_memory_parser_raises(self, tmp_path, monkeypatch):
         """parse_memory raises → present=False, error=str(exc)."""
-        monkeypatch.setattr("mcp_server.tools.correlation._resolve_case_dir", Path)
         from mcp_server.tools.correlation import _call_parse_memory
 
         img = tmp_path / "memory.img"
@@ -825,7 +807,6 @@ class TestMemoryMftIntegration:
 
     def test_mft_found(self, tmp_path, monkeypatch):
         """parse_mft returns entry matching process_name → present=True."""
-        monkeypatch.setattr("mcp_server.tools.correlation._resolve_case_dir", Path)
         from mcp_server.tools.correlation import _call_parse_mft
 
         (tmp_path / "MFT").touch()
@@ -854,7 +835,6 @@ class TestMemoryMftIntegration:
 
     def test_mft_not_found(self, tmp_path, monkeypatch):
         """No matching entry → present=False, invocation_id set."""
-        monkeypatch.setattr("mcp_server.tools.correlation._resolve_case_dir", Path)
         from mcp_server.tools.correlation import _call_parse_mft
 
         (tmp_path / "MFT").touch()
@@ -876,7 +856,6 @@ class TestMemoryMftIntegration:
 
     def test_mft_file_missing(self, tmp_path, monkeypatch):
         """No MFT file → present=False, no error."""
-        monkeypatch.setattr("mcp_server.tools.correlation._resolve_case_dir", Path)
         from mcp_server.tools.correlation import _call_parse_mft
 
         # Do NOT create MFT
@@ -887,7 +866,6 @@ class TestMemoryMftIntegration:
 
     def test_mft_parser_raises(self, tmp_path, monkeypatch):
         """parse_mft raises → present=False, error=str(exc)."""
-        monkeypatch.setattr("mcp_server.tools.correlation._resolve_case_dir", Path)
         from mcp_server.tools.correlation import _call_parse_mft
 
         (tmp_path / "MFT").touch()

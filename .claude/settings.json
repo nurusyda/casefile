@@ -1,33 +1,47 @@
 {
-    "permissions": {
-        "allow": [
-            "mcp__casefile__parse_amcache",
-            "mcp__casefile__parse_prefetch",
-            "mcp__casefile__parse_event_logs",
-            "mcp__casefile__parse_registry",
-            "mcp__casefile__parse_mft",
-            "mcp__casefile__record_finding",
-            "mcp__casefile__get_findings",
-            "mcp__casefile__record_timeline_event",
-            "Bash(mkdir -p ./analysis ./reports)",
-            "Bash(free -h)",
-            "Bash(ls -la *)",
-            "Bash(sha256sum *)",
-            "mcp__casefile__parse_memory",
-            "mcp__casefile__correlate_evidence"
-        ],
-        "deny": [
-            "Write(/mnt/evidence/*)",
-            "Edit(/mnt/evidence/*)",
-            "Write(cases/*/evidence/*)",
-            "Edit(cases/*/evidence/*)",
-            "Bash(chmod * /mnt/evidence/*)",
-            "Bash(chmod * cases/*/evidence/*)",
-            "Write(**/audit/mcp.jsonl)",
-            "Edit(**/audit/mcp.jsonl)",
-            "Write(**/approvals.jsonl)",
-            "Edit(**/approvals.jsonl)",
-            "Write(mcp_server/tools/findings.json)"
-        ]
-    }
+  "permissions": {
+    "allow": [
+      "mcp__casefile__parse_amcache",
+      "mcp__casefile__parse_prefetch",
+      "mcp__casefile__parse_event_logs",
+      "mcp__casefile__parse_registry",
+      "mcp__casefile__parse_mft",
+      "mcp__casefile__record_finding",
+      "mcp__casefile__get_findings",
+      "mcp__casefile__record_timeline_event",
+      "Bash(mkdir -p ./analysis ./reports)",
+      "Bash(free -h)",
+      "Bash(ls -la *)",
+      "Bash(sha256sum *)",
+      "mcp__casefile__parse_memory",
+      "mcp__casefile__correlate_evidence"
+    ],
+    "deny": [
+      "Write(/mnt/evidence/*)",
+      "Edit(/mnt/evidence/*)",
+      "Write(cases/*/evidence/*)",
+      "Edit(cases/*/evidence/*)",
+      "Bash(chmod * /mnt/evidence/*)",
+      "Bash(chmod * cases/*/evidence/*)",
+      "Write(**/audit/mcp.jsonl)",
+      "Edit(**/audit/mcp.jsonl)",
+      "Write(**/approvals.jsonl)",
+      "Edit(**/approvals.jsonl)",
+      "Write(mcp_server/tools/findings.json)",
+      "Write(/cases/**)",
+      "Edit(/cases/**)",
+      "Write(/media/**)",
+      "Edit(/media/**)",
+      "Write(/evidence/**)",
+      "Edit(/evidence/**)",
+      "Write(**/*.E01)",
+      "Edit(**/*.E01)",
+      "Write(**/*.img)",
+      "Edit(**/*.img)",
+      "Write(**/*.vmem)",
+      "Edit(**/*.vmem)",
+      "Write(CLAUDE.md)",
+      "Edit(CLAUDE.md)"
+    ]
+  }
 }
