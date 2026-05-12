@@ -461,7 +461,7 @@ class TestAmcachePrefetchIntegration:
         assert sr.details["sha1"] == "aabbcc1122"
         assert sr.error is None
 
-    def test_amcache_found_case_insensitive(self, tmp_path, monkeypatch):
+    def test_amcache_found_case_insensitive(self, tmp_path):
         """Match is case-insensitive: SUBJECT_SRV.EXE matches subject_srv.exe."""
         from mcp_server.tools.correlation import _call_parse_amcache
 
@@ -480,7 +480,7 @@ class TestAmcachePrefetchIntegration:
 
         assert sr.present is True
 
-    def test_amcache_not_found(self, tmp_path, monkeypatch):
+    def test_amcache_not_found(self, tmp_path):
         """parse_amcache returns entries but none match → present=False, invocation_id set."""
         from mcp_server.tools.correlation import _call_parse_amcache
 
@@ -501,7 +501,7 @@ class TestAmcachePrefetchIntegration:
         assert sr.invocation_id == "amcache-inv-003"
         assert sr.error is None
 
-    def test_amcache_parser_error(self, tmp_path, monkeypatch):
+    def test_amcache_parser_error(self, tmp_path):
         """parse_amcache returns non-null error → present=False, error field set."""
         from mcp_server.tools.correlation import _call_parse_amcache
 
@@ -519,7 +519,7 @@ class TestAmcachePrefetchIntegration:
         assert sr.present is False
         assert "dotnet" in sr.error
 
-    def test_amcache_file_missing(self, tmp_path, monkeypatch):
+    def test_amcache_file_missing(self, tmp_path):
         """No Amcache.hve in case_dir → present=False, no error (just absent)."""
         from mcp_server.tools.correlation import _call_parse_amcache
 
@@ -529,7 +529,7 @@ class TestAmcachePrefetchIntegration:
         assert sr.present is False
         assert sr.error is None
 
-    def test_amcache_parser_raises(self, tmp_path, monkeypatch):
+    def test_amcache_parser_raises(self, tmp_path):
         """parse_amcache raises unexpectedly → present=False, error=str(exc)."""
         from mcp_server.tools.correlation import _call_parse_amcache
 
@@ -546,7 +546,7 @@ class TestAmcachePrefetchIntegration:
 
     # ── _call_parse_prefetch ────────────────────────────────────────────────
 
-    def test_prefetch_found(self, tmp_path, monkeypatch):
+    def test_prefetch_found(self, tmp_path):
         """parse_prefetch returns entry matching process_name → present=True."""
         from mcp_server.tools.correlation import _call_parse_prefetch
 
@@ -580,7 +580,7 @@ class TestAmcachePrefetchIntegration:
         assert sr.details["run_count"] == 3
         assert sr.error is None
 
-    def test_prefetch_not_found(self, tmp_path, monkeypatch):
+    def test_prefetch_not_found(self, tmp_path):
         """No matching entry → present=False, invocation_id set."""
         from mcp_server.tools.correlation import _call_parse_prefetch
 
@@ -602,7 +602,7 @@ class TestAmcachePrefetchIntegration:
         assert sr.invocation_id == "prefetch-inv-002"
         assert sr.error is None
 
-    def test_prefetch_dir_missing(self, tmp_path, monkeypatch):
+    def test_prefetch_dir_missing(self, tmp_path):
         """No Prefetch/ directory → present=False, no error."""
         from mcp_server.tools.correlation import _call_parse_prefetch
 
@@ -612,7 +612,7 @@ class TestAmcachePrefetchIntegration:
         assert sr.present is False
         assert sr.error is None
 
-    def test_prefetch_parser_raises(self, tmp_path, monkeypatch):
+    def test_prefetch_parser_raises(self, tmp_path):
         """parse_prefetch raises → present=False, error=str(exc)."""
         from mcp_server.tools.correlation import _call_parse_prefetch
 
@@ -675,7 +675,7 @@ class TestMemoryMftIntegration:
 
     # ── _call_parse_memory ──────────────────────────────────────────────────
 
-    def test_memory_found(self, tmp_path, monkeypatch):
+    def test_memory_found(self, tmp_path):
         """parse_memory returns record matching process_name → present=True."""
         from mcp_server.tools.correlation import _call_parse_memory
 
@@ -702,7 +702,7 @@ class TestMemoryMftIntegration:
         assert sr.details["pid"] == "1096"
         assert sr.error is None
 
-    def test_memory_found_case_insensitive(self, tmp_path, monkeypatch):
+    def test_memory_found_case_insensitive(self, tmp_path):
         """Match is case-insensitive: SUBJECT_SRV.EXE matches subject_srv.exe."""
         from mcp_server.tools.correlation import _call_parse_memory
 
@@ -724,7 +724,7 @@ class TestMemoryMftIntegration:
 
         assert sr.present is True
 
-    def test_memory_found_kernel_truncated(self, tmp_path, monkeypatch):
+    def test_memory_found_kernel_truncated(self, tmp_path):
         """Windows kernel truncates ImageFileName to 14 chars — still matches."""
         from mcp_server.tools.correlation import _call_parse_memory
 
@@ -748,7 +748,7 @@ class TestMemoryMftIntegration:
         assert sr.present is True
         assert sr.invocation_id == "mem-inv-002b"
 
-    def test_memory_not_found(self, tmp_path, monkeypatch):
+    def test_memory_not_found(self, tmp_path):
         """No matching record → present=False, invocation_id set."""
         from mcp_server.tools.correlation import _call_parse_memory
 
@@ -786,7 +786,7 @@ class TestMemoryMftIntegration:
         assert sr.present is False
         assert sr.error is None
 
-    def test_memory_parser_raises(self, tmp_path, monkeypatch):
+    def test_memory_parser_raises(self, tmp_path):
         """parse_memory raises → present=False, error=str(exc)."""
         from mcp_server.tools.correlation import _call_parse_memory
 
@@ -806,7 +806,7 @@ class TestMemoryMftIntegration:
 
     # ── _call_parse_mft ─────────────────────────────────────────────────────
 
-    def test_mft_found(self, tmp_path, monkeypatch):
+    def test_mft_found(self, tmp_path):
         """parse_mft returns entry matching process_name → present=True."""
         from mcp_server.tools.correlation import _call_parse_mft
 
@@ -834,7 +834,7 @@ class TestMemoryMftIntegration:
         assert "Perfmon" in sr.details["file_path"]
         assert sr.error is None
 
-    def test_mft_not_found(self, tmp_path, monkeypatch):
+    def test_mft_not_found(self, tmp_path):
         """No matching entry → present=False, invocation_id set."""
         from mcp_server.tools.correlation import _call_parse_mft
 
@@ -855,7 +855,7 @@ class TestMemoryMftIntegration:
         assert sr.invocation_id == "mft-inv-002"
         assert sr.error is None
 
-    def test_mft_file_missing(self, tmp_path, monkeypatch):
+    def test_mft_file_missing(self, tmp_path):
         """No MFT file → present=False, no error."""
         from mcp_server.tools.correlation import _call_parse_mft
 
@@ -865,7 +865,7 @@ class TestMemoryMftIntegration:
         assert sr.present is False
         assert sr.error is None
 
-    def test_mft_parser_raises(self, tmp_path, monkeypatch):
+    def test_mft_parser_raises(self, tmp_path):
         """parse_mft raises → present=False, error=str(exc)."""
         from mcp_server.tools.correlation import _call_parse_mft
 
