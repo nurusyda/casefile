@@ -515,19 +515,23 @@ def review_diff(diff: str, summary: str, model: str, context: str = "") -> None:
             temperature=0.2,
         )
     except TypeError:
-        stream = client.chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user",   "content": user_message},
-            ],
-            stream=True,
-            temperature=0.2,
-            extra_body={
-                "thinking":        {"type": "enabled"},
-                "reasoning_effort": "high",
-            },
-        )
+        # Older openai SDKs reject reasoning_effort as a top-level kwarg.
+        try:
+            stream = client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user",   "content": user_message},
+                ],
+                stream=True,
+                temperature=0.2,
+                extra_body={
+                    "thinking":        {"type": "enabled"},
+                    "reasoning_effort": "high",
+                },
+            )
+        except Exception as e:  # noqa: BLE001
+            die(f"DeepSeek API call failed (fallback path): {e}")
     except Exception as e:
         die(f"DeepSeek API call failed: {e}")
 
