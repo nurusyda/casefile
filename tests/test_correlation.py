@@ -208,6 +208,7 @@ class TestReturnSchema:
         "memory",
         "mft",
         "verdict",
+        "confidence",
         "verdict_reasoning",
         "supporting_invocation_ids",
         "invocation_id",
@@ -223,6 +224,10 @@ class TestReturnSchema:
         from mcp_server.tools.correlation import VERDICTS
         result = correlate_evidence("test.exe", case_dir=str(case_dir))
         assert result["verdict"] in VERDICTS
+
+    def test_confidence_is_valid_label(self, case_dir):
+        result = correlate_evidence("test.exe", case_dir=str(case_dir))
+        assert result["confidence"] in {"CONFIRMED", "INFERRED", "HYPOTHESIS"}
 
     def test_source_sections_have_present_key(self, case_dir):
         result = correlate_evidence("test.exe", case_dir=str(case_dir))
@@ -299,6 +304,26 @@ class TestSupportingIds:
     def test_empty_when_no_sources_present(self, case_dir):
         """Stubs return no invocation_ids -> empty list."""
         result = correlate_evidence("test.exe", case_dir=str(case_dir))
+        assert result["supporting_invocation_ids"] == []
+
+    def test_excludes_id_from_non_present_source(self, case_dir):
+        """present=False with non-empty invocation_id must NOT appear."""
+        fake_amcache = SourceResult(
+            source="amcache", present=False, invocation_id="ghost_inv_001"
+        )
+        fake_prefetch = SourceResult(source="prefetch", present=False)
+        fake_memory = SourceResult(source="memory", present=False)
+        fake_mft = SourceResult(source="mft", present=False)
+
+        with (
+            patch("mcp_server.tools.correlation._call_parse_amcache", return_value=fake_amcache),
+            patch("mcp_server.tools.correlation._call_parse_prefetch", return_value=fake_prefetch),
+            patch("mcp_server.tools.correlation._call_parse_memory", return_value=fake_memory),
+            patch("mcp_server.tools.correlation._call_parse_mft", return_value=fake_mft),
+        ):
+            result = correlate_evidence("test.exe", case_dir=str(case_dir))
+
+        assert "ghost_inv_001" not in result["supporting_invocation_ids"]
         assert result["supporting_invocation_ids"] == []
 
 
