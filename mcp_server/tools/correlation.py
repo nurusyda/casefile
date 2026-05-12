@@ -304,6 +304,18 @@ def _call_parse_prefetch(
         return SourceResult(source="prefetch", present=False, error=str(exc))
 
 
+def _require_within_case_root(path: Path) -> None:
+    """Raise CorrelationToolError if path escapes CASEFILE_CASE_ROOT (when set)."""
+    case_root_env = os.environ.get('CASEFILE_CASE_ROOT')
+    if not case_root_env:
+        return
+    root = Path(case_root_env).resolve()
+    try:
+        path.resolve().relative_to(root)
+    except ValueError:
+        raise CorrelationToolError(f'path escapes case root: {path}')
+
+
 def _call_parse_memory(
     process_name: str, case_dir: str,
 ) -> SourceResult:
@@ -312,34 +324,34 @@ def _call_parse_memory(
     Evidence file: {case_dir}/../*.img  (memory image lives one level above analysis/)
     Match field:   record["ImageFileName"]  (case-insensitive)
 
-    Returns SourceResult — never raises.
+    Returns SourceResult — never raises (CorrelationToolError is caught and
+    returned as SourceResult with present=False and error set).
     """
     try:
-        # Memory image lives one level above the analysis case_dir
-        # e.g. case_dir = ~/cases/SRL-2018/analysis  →  image = ~/cases/SRL-2018/*.img
+        # Memory image resolution -- explicit env var takes priority over glob.
+        # Set CASEFILE_MEMORY_IMAGE to the absolute path of the .img file so
+        # ralph.sh can point to the real image without relying on parent-dir layout.
         case_path = _resolve_case_dir(case_dir)
-        img_search_dir = case_path.parent
-        # Guard: ensure image search directory stays within case root if set
-        _case_root_env = os.environ.get("CASEFILE_CASE_ROOT")
-        if _case_root_env:
-            _case_root = Path(_case_root_env).resolve()
-            try:
-                img_search_dir.relative_to(_case_root)
-            except ValueError:
-                raise CorrelationToolError(
-                    f"memory image search escapes case root: {img_search_dir}"
-                )
-        images = list(img_search_dir.glob("*.img"))
-        if not images:
-            images = list(img_search_dir.glob("*.mem"))
-        if not images:
-            images = list(img_search_dir.glob("*.vmem"))
-        if not images:
-            images = list(img_search_dir.glob("*.raw"))
-        if not images:
-            return SourceResult(source="memory", present=False)
-
-        image_path = str(images[0])
+        explicit_image = os.environ.get('CASEFILE_MEMORY_IMAGE')
+        if explicit_image:
+            image_path = str(Path(os.path.expanduser(explicit_image)).resolve())
+            _require_within_case_root(Path(image_path))
+        else:
+            # Fallback: glob parent directory (SRL-2018 layout)
+            img_search_dir = case_path.parent
+            _require_within_case_root(img_search_dir)
+            images = list(img_search_dir.glob('*.img'))
+            if not images:
+                images = list(img_search_dir.glob('*.mem'))
+            if not images:
+                images = list(img_search_dir.glob('*.vmem'))
+            if not images:
+                images = list(img_search_dir.glob('*.raw'))
+            if not images:
+                return SourceResult(source='memory', present=False)
+            image_file = images[0].resolve()
+            _require_within_case_root(image_file)
+            image_path = str(image_file)
         result = parse_memory(image_path, plugin="windows.pslist")
 
         if result.get("error"):

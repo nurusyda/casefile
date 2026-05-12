@@ -894,6 +894,66 @@ class TestMemoryMftIntegration:
         assert "mftecmd crash" in sr.error
 
 
+    def test_memory_image_env_var_used_when_set(self, tmp_path, monkeypatch):
+        """CASEFILE_MEMORY_IMAGE env var -> used directly, glob never called."""
+        from mcp_server.tools.correlation import _call_parse_memory
+        monkeypatch.setattr(
+            'mcp_server.tools.correlation._resolve_case_dir', lambda d: Path(d)
+        )
+        fake_image = tmp_path / 'evidence.img'
+        fake_image.touch()
+        monkeypatch.setenv('CASEFILE_MEMORY_IMAGE', str(fake_image))
+        audit_dir = tmp_path / 'audit'
+        audit_dir.mkdir()
+        monkeypatch.setattr('mcp_server.tools._shared.AUDIT_FILE', audit_dir / 'mcp.jsonl')
+        mock_result = {
+            'invocation_id': 'inv-mem-envvar',
+            'records': [{'ImageFileName': 'subject_srv.exe', 'PID': 1096, 'PPID': 740}],
+        }
+        with patch('mcp_server.tools.correlation.parse_memory', return_value=mock_result) as mock_mem:
+            result = _call_parse_memory('subject_srv.exe', str(tmp_path))
+        mock_mem.assert_called_once_with(str(fake_image), plugin='windows.pslist')
+        assert result.present is True
+        assert result.details['pid'] == '1096'
+
+    def test_memory_image_env_var_case_root_accepted(self, tmp_path, monkeypatch):
+        """CASEFILE_MEMORY_IMAGE inside CASEFILE_CASE_ROOT -> accepted."""
+        from mcp_server.tools.correlation import _call_parse_memory
+        monkeypatch.setattr(
+            'mcp_server.tools.correlation._resolve_case_dir', lambda d: Path(d)
+        )
+        fake_image = tmp_path / 'evidence.img'
+        fake_image.touch()
+        monkeypatch.setenv('CASEFILE_MEMORY_IMAGE', str(fake_image))
+        monkeypatch.setenv('CASEFILE_CASE_ROOT', str(tmp_path))
+        audit_dir = tmp_path / 'audit'
+        audit_dir.mkdir()
+        monkeypatch.setattr('mcp_server.tools._shared.AUDIT_FILE', audit_dir / 'mcp.jsonl')
+        mock_result = {'invocation_id': 'inv-ok', 'records': []}
+        with patch('mcp_server.tools.correlation.parse_memory', return_value=mock_result):
+            result = _call_parse_memory('subject_srv.exe', str(tmp_path))
+        assert result.present is False
+        assert result.error is None
+
+    def test_memory_image_env_var_case_root_rejected(self, tmp_path, monkeypatch):
+        """CASEFILE_MEMORY_IMAGE outside CASEFILE_CASE_ROOT -> CorrelationToolError."""
+        from mcp_server.tools.correlation import _call_parse_memory, CorrelationToolError
+        monkeypatch.setattr(
+            'mcp_server.tools.correlation._resolve_case_dir', lambda d: Path(d)
+        )
+        case_root = tmp_path / 'cases'
+        case_root.mkdir()
+        outside_image = tmp_path / 'secret.img'
+        outside_image.touch()
+        monkeypatch.setenv('CASEFILE_MEMORY_IMAGE', str(outside_image))
+        monkeypatch.setenv('CASEFILE_CASE_ROOT', str(case_root))
+        audit_dir = tmp_path / 'audit'
+        audit_dir.mkdir()
+        monkeypatch.setattr('mcp_server.tools._shared.AUDIT_FILE', audit_dir / 'mcp.jsonl')
+        result = _call_parse_memory('subject_srv.exe', str(tmp_path))
+        assert result.present is False
+        assert 'escapes case root' in (result.error or '')
+
 class TestResolveCaseDir:
     """Direct tests for _resolve_case_dir path confinement (Prep 1)."""
 
