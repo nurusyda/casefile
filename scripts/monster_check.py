@@ -478,7 +478,7 @@ def _color_line(line: str, state: dict) -> str:
     return line
 
 
-def review_diff(diff: str, summary: str, model: str) -> None:
+def review_diff(diff: str, summary: str, model: str, context: str = "") -> None:
     try:
         from openai import OpenAI
     except ImportError:
@@ -493,12 +493,13 @@ def review_diff(diff: str, summary: str, model: str) -> None:
         base_url="https://api.deepseek.com",
     )
 
+
+    context_block = ("## VERIFIED (do not re-litigate):\n" + context + "\n\n") if context else ""
     user_message = (
-        f"{summary}\n\n"
+        f"{context_block}{summary}\n\n"
         f"Review this diff. Cite file:line for every finding.\n\n"
         f"```diff\n{diff}\n```"
     )
-
     banner(f"MONSTER-CHECK · model={model} · streaming review", C.CYAN)
 
     try:
@@ -588,6 +589,10 @@ def main() -> None:
         "--max-diff-bytes", type=int, default=300_000,
         help="Refuse to send diffs larger than this (default 300 KB).",
     )
+    parser.add_argument(
+        "--context", "-C", default="",
+        help="Verified context preamble to prepend to the review prompt.",
+    )
     args = parser.parse_args()
 
     ensure_git_repo()
@@ -616,7 +621,7 @@ def main() -> None:
         )
 
     print(f"{C.GREY}{summary}{C.RESET}")
-    review_diff(diff, summary, args.model)
+    review_diff(diff, summary, args.model, context=args.context)
 
 
 if __name__ == "__main__":
