@@ -240,3 +240,19 @@ The approve gate requires a TTY via `getpass()` — the AI cannot supply this.
 
 Evidence path restrictions are enforced via CLAUDE.md (prompt) and .claude/settings.json
 (MCP deny-list). Architectural deny rules are active — see docs/security.md.
+
+## correlate_evidence — Cross-Source Correlation
+
+`correlate_evidence(process_name, case_dir)` cross-references Amcache, Prefetch,
+MFT, and memory to produce a deterministic verdict.
+
+**CRITICAL: case_dir must point to the directory containing the artifacts directly:**
+- ✅ `correlate_evidence('subject_srv.exe', '/home/sansproject/cases/SRL-2018/analysis')`
+- ❌ `correlate_evidence('subject_srv.exe', '/home/sansproject/cases/SRL-2018')`
+
+The tool looks for `{case_dir}/Amcache.hve`, `{case_dir}/Prefetch/`, `{case_dir}/MFT`.
+CASEFILE_MEMORY_IMAGE env var must be set for memory source to be included.
+
+Verdict levels (strongest → weakest): CONFIRMED_RUNNING → CONFIRMED_HISTORICAL →
+MEMORY_ONLY → NOT_FOUND
+

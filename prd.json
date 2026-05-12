@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "case": "CRIMSON OSPREY",
-  "description": "Acceptance criteria for the Ralph Wiggum self-correction loop. Each task has pass criteria. The loop runs until all tasks pass or max_iterations is reached. Blocks 1-4 complete.",
+  "description": "Acceptance criteria for the Ralph Wiggum self-correction loop. Each task has pass criteria. The loop runs until all tasks pass or max_iterations is reached. Blocks 1-8 complete. Block 9: T08+T09 added to exercise correlate_evidence() and memory forensics.",
   "max_iterations": 25,
   "completion_signal": "TASK_COMPLETE",
   "tasks": [
@@ -27,7 +27,7 @@
         "Run timestamp in UTC present",
         "SHA1 hash recorded (Amcache) or run_count recorded (Prefetch)"
       ],
-      "failure_action": "Retry parse_amcache() then parse_prefetch() \u2014 check both sources"
+      "failure_action": "Retry parse_amcache() then parse_prefetch() — check both sources"
     },
     {
       "id": "T03",
@@ -89,6 +89,30 @@
         "report path exists on disk"
       ],
       "failure_action": "Agent has not completed. Continue investigation."
+    },
+    {
+      "id": "T08",
+      "name": "process_correlation",
+      "description": "correlate_evidence() confirms subject_srv.exe is CONFIRMED_RUNNING",
+      "required_label": "CONFIRMED",
+      "pass_criteria": [
+        "correlate_evidence('subject_srv.exe', '/home/sansproject/cases/SRL-2018/analysis') returns verdict CONFIRMED_RUNNING",
+        "At least 2 sources report present=True (memory + at least one of amcache/prefetch/mft)",
+        "Result invocation_id recorded in audit/mcp.jsonl"
+      ],
+      "failure_action": "Call correlate_evidence('subject_srv.exe', '/home/sansproject/cases/SRL-2018/analysis') — note: case_dir must point to the analysis/ subdirectory where Amcache.hve, Prefetch/, and MFT live, NOT the parent case dir. CASEFILE_MEMORY_IMAGE env var must be set to the .img path."
+    },
+    {
+      "id": "T09",
+      "name": "memory_evidence",
+      "description": "Live memory confirms malicious process running at time of acquisition",
+      "required_label": "CONFIRMED",
+      "pass_criteria": [
+        "parse_memory() with plugin=windows.pslist returns subject_srv.exe",
+        "PID and PPID recorded",
+        "Process path is anomalous (not System32) OR process name masquerades legitimate binary"
+      ],
+      "failure_action": "Call parse_memory(image_path, plugin='windows.pslist'). Search for subject_srv.exe — note 14-char kernel truncation: 'subject_srv.exe' appears as 'subject_srv.ex' in ImageFileName. Use startswith match."
     }
   ],
   "scoring": {
@@ -123,6 +147,16 @@
         "id": "CP6",
         "question": "All findings traceable to artifacts?",
         "task_ref": "T06"
+      },
+      {
+        "id": "CP7",
+        "question": "Cross-source correlation confirms live malicious process?",
+        "task_ref": "T08"
+      },
+      {
+        "id": "CP8",
+        "question": "Memory forensics confirms process running at acquisition time?",
+        "task_ref": "T09"
       }
     ],
     "note": "Each checkpoint scored independently. Partial credit awarded. Follows CFA-Bench methodology."
@@ -130,7 +164,7 @@
   "investigation_stories": [
     {
       "id": "IS-01",
-      "name": "CRIMSON OSPREY \u2014 Initial Compromise",
+      "name": "CRIMSON OSPREY — Initial Compromise",
       "description": "Attacker dropped STUN.exe in System32, masqueraded msedge.exe x7, established C2 to 172.15.1.20",
       "entry_point": "parse_amcache(filename_filter=['STUN.exe', 'msedge.exe'])",
       "expected_label": "CONFIRMED",
@@ -142,7 +176,7 @@
     },
     {
       "id": "IS-02",
-      "name": "CRIMSON OSPREY \u2014 Lateral Movement",
+      "name": "CRIMSON OSPREY — Lateral Movement",
       "description": "Attacker used net.exe PID 9128 to mount H: from 172.16.6.12 R&D subnet",
       "entry_point": "parse_event_logs(event_ids=[4688]) then parse_prefetch(filename_filter=['net.exe'])",
       "expected_label": "CONFIRMED",
@@ -155,7 +189,7 @@
     },
     {
       "id": "IS-03",
-      "name": "CRIMSON OSPREY \u2014 Persistence",
+      "name": "CRIMSON OSPREY — Persistence",
       "description": "pssdnsvc.exe registered as service with name/path mismatch; atmfd.dll absent from filesystem",
       "entry_point": "parse_registry() targeting services and Run keys",
       "expected_label": "INFERRED",
