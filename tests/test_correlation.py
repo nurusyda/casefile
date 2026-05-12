@@ -404,3 +404,252 @@ class TestSourceResultDataclass:
         sr = SourceResult(source="mft", present=True, invocation_id="")
         d = sr.to_dict()
         assert "invocation_id" not in d
+
+
+# --------------------------------------------------------------------------- #
+# TestAmcachePrefetchIntegration — real wired calls with mocked parsers
+# --------------------------------------------------------------------------- #
+
+class TestAmcachePrefetchIntegration:
+    """Integration tests for _call_parse_amcache and _call_parse_prefetch.
+
+    Parsers are mocked — these tests verify the wiring logic in correlation.py,
+    not the parsers themselves (those have their own test suites).
+    """
+
+    # ── _call_parse_amcache ─────────────────────────────────────────────────
+
+    def test_amcache_found(self, tmp_path):
+        """parse_amcache returns entry matching process_name → present=True."""
+        from mcp_server.tools.correlation import _call_parse_amcache
+
+        # Create fake Amcache.hve so the existence check passes
+        (tmp_path / "Amcache.hve").touch()
+
+        fake_result = {
+            "invocation_id": "amcache-inv-001",
+            "error": None,
+            "entries": [
+                {
+                    "name": "subject_srv.exe",
+                    "full_path": "\\windows\\temp\\subject_srv.exe",
+                    "sha1": "aabbcc1122",
+                    "first_run_utc": "2018-09-06T10:00:00Z",
+                },
+                {
+                    "name": "svchost.exe",
+                    "full_path": "\\windows\\system32\\svchost.exe",
+                    "sha1": "deadbeef",
+                    "first_run_utc": "2018-01-01T00:00:00Z",
+                },
+            ],
+        }
+
+        with patch("mcp_server.tools.correlation.parse_amcache", return_value=fake_result):
+            sr = _call_parse_amcache("subject_srv.exe", str(tmp_path))
+
+        assert sr.present is True
+        assert sr.invocation_id == "amcache-inv-001"
+        assert sr.details["sha1"] == "aabbcc1122"
+        assert sr.error is None
+
+    def test_amcache_found_case_insensitive(self, tmp_path):
+        """Match is case-insensitive: SUBJECT_SRV.EXE matches subject_srv.exe."""
+        from mcp_server.tools.correlation import _call_parse_amcache
+
+        (tmp_path / "Amcache.hve").touch()
+
+        fake_result = {
+            "invocation_id": "amcache-inv-002",
+            "error": None,
+            "entries": [
+                {"name": "SUBJECT_SRV.EXE", "full_path": "", "sha1": "", "first_run_utc": ""},
+            ],
+        }
+
+        with patch("mcp_server.tools.correlation.parse_amcache", return_value=fake_result):
+            sr = _call_parse_amcache("subject_srv.exe", str(tmp_path))
+
+        assert sr.present is True
+
+    def test_amcache_not_found(self, tmp_path):
+        """parse_amcache returns entries but none match → present=False, invocation_id set."""
+        from mcp_server.tools.correlation import _call_parse_amcache
+
+        (tmp_path / "Amcache.hve").touch()
+
+        fake_result = {
+            "invocation_id": "amcache-inv-003",
+            "error": None,
+            "entries": [
+                {"name": "notepad.exe", "full_path": "", "sha1": "", "first_run_utc": ""},
+            ],
+        }
+
+        with patch("mcp_server.tools.correlation.parse_amcache", return_value=fake_result):
+            sr = _call_parse_amcache("definitely_not_real.exe", str(tmp_path))
+
+        assert sr.present is False
+        assert sr.invocation_id == "amcache-inv-003"
+        assert sr.error is None
+
+    def test_amcache_parser_error(self, tmp_path):
+        """parse_amcache returns non-null error → present=False, error field set."""
+        from mcp_server.tools.correlation import _call_parse_amcache
+
+        (tmp_path / "Amcache.hve").touch()
+
+        fake_result = {
+            "invocation_id": "amcache-inv-004",
+            "error": "AmcacheParser failed: dotnet not found",
+            "entries": [],
+        }
+
+        with patch("mcp_server.tools.correlation.parse_amcache", return_value=fake_result):
+            sr = _call_parse_amcache("subject_srv.exe", str(tmp_path))
+
+        assert sr.present is False
+        assert "dotnet" in sr.error
+
+    def test_amcache_file_missing(self, tmp_path):
+        """No Amcache.hve in case_dir → present=False, no error (just absent)."""
+        from mcp_server.tools.correlation import _call_parse_amcache
+
+        # Do NOT create Amcache.hve
+        sr = _call_parse_amcache("subject_srv.exe", str(tmp_path))
+
+        assert sr.present is False
+        assert sr.error is None
+
+    def test_amcache_parser_raises(self, tmp_path):
+        """parse_amcache raises unexpectedly → present=False, error=str(exc)."""
+        from mcp_server.tools.correlation import _call_parse_amcache
+
+        (tmp_path / "Amcache.hve").touch()
+
+        with patch(
+            "mcp_server.tools.correlation.parse_amcache",
+            side_effect=RuntimeError("unexpected crash"),
+        ):
+            sr = _call_parse_amcache("subject_srv.exe", str(tmp_path))
+
+        assert sr.present is False
+        assert "unexpected crash" in sr.error
+
+    # ── _call_parse_prefetch ────────────────────────────────────────────────
+
+    def test_prefetch_found(self, tmp_path):
+        """parse_prefetch returns entry matching process_name → present=True."""
+        from mcp_server.tools.correlation import _call_parse_prefetch
+
+        pf_dir = tmp_path / "Prefetch"
+        pf_dir.mkdir()
+
+        fake_result = {
+            "invocation_id": "prefetch-inv-001",
+            "error": None,
+            "entries": [
+                {
+                    "executable_name": "SUBJECT_SRV.EXE",
+                    "last_run_utc": "2018-09-06T10:05:00Z",
+                    "run_count": 3,
+                    "source_file": "SUBJECT_SRV.EXE-ABCD1234.pf",
+                },
+                {
+                    "executable_name": "SVCHOST.EXE",
+                    "last_run_utc": "2018-09-06T08:00:00Z",
+                    "run_count": 120,
+                    "source_file": "SVCHOST.EXE-DEADBEEF.pf",
+                },
+            ],
+        }
+
+        with patch("mcp_server.tools.correlation.parse_prefetch", return_value=fake_result):
+            sr = _call_parse_prefetch("subject_srv.exe", str(tmp_path))
+
+        assert sr.present is True
+        assert sr.invocation_id == "prefetch-inv-001"
+        assert sr.details["run_count"] == 3
+        assert sr.error is None
+
+    def test_prefetch_not_found(self, tmp_path):
+        """No matching entry → present=False, invocation_id set."""
+        from mcp_server.tools.correlation import _call_parse_prefetch
+
+        pf_dir = tmp_path / "Prefetch"
+        pf_dir.mkdir()
+
+        fake_result = {
+            "invocation_id": "prefetch-inv-002",
+            "error": None,
+            "entries": [
+                {"executable_name": "NOTEPAD.EXE", "last_run_utc": "", "run_count": 1, "source_file": ""},
+            ],
+        }
+
+        with patch("mcp_server.tools.correlation.parse_prefetch", return_value=fake_result):
+            sr = _call_parse_prefetch("definitely_not_real.exe", str(tmp_path))
+
+        assert sr.present is False
+        assert sr.invocation_id == "prefetch-inv-002"
+        assert sr.error is None
+
+    def test_prefetch_dir_missing(self, tmp_path):
+        """No Prefetch/ directory → present=False, no error."""
+        from mcp_server.tools.correlation import _call_parse_prefetch
+
+        # Do NOT create Prefetch/
+        sr = _call_parse_prefetch("subject_srv.exe", str(tmp_path))
+
+        assert sr.present is False
+        assert sr.error is None
+
+    def test_prefetch_parser_raises(self, tmp_path):
+        """parse_prefetch raises → present=False, error=str(exc)."""
+        from mcp_server.tools.correlation import _call_parse_prefetch
+
+        pf_dir = tmp_path / "Prefetch"
+        pf_dir.mkdir()
+
+        with patch(
+            "mcp_server.tools.correlation.parse_prefetch",
+            side_effect=RuntimeError("pyscca crash"),
+        ):
+            sr = _call_parse_prefetch("subject_srv.exe", str(tmp_path))
+
+        assert sr.present is False
+        assert "pyscca crash" in sr.error
+
+    def test_verdict_confirmed_historical_when_both_present(self, tmp_path, monkeypatch):
+        """amcache + prefetch both present, no memory → verdict = CONFIRMED_HISTORICAL."""
+        monkeypatch.setattr("mcp_server.tools._shared.AUDIT_FILE", tmp_path / "mcp.jsonl")
+        audit_dir = tmp_path / "audit"
+        audit_dir.mkdir()
+        monkeypatch.setattr("mcp_server.tools._shared.AUDIT_FILE", audit_dir / "mcp.jsonl")
+
+        (tmp_path / "Amcache.hve").touch()
+        pf_dir = tmp_path / "Prefetch"
+        pf_dir.mkdir()
+
+        fake_amcache = {
+            "invocation_id": "amcache-verdict-001",
+            "error": None,
+            "entries": [{"name": "subject_srv.exe", "full_path": "", "sha1": "", "first_run_utc": ""}],
+        }
+        fake_prefetch = {
+            "invocation_id": "prefetch-verdict-001",
+            "error": None,
+            "entries": [{"executable_name": "subject_srv.exe", "last_run_utc": "", "run_count": 1, "source_file": ""}],
+        }
+
+        with (
+            patch("mcp_server.tools.correlation.parse_amcache", return_value=fake_amcache),
+            patch("mcp_server.tools.correlation.parse_prefetch", return_value=fake_prefetch),
+        ):
+            result = correlate_evidence("subject_srv.exe", case_dir=str(tmp_path))
+
+        assert result["verdict"] == "CONFIRMED_HISTORICAL"
+        assert result["amcache"]["present"] is True
+        assert result["prefetch"]["present"] is True
+        assert "amcache-verdict-001" in result["supporting_invocation_ids"]
+        assert "prefetch-verdict-001" in result["supporting_invocation_ids"]

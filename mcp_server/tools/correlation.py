@@ -21,7 +21,11 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Any
 
+from pathlib import Path
+
 from mcp_server.tools._shared import audit_log
+from mcp_server.tools.amcache import parse_amcache
+from mcp_server.tools.prefetch import parse_prefetch
 
 
 # --------------------------------------------------------------------------- #
@@ -174,15 +178,98 @@ def _decide_verdict(
 def _call_parse_amcache(
     process_name: str, case_dir: str,
 ) -> SourceResult:
-    """Stub: will call parse_amcache() in Commit 2."""
-    return SourceResult(source="amcache", present=False, error="not_wired")
+    """Call parse_amcache() and search entries for process_name (case-insensitive).
+
+    Evidence file: {case_dir}/Amcache.hve
+    Match field:   entry["name"]  (e.g. "subject_srv.exe")
+
+    Returns SourceResult — never raises.
+    """
+    try:
+        hive_path = Path(case_dir) / "Amcache.hve"
+        if not hive_path.exists():
+            return SourceResult(source="amcache", present=False)
+
+        result = parse_amcache(str(hive_path))
+
+        if result.get("error"):
+            return SourceResult(
+                source="amcache",
+                present=False,
+                invocation_id=result.get("invocation_id", ""),
+                error=str(result["error"]),
+            )
+
+        target = process_name.lower()
+        for entry in result.get("entries", []):
+            if entry.get("name", "").lower() == target:
+                return SourceResult(
+                    source="amcache",
+                    present=True,
+                    invocation_id=result["invocation_id"],
+                    details={
+                        "sha1":          entry.get("sha1", ""),
+                        "full_path":     entry.get("full_path", ""),
+                        "first_run_utc": entry.get("first_run_utc", ""),
+                    },
+                )
+
+        return SourceResult(
+            source="amcache",
+            present=False,
+            invocation_id=result["invocation_id"],
+        )
+    except Exception as exc:  # noqa: BLE001
+        return SourceResult(source="amcache", present=False, error=str(exc))
 
 
 def _call_parse_prefetch(
     process_name: str, case_dir: str,
 ) -> SourceResult:
-    """Stub: will call parse_prefetch() in Commit 2."""
-    return SourceResult(source="prefetch", present=False, error="not_wired")
+    """Call parse_prefetch() and search entries for process_name (case-insensitive).
+
+    Evidence directory: {case_dir}/Prefetch/
+    Match field:        entry["executable_name"]  (e.g. "SUBJECT_SRV.EXE")
+
+    Returns SourceResult — never raises.
+    """
+    try:
+        pf_dir = Path(case_dir) / "Prefetch"
+        if not pf_dir.exists():
+            return SourceResult(source="prefetch", present=False)
+
+        result = parse_prefetch(str(pf_dir))
+
+        if result.get("error"):
+            return SourceResult(
+                source="prefetch",
+                present=False,
+                invocation_id=result.get("invocation_id", ""),
+                error=str(result["error"]),
+            )
+
+        target = process_name.lower()
+        for entry in result.get("entries", []):
+            if entry.get("executable_name", "").lower() == target:
+                return SourceResult(
+                    source="prefetch",
+                    present=True,
+                    invocation_id=result["invocation_id"],
+                    details={
+                        "executable_name": entry.get("executable_name", ""),
+                        "last_run_utc":    entry.get("last_run_utc", ""),
+                        "run_count":       entry.get("run_count", 0),
+                        "source_file":     entry.get("source_file", ""),
+                    },
+                )
+
+        return SourceResult(
+            source="prefetch",
+            present=False,
+            invocation_id=result["invocation_id"],
+        )
+    except Exception as exc:  # noqa: BLE001
+        return SourceResult(source="prefetch", present=False, error=str(exc))
 
 
 def _call_parse_memory(
