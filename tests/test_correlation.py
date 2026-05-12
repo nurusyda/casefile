@@ -641,6 +641,7 @@ class TestAmcachePrefetchIntegration:
     def test_verdict_confirmed_historical_when_both_present(self, tmp_path, monkeypatch):
         """amcache + prefetch both present, no memory → verdict = CONFIRMED_HISTORICAL."""
         monkeypatch.setattr("mcp_server.tools.correlation._resolve_case_dir", Path)
+        monkeypatch.delenv("CASEFILE_MEMORY_IMAGE", raising=False)
         audit_dir = tmp_path / "audit"
         audit_dir.mkdir()
         monkeypatch.setattr("mcp_server.tools._shared.AUDIT_FILE", audit_dir / "mcp.jsonl")
@@ -789,6 +790,7 @@ class TestMemoryMftIntegration:
     def test_memory_image_missing(self, tmp_path, monkeypatch):
         """No image file found → present=False, no error."""
         monkeypatch.setattr("mcp_server.tools.correlation._resolve_case_dir", Path)
+        monkeypatch.delenv("CASEFILE_MEMORY_IMAGE", raising=False)
         from mcp_server.tools.correlation import _call_parse_memory
 
         case_dir = tmp_path / "analysis"

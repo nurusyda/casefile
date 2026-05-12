@@ -474,6 +474,79 @@ def _color_line(line: str, state: dict) -> str:
     return line
 
 
+
+
+def build_auto_context() -> str:
+    """
+    Run deterministic repo checks and return a verified-facts string.
+    These facts are injected into the review prompt so DeepSeek cannot
+    hallucinate about things we can verify ourselves.
+    """
+    import subprocess
+    from pathlib import Path
+    facts = []
+
+    def grep(pattern: str, path: str, flags: str = "") -> list[str]:
+        try:
+            r = subprocess.run(
+                ["grep", "-n"] + ([flags] if flags else []) + [pattern, path],
+                capture_output=True, text=True,
+            )
+            return [l.strip() for l in r.stdout.splitlines() if l.strip()]
+        except Exception:
+            return []
+
+    # MCP tool registrations
+    server_py = "mcp_server/server.py"
+    if Path(server_py).exists():
+        lines = grep("mcp.tool", server_py)
+        if lines:
+            facts.append(f"MCP tools registered in {server_py}: {len(lines)} tool(s)")
+        # Specific tools
+        for tool in ["correlate_evidence", "parse_memory", "record_finding",
+                     "approve_finding"]:
+            hits = grep(tool, server_py)
+            if hits:
+                facts.append(f"  {tool}: registered at {server_py} line(s) {', '.join(h.split(':')[0] for h in hits)}")
+            else:
+                facts.append(f"  {tool}: NOT registered in {server_py}")
+
+    # Test count
+    try:
+        r = subprocess.run(
+            ["python3", "-m", "pytest", "tests/", "--co", "-q"],
+            capture_output=True, text=True,
+        )
+        lines = [l for l in r.stdout.splitlines() if "selected" in l or "test" in l.lower()]
+        if lines:
+            facts.append(f"pytest --co: {lines[-1].strip()}")
+    except Exception:
+        pass
+
+    # approve_finding not in MCP tools (Law 5)
+    corr = "mcp_server/tools/correlation.py"
+    if Path(corr).exists():
+        hits = grep("approve_finding", corr)
+        if not hits:
+            facts.append("approve_finding: not in correlation.py (Law 5 compliant)")
+
+    # BLOCKED_COMMANDS presence
+    shared = "mcp_server/tools/_shared.py"
+    if Path(shared).exists():
+        hits = grep("BLOCKED_COMMANDS", shared)
+        if hits:
+            facts.append(f"BLOCKED_COMMANDS: present in {shared}")
+
+    # audit_log signature (keyword-only args)
+    if Path(shared).exists():
+        hits = grep("def audit_log", shared)
+        if hits:
+            facts.append(f"audit_log signature: {hits[0]}")
+
+    if not facts:
+        return ""
+    return "AUTO-VERIFIED REPO STATE (confirmed by grep — do not contradict):\n" + "\n".join(facts)
+
 def review_diff(diff: str, summary: str, model: str, context: str = "") -> None:
     try:
         from openai import OpenAI
@@ -490,7 +563,9 @@ def review_diff(diff: str, summary: str, model: str, context: str = "") -> None:
     )
 
 
-    context_block = ("## VERIFIED (do not re-litigate):\n" + context + "\n\n") if context else ""
+    auto_facts = build_auto_context()
+    combined_context = "\n".join(filter(None, [auto_facts, context or ""]))
+    context_block = ("## VERIFIED (do not re-litigate):\n" + combined_context + "\n\n") if combined_context else ""
     user_message = (
         f"{context_block}{summary}\n\n"
         f"Review this diff. Cite file:line for every finding.\n\n"
