@@ -56,10 +56,10 @@ def _resolve_case_dir(case_dir: str) -> Path:
         resolved = (case_root / case_dir).resolve()
         try:
             resolved.relative_to(case_root)
-        except ValueError:
+        except ValueError as exc:
             raise CorrelationToolError(
                 f"case_dir escapes case root: {case_dir!r} resolves to {resolved}"
-            )
+            ) from exc
         return resolved
     # No CASEFILE_CASE_ROOT set — treat case_dir as absolute path (dev/test mode)
     return Path(case_dir).resolve()
@@ -312,8 +312,8 @@ def _require_within_case_root(path: Path) -> None:
     root = Path(case_root_env).resolve()
     try:
         path.resolve().relative_to(root)
-    except ValueError:
-        raise CorrelationToolError(f'path escapes case root: {path}')
+    except ValueError as exc:
+        raise CorrelationToolError(f'path escapes case root: {path}') from exc
 
 
 def _call_parse_memory(
@@ -340,13 +340,14 @@ def _call_parse_memory(
             # Fallback: glob parent directory (SRL-2018 layout)
             img_search_dir = case_path.parent
             _require_within_case_root(img_search_dir)
-            images = list(img_search_dir.glob('*.img'))
-            if not images:
-                images = list(img_search_dir.glob('*.mem'))
-            if not images:
-                images = list(img_search_dir.glob('*.vmem'))
-            if not images:
-                images = list(img_search_dir.glob('*.raw'))
+            images: list[Path] = []
+            for _ext in ("img", "mem", "vmem", "raw"):
+                images = sorted(
+                    p for p in img_search_dir.iterdir()
+                    if p.is_file() and p.suffix.lower() == f".{_ext}"
+                )
+                if images:
+                    break
             if not images:
                 return SourceResult(source='memory', present=False)
             image_file = images[0].resolve()
@@ -368,7 +369,7 @@ def _call_parse_memory(
             # Windows kernel truncates ImageFileName to 14 visible chars.
             # Match exact OR prefix (target starts with the truncated name).
             match = (img_name == target) or (
-                target.startswith(img_name) and len(img_name) == 14
+                img_name and target.startswith(img_name) and len(img_name) == 14
             )
             if match:
                 return SourceResult(
@@ -407,7 +408,7 @@ def _call_parse_mft(
         if not mft_path.exists():
             return SourceResult(source="mft", present=False)
 
-        result = parse_mft(str(mft_path))
+        result = parse_mft(str(mft_path), filename_filter=[process_name])
 
         if result.get("error"):
             return SourceResult(
@@ -491,7 +492,7 @@ def correlate_evidence(
             raise CorrelationToolError(
                 "case_dir must be provided or CASEFILE_CASE_DIR must be set"
             )
-        # --- Call each parser (stubs for Commit 1) --------------------------
+        # --- Call each parser ------------------------------------------------
         amcache = _call_parse_amcache(process_name, _resolved_case_dir)
         prefetch = _call_parse_prefetch(process_name, _resolved_case_dir)
         memory = _call_parse_memory(process_name, _resolved_case_dir)
@@ -543,7 +544,7 @@ def correlate_evidence(
             returncode=_returncode,
             stdout_lines=0,
             stderr_excerpt="",
-            parsed_record_count=len(_sources_present) or 1,
+            parsed_record_count=len(_sources_present),
             duration_ms=round(elapsed_ms),
             examiner=examiner,
             extra=_extra,
