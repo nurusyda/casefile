@@ -459,7 +459,7 @@ def correlate_evidence(
     t_start = time.monotonic()
 
     # --- Audit state (populated inside try, consumed in finally) ------------
-    _verdict: Optional[str] = None
+    _verdict: str | None = None
     _sources_present: list[str] = []
     _resolved_case_dir: str = ""
     _returncode: int = 1
