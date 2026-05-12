@@ -81,11 +81,7 @@ def run_git(args: list[str]) -> str:
 
 
 def ensure_git_repo() -> None:
-    out = subprocess.run(
-        ["git", "rev-parse", "--is-inside-work-tree"],
-        capture_output=True, text=True,
-    )
-    if out.returncode != 0 or out.stdout.strip() != "true":
+    if run_git(["rev-parse", "--is-inside-work-tree"]).strip() != "true":
         die("Not inside a git repository. cd into your project root first.")
 
 

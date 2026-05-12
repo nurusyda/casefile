@@ -428,9 +428,8 @@ class TestAmcachePrefetchIntegration:
 
     # ── _call_parse_amcache ─────────────────────────────────────────────────
 
-    def test_amcache_found(self, tmp_path, monkeypatch):
+    def test_amcache_found(self, tmp_path, monkeypatch, patch_resolve_case_dir):
         """parse_amcache returns entry matching process_name → present=True."""
-        monkeypatch.setattr("mcp_server.tools.correlation._resolve_case_dir", Path)
         from mcp_server.tools.correlation import _call_parse_amcache
 
         # Create fake Amcache.hve so the existence check passes
