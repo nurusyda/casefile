@@ -61,6 +61,7 @@ def _sr(source: str, present: bool = False, inv: str = "") -> SourceResult:
 @pytest.fixture
 def patch_resolve_case_dir(monkeypatch):
     """Bypass CASEFILE_CASE_ROOT confinement: treat case_dir as absolute."""
+    monkeypatch.setattr("mcp_server.tools.correlation._resolve_case_dir", Path)
     return monkeypatch
 
 

@@ -41,7 +41,18 @@
       "Write(**/*.vmem)",
       "Edit(**/*.vmem)",
       "Write(CLAUDE.md)",
-      "Edit(CLAUDE.md)"
+      "Edit(CLAUDE.md)",
+      "Write(/mnt/**)",
+      "Edit(/mnt/**)",
+      "Bash(rm * /cases/**)",
+      "Bash(rm * /media/**)",
+      "Bash(rm * /evidence/**)",
+      "Bash(rm * /mnt/**)",
+      "Bash(rm **/*.E01)",
+      "Bash(rm **/*.img)",
+      "Bash(rm **/*.vmem)",
+      "Bash(shred * /mnt/**)",
+      "Bash(shred * /cases/**)"
     ]
   }
 }

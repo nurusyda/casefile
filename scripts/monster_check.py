@@ -19,6 +19,7 @@ import argparse
 import os
 import subprocess
 import sys
+from pathlib import Path
 
 # --------------------------------------------------------------------------- #
 # ANSI color helpers
@@ -482,8 +483,6 @@ def build_auto_context() -> str:
     These facts are injected into the review prompt so DeepSeek cannot
     hallucinate about things we can verify ourselves.
     """
-    import subprocess
-    from pathlib import Path
     facts = []
 
     def grep(pattern: str, path: str, flags: str = "") -> list[str]:

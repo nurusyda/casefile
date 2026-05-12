@@ -253,6 +253,5 @@ MFT, and memory to produce a deterministic verdict.
 The tool looks for `{case_dir}/Amcache.hve`, `{case_dir}/Prefetch/`, `{case_dir}/MFT`.
 CASEFILE_MEMORY_IMAGE env var must be set for memory source to be included.
 
-Verdict levels (strongest → weakest): CONFIRMED_RUNNING → CONFIRMED_HISTORICAL →
-MEMORY_ONLY → NOT_FOUND
+Verdict levels (strongest → weakest): CONFIRMED_RUNNING → INFERRED_RUNNING → CONFIRMED_HISTORICAL → INFERRED_HISTORICAL → INSTALLED_NEVER_RAN → MEMORY_ONLY → NOT_FOUND
 
