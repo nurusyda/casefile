@@ -26,6 +26,8 @@ from pathlib import Path
 from mcp_server.tools._shared import audit_log
 from mcp_server.tools.amcache import parse_amcache
 from mcp_server.tools.prefetch import parse_prefetch
+from mcp_server.tools.memory import parse_memory
+from mcp_server.tools.mft import parse_mft
 
 
 # --------------------------------------------------------------------------- #
@@ -34,6 +36,34 @@ from mcp_server.tools.prefetch import parse_prefetch
 
 class CorrelationToolError(Exception):
     """Typed error for the correlation tool."""
+
+# --------------------------------------------------------------------------- #
+# Path confinement helper
+# --------------------------------------------------------------------------- #
+
+def _resolve_case_dir(case_dir: str) -> Path:
+    """Resolve and confine case_dir to CASEFILE_CASE_ROOT.
+
+    Prevents path traversal: case_dir='../../etc' is rejected before
+    any filesystem access occurs.
+
+    Raises:
+        CorrelationToolError: if case_dir resolves outside CASEFILE_CASE_ROOT.
+    """
+    _case_root_env = os.environ.get("CASEFILE_CASE_ROOT")
+    if _case_root_env:
+        case_root = Path(_case_root_env).resolve()
+        resolved = (case_root / case_dir).resolve()
+        try:
+            resolved.relative_to(case_root)
+        except ValueError:
+            raise CorrelationToolError(
+                f"case_dir escapes case root: {case_dir!r} resolves to {resolved}"
+            )
+        return resolved
+    # No CASEFILE_CASE_ROOT set — treat case_dir as absolute path (dev/test mode)
+    return Path(case_dir).resolve()
+
 
 
 # --------------------------------------------------------------------------- #
@@ -186,7 +216,8 @@ def _call_parse_amcache(
     Returns SourceResult — never raises.
     """
     try:
-        hive_path = Path(case_dir) / "Amcache.hve"
+        case_path = _resolve_case_dir(case_dir)
+        hive_path = case_path / "Amcache.hve"
         if not hive_path.exists():
             return SourceResult(source="amcache", present=False)
 
@@ -234,7 +265,8 @@ def _call_parse_prefetch(
     Returns SourceResult — never raises.
     """
     try:
-        pf_dir = Path(case_dir) / "Prefetch"
+        case_path = _resolve_case_dir(case_dir)
+        pf_dir = case_path / "Prefetch"
         if not pf_dir.exists():
             return SourceResult(source="prefetch", present=False)
 
@@ -275,15 +307,126 @@ def _call_parse_prefetch(
 def _call_parse_memory(
     process_name: str, case_dir: str,
 ) -> SourceResult:
-    """Stub: will call parse_memory() in Commit 3."""
-    return SourceResult(source="memory", present=False, error="not_wired")
+    """Call parse_memory(windows.pslist) and search records for process_name.
+
+    Evidence file: {case_dir}/../*.img  (memory image lives one level above analysis/)
+    Match field:   record["ImageFileName"]  (case-insensitive)
+
+    Returns SourceResult — never raises.
+    """
+    try:
+        # Memory image lives one level above the analysis case_dir
+        # e.g. case_dir = ~/cases/SRL-2018/analysis  →  image = ~/cases/SRL-2018/*.img
+        case_path = _resolve_case_dir(case_dir)
+        img_search_dir = case_path.parent
+        # Guard: ensure image search directory stays within case root if set
+        _case_root_env = os.environ.get("CASEFILE_CASE_ROOT")
+        if _case_root_env:
+            _case_root = Path(_case_root_env).resolve()
+            try:
+                img_search_dir.relative_to(_case_root)
+            except ValueError:
+                raise CorrelationToolError(
+                    f"memory image search escapes case root: {img_search_dir}"
+                )
+        images = list(img_search_dir.glob("*.img"))
+        if not images:
+            images = list(img_search_dir.glob("*.mem"))
+        if not images:
+            images = list(img_search_dir.glob("*.vmem"))
+        if not images:
+            images = list(img_search_dir.glob("*.raw"))
+        if not images:
+            return SourceResult(source="memory", present=False)
+
+        image_path = str(images[0])
+        result = parse_memory(image_path, plugin="windows.pslist")
+
+        if result.get("error"):
+            return SourceResult(
+                source="memory",
+                present=False,
+                invocation_id=result.get("invocation_id", ""),
+                error=str(result["error"]),
+            )
+
+        target = process_name.lower()
+        for record in result.get("records", []):
+            img_name = record.get("ImageFileName", "").lower()
+            # Windows kernel truncates ImageFileName to 14 visible chars.
+            # Match exact OR prefix (target starts with the truncated name).
+            match = (img_name == target) or (
+                target.startswith(img_name) and len(img_name) == 14
+            )
+            if match:
+                return SourceResult(
+                    source="memory",
+                    present=True,
+                    invocation_id=result.get("invocation_id", ""),
+                    details={
+                        "pid":            str(record.get("PID", "")),
+                        "ppid":           str(record.get("PPID", "")),
+                        "image_filename": record.get("ImageFileName", ""),
+                    },
+                )
+
+        return SourceResult(
+            source="memory",
+            present=False,
+            invocation_id=result.get("invocation_id", ""),
+        )
+    except Exception as exc:  # noqa: BLE001
+        return SourceResult(source="memory", present=False, error=str(exc))
 
 
 def _call_parse_mft(
     process_name: str, case_dir: str,
 ) -> SourceResult:
-    """Stub: will call parse_mft() in Commit 3."""
-    return SourceResult(source="mft", present=False, error="not_wired")
+    """Call parse_mft() with filename_filter=[process_name] and check for a match.
+
+    Evidence file: {case_dir}/MFT
+    Match field:   entry["FileName"]  (case-insensitive)
+
+    Returns SourceResult — never raises.
+    """
+    try:
+        case_path = _resolve_case_dir(case_dir)
+        mft_path = case_path / "MFT"
+        if not mft_path.exists():
+            return SourceResult(source="mft", present=False)
+
+        result = parse_mft(str(mft_path))
+
+        if result.get("error"):
+            return SourceResult(
+                source="mft",
+                present=False,
+                invocation_id=result.get("invocation_id", ""),
+                error=str(result["error"]),
+            )
+
+        target = process_name.lower()
+        for entry in result.get("entries", []):
+            if entry.get("FileName", "").lower() == target:
+                return SourceResult(
+                    source="mft",
+                    present=True,
+                    invocation_id=result.get("invocation_id", ""),
+                    details={
+                        "file_path":      entry.get("ParentPath", ""),
+                        "si_created_utc": entry.get("Created0x10", ""),
+                        "fn_created_utc": entry.get("Created0x30", ""),
+                        "is_deleted":     str(entry.get("InUse", "true")).lower() == "false",
+                    },
+                )
+
+        return SourceResult(
+            source="mft",
+            present=False,
+            invocation_id=result.get("invocation_id", ""),
+        )
+    except Exception as exc:  # noqa: BLE001
+        return SourceResult(source="mft", present=False, error=str(exc))
 
 
 # --------------------------------------------------------------------------- #
