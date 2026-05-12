@@ -227,7 +227,7 @@ def _call_parse_amcache(
             return SourceResult(
                 source="amcache",
                 present=False,
-                invocation_id=result.get("invocation_id", ""),
+                invocation_id=result["invocation_id"],
                 error=str(result["error"]),
             )
 
@@ -276,7 +276,7 @@ def _call_parse_prefetch(
             return SourceResult(
                 source="prefetch",
                 present=False,
-                invocation_id=result.get("invocation_id", ""),
+                invocation_id=result["invocation_id"],
                 error=str(result["error"]),
             )
 
@@ -305,7 +305,12 @@ def _call_parse_prefetch(
 
 
 def _require_within_case_root(path: Path) -> None:
-    """Raise CorrelationToolError if path escapes CASEFILE_CASE_ROOT (when set)."""
+    """Raise CorrelationToolError if path escapes CASEFILE_CASE_ROOT (when set).
+
+    Thin wrapper over the same confinement logic used in _resolve_case_dir,
+    for callers that already hold a resolved Path rather than a case_dir string.
+    Both functions share a single logical contract: no path may escape the root.
+    """
     case_root_env = os.environ.get('CASEFILE_CASE_ROOT')
     if not case_root_env:
         return
@@ -334,8 +339,15 @@ def _call_parse_memory(
         case_path = _resolve_case_dir(case_dir)
         explicit_image = os.environ.get('CASEFILE_MEMORY_IMAGE')
         if explicit_image:
-            image_path = str(Path(os.path.expanduser(explicit_image)).resolve())
-            _require_within_case_root(Path(image_path))
+            image_file = Path(os.path.expanduser(explicit_image)).resolve()
+            _require_within_case_root(image_file)
+            if not image_file.is_file():
+                return SourceResult(
+                    source='memory',
+                    present=False,
+                    error=f"Memory image not found or not a regular file: {image_file}",
+                )
+            image_path = str(image_file)
         else:
             # Fallback: glob parent directory (SRL-2018 layout)
             img_search_dir = case_path.parent
@@ -359,7 +371,7 @@ def _call_parse_memory(
             return SourceResult(
                 source="memory",
                 present=False,
-                invocation_id=result.get("invocation_id", ""),
+                invocation_id=result["invocation_id"],
                 error=str(result["error"]),
             )
 
@@ -375,7 +387,7 @@ def _call_parse_memory(
                 return SourceResult(
                     source="memory",
                     present=True,
-                    invocation_id=result.get("invocation_id", ""),
+                    invocation_id=result["invocation_id"],
                     details={
                         "pid":            str(record.get("PID", "")),
                         "ppid":           str(record.get("PPID", "")),
@@ -386,7 +398,7 @@ def _call_parse_memory(
         return SourceResult(
             source="memory",
             present=False,
-            invocation_id=result.get("invocation_id", ""),
+            invocation_id=result["invocation_id"],
         )
     except Exception as exc:  # noqa: BLE001
         return SourceResult(source="memory", present=False, error=str(exc))
@@ -414,7 +426,7 @@ def _call_parse_mft(
             return SourceResult(
                 source="mft",
                 present=False,
-                invocation_id=result.get("invocation_id", ""),
+                invocation_id=result["invocation_id"],
                 error=str(result["error"]),
             )
 
@@ -424,7 +436,7 @@ def _call_parse_mft(
                 return SourceResult(
                     source="mft",
                     present=True,
-                    invocation_id=result.get("invocation_id", ""),
+                    invocation_id=result["invocation_id"],
                     details={
                         "file_path":      entry.get("ParentPath", ""),
                         "si_created_utc": entry.get("Created0x10", ""),
@@ -436,7 +448,7 @@ def _call_parse_mft(
         return SourceResult(
             source="mft",
             present=False,
-            invocation_id=result.get("invocation_id", ""),
+            invocation_id=result["invocation_id"],
         )
     except Exception as exc:  # noqa: BLE001
         return SourceResult(source="mft", present=False, error=str(exc))
