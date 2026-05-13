@@ -143,12 +143,14 @@ PYEOF
 
         # ── PHASE 2: GROUNDING VERIFICATION ─────────────────────────────────
         log "Running post-completion grounding verification..."
+        set +e
         CASE_DIR="${CASE_DIR}" \
         AUDIT_LOG="${CASE_DIR}/audit/mcp.jsonl" \
         FINDINGS_FILE="${CASE_DIR}/findings.json" \
         CLAIM_REPORT="${CASE_DIR}/analysis/claim_accuracy_report.json" \
         python3 scripts/grounding_verify.py
         GROUNDING_EXIT=$?
+        set -e
         log "Grounding verify exit: ${GROUNDING_EXIT}"
 
         if [ "${GROUNDING_EXIT}" -eq 1 ]; then
@@ -165,17 +167,21 @@ PYEOF
                 CORRECTION_ITER=$((CORRECTION_ITER + 1))
                 log "Correction iteration ${CORRECTION_ITER}/3..."
 
-                CORRECTION_PROMPT=$(CASE_DIR="${CASE_DIR}" python3 scripts/grounding_correction_prompt.py)
-                if [ $? -ne 0 ]; then log "ERROR: grounding_correction_prompt.py failed"; exit 1; fi
+                if ! CORRECTION_PROMPT=$(CASE_DIR="${CASE_DIR}" python3 scripts/grounding_correction_prompt.py); then
+                    log "ERROR: grounding_correction_prompt.py failed"
+                    exit 1
+                fi
                 CLAUDE_OUTPUT=$(printf '%s' "${CORRECTION_PROMPT}" | claude -p 2>&1) || true
                 log "Correction ${CORRECTION_ITER} output length: ${#CLAUDE_OUTPUT} chars"
 
+                set +e
                 CASE_DIR="${CASE_DIR}" \
                 AUDIT_LOG="${CASE_DIR}/audit/mcp.jsonl" \
                 FINDINGS_FILE="${CASE_DIR}/findings.json" \
                 CLAIM_REPORT="${CASE_DIR}/analysis/claim_accuracy_report.json" \
                 python3 scripts/grounding_recheck.py
                 GROUNDING_EXIT=$?
+                set -e
                 log "Grounding re-check exit: ${GROUNDING_EXIT}"
             done
 

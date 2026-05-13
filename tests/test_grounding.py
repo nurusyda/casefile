@@ -762,3 +762,46 @@ class TestBuildClaimAccuracyReport:
         assert len(report["findings"]) == 2
         ids = {f["finding_id"] for f in report["findings"]}
         assert ids == {"F-001", "F-002"}
+
+
+def test_check_audit_field_no_space_operator():
+    """CR-4 regression: '>0' without space must parse as numeric, not substring match."""
+    from mcp_server.tools.grounding import _check_audit_field
+    entry = {"suspicious_count": 3}
+    ok, msg = _check_audit_field(entry, "suspicious_count", ">0")
+    assert ok is True, f"Expected True for 3 > 0, got: {msg}"
+    ok2, msg2 = _check_audit_field(entry, "suspicious_count", ">=10")
+    assert ok2 is False, f"Expected False for 3 >= 10, got: {msg2}"
+
+
+def test_check_audit_field_stringified_boolean():
+    """CR-5 regression: string 'false' must not be truthy when expected='true'."""
+    from mcp_server.tools.grounding import _check_audit_field
+    entry = {"capped": "false"}
+    ok, _ = _check_audit_field(entry, "capped", "true")
+    assert ok is False
+    ok2, _ = _check_audit_field(entry, "capped", "false")
+    assert ok2 is True
+
+
+import pytest  # noqa: E402
+
+
+@pytest.mark.parametrize("bad_quotes", ["not a list", "", 0, {}])
+def test_record_finding_non_list_evidence_quotes_raises(tmp_path, monkeypatch, bad_quotes):
+    """CR-7 regression: non-list evidence_quotes must raise GroundingSchemaError."""
+    import mcp_server.tools.findings as _findings_mod
+    import mcp_server.tools._shared as _shared_mod
+    case_dir = tmp_path / "case"
+    case_dir.mkdir()
+    (tmp_path / "audit").mkdir()
+    monkeypatch.setattr(_findings_mod, "_case_dir", lambda: case_dir)
+    monkeypatch.setattr(_shared_mod, "AUDIT_FILE", tmp_path / "audit" / "mcp.jsonl")
+    from mcp_server.tools.findings import record_finding
+    from mcp_server.tools.grounding import GroundingSchemaError
+    with pytest.raises(GroundingSchemaError, match="must be a list"):
+        record_finding(
+            title="T", observation="O", interpretation="I",
+            confidence="CONFIRMED", artifact_source="/a", supporting_tool="parse_amcache",
+            evidence_quotes=bad_quotes,
+        )

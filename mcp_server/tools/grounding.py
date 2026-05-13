@@ -264,18 +264,16 @@ def _check_audit_field(
     value = current
     expected = audit_expected.strip()
 
-    # Numeric comparisons: "> N", ">= N", "< N", "<= N"
-    for op, fn in (
-        ("> ",  lambda a, b: a > b),
-        (">=", lambda a, b: a >= b),
-        ("< ",  lambda a, b: a < b),
-        ("<=", lambda a, b: a <= b),
-    ):
-        if expected.startswith(op):
+    # Numeric / equality operators — tolerate optional whitespace after op (CR-4).
+    m = re.match(r"^(==|!=|>=|<=|>|<)\s*(.+)$", expected)
+    if m:
+        op, rhs = m.group(1), m.group(2).strip()
+        if op in {">", ">=", "<", "<="}:
             try:
-                threshold = float(expected[len(op):].strip())
+                threshold = float(rhs)
                 actual = float(value)  # type: ignore[arg-type]
-                ok = fn(actual, threshold)
+                ok = {">": actual > threshold, ">=": actual >= threshold,
+                      "<": actual < threshold, "<=": actual <= threshold}[op]
                 return ok, (
                     f"{audit_field} = {value!r} "
                     f"{'satisfies' if ok else 'does NOT satisfy'} {expected!r}"
@@ -285,21 +283,28 @@ def _check_audit_field(
                     f"Cannot compare {audit_field} = {value!r} "
                     f"numerically with {expected!r}"
                 )
+        if op in {"==", "!="}:
+            match = str(value) == rhs
+            if op == "!=":
+                match = not match
+            return match, (
+                f"{audit_field} = {value!r} "
+                f"{op} expected {rhs!r} -> {'PASS' if match else 'FAIL'}"
+            )
 
-    # Equality: "== X"
-    if expected.startswith("== "):
-        expected_val = expected[3:].strip()
-        match = str(value) == expected_val
-        return match, (
-            f"{audit_field} = {value!r} "
-            f"{'==' if match else '!='} expected {expected_val!r}"
-        )
-
-    # Boolean
+    # Boolean — CR-5: normalise string representations; use bool() for numerics
     if expected.lower() == "true":
-        return bool(value), f"{audit_field} = {value!r} (expected truthy)"
+        if isinstance(value, (int, float)):
+            actual_bool = bool(value)
+        else:
+            actual_bool = str(value).lower() not in ("false", "0", "0.0", "", "none", "null")
+        return actual_bool, f"{audit_field} = {value!r} (expected truthy)"
     if expected.lower() == "false":
-        return not bool(value), f"{audit_field} = {value!r} (expected falsy)"
+        if isinstance(value, (int, float)):
+            actual_bool = bool(value)
+        else:
+            actual_bool = str(value).lower() not in ("false", "0", "0.0", "", "none", "null")
+        return not actual_bool, f"{audit_field} = {value!r} (expected falsy)"
 
     # Substring / string containment
     match = expected.lower() in str(value).lower()

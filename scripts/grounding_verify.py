@@ -99,6 +99,7 @@ for finding in findings:
 
     except Exception as exc:
         print(f"[grounding] verify_finding_claims failed for {fid}: {exc}", flush=True)
+        total_contradicted += 1  # Treat verifier failure as unresolved grounding failure
 
 # Build and write claim accuracy report
 if results:

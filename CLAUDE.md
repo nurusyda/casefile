@@ -251,7 +251,9 @@ MFT, and memory to produce a deterministic verdict.
 - ❌ `correlate_evidence('subject_srv.exe', '/home/sansproject/cases/SRL-2018')`
 
 The tool looks for `{case_dir}/Amcache.hve`, `{case_dir}/Prefetch/`, `{case_dir}/MFT`.
-CASEFILE_MEMORY_IMAGE env var must be set for memory source to be included.
+Memory source is included when `CASEFILE_MEMORY_IMAGE` is set (explicit
+absolute path, must resolve under `CASEFILE_CASE_ROOT` when set),
+otherwise the tool auto-discovers the first sorted sibling
+`*.img`/`*.mem`/`*.vmem`/`*.raw` (case-insensitive) in `{case_dir}/..`.
 
-Verdict levels (strongest → weakest): CONFIRMED_RUNNING → CONFIRMED_HISTORICAL → MEMORY_ONLY → INSTALLED_NEVER_RAN → NOT_FOUND
-
+Verdict levels (strongest → weakest): CONFIRMED_RUNNING → MEMORY_ONLY → CONFIRMED_HISTORICAL → INSTALLED_NEVER_RAN → NOT_FOUND

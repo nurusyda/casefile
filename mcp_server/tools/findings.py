@@ -82,7 +82,7 @@ def record_finding(
         confidence = "INFERRED"
 
     # Validate evidence_quotes before touching disk.
-    _eq = evidence_quotes or []
+    _eq = evidence_quotes if evidence_quotes is not None else []
     if not isinstance(_eq, list):
         raise GroundingSchemaError(
             f"evidence_quotes must be a list, got {type(evidence_quotes).__name__!r}"

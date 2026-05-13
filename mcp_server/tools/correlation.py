@@ -562,6 +562,7 @@ def correlate_evidence(
                 "case_dir": _resolved_case_dir,
             },
             "sources_present": _sources_present,
+            "sources_present_count": len(_sources_present),
         }
         if _verdict is not None:
             _extra["verdict"] = _verdict
