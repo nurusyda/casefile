@@ -51,7 +51,28 @@ while [ "${iteration}" -lt "${MAX_ITER}" ]; do
 
     # Build the prompt for this iteration
     if [ "${iteration}" -eq 1 ]; then
-        PROMPT="Read CLAUDE.md and prd.json. Begin the CRIMSON OSPREY investigation. Work through the OODA loop. Call MCP tools. Document all findings with CONFIRMED/INFERRED/HYPOTHESIS labels. Output the <promise>TASK_COMPLETE</promise> block when done."
+        PROMPT=$(cat <<'PROMPT_EOF'
+Read CLAUDE.md and prd.json. Begin the CRIMSON OSPREY investigation. Work through the OODA loop. Call MCP tools. Document all findings with CONFIRMED/INFERRED/HYPOTHESIS labels.
+
+EVIDENCE GROUNDING REQUIREMENT (mandatory — not optional):
+Every call to record_finding() MUST include evidence_quotes as a list of dicts.
+Each dict MUST have exactly these keys:
+  source     : the MCP tool name that produced this value (e.g. parse_amcache, parse_memory, correlate_evidence)
+  field      : the exact field name from the tool output (e.g. path, pid, sha1_hash, last_run_time)
+  exact_value: the exact string from the tool output — copied verbatim. Do NOT summarize. Do NOT paraphrase. Copy character-for-character.
+  invocation_id: the invocation_id from the audit log entry for that tool call.
+
+Example (correct):
+  evidence_quotes=[
+    {"source": "parse_amcache", "field": "path", "exact_value": "C:\Windows\Temp\subject_srv.exe", "invocation_id": "inv_abc123"},
+    {"source": "parse_memory", "field": "pid", "exact_value": "1096", "invocation_id": "inv_def456"}
+  ]
+
+If you do not have an exact value from a tool output, do NOT invent one. Label the finding INFERRED and explain the reasoning in interpretation.
+
+Output the <promise>TASK_COMPLETE</promise> block when done.
+PROMPT_EOF
+        )
     else
         # Feed progress back to Claude with specific failures
         # shellcheck disable=SC2016  # Python heredoc single-quoted literals are intentional
@@ -73,7 +94,7 @@ PYEOF
 
     # Run Claude Code (non-interactive, pipe prompt)
     log "Running Claude Code..."
-    CLAUDE_OUTPUT=$(echo "${PROMPT}" | claude -p 2>&1) || true
+    CLAUDE_OUTPUT=$(printf '%s' "${PROMPT}" | claude -p 2>&1) || true
     last_output="${CLAUDE_OUTPUT}"
 
     # Log output summary
@@ -119,6 +140,57 @@ for cp in prd['scoring']['checkpoints']:
 PYEOF
 
         log "=== RALPH LOOP COMPLETE after ${iteration} iterations ==="
+
+        # ── PHASE 2: GROUNDING VERIFICATION ─────────────────────────────────
+        log "Running post-completion grounding verification..."
+        CASE_DIR="${CASE_DIR}" \
+        AUDIT_LOG="${CASE_DIR}/audit/mcp.jsonl" \
+        FINDINGS_FILE="${CASE_DIR}/findings.json" \
+        CLAIM_REPORT="${CASE_DIR}/analysis/claim_accuracy_report.json" \
+        python3 scripts/grounding_verify.py
+        GROUNDING_EXIT=$?
+        log "Grounding verify exit: ${GROUNDING_EXIT}"
+
+        if [ "${GROUNDING_EXIT}" -eq 1 ]; then
+            log "ERROR: grounding_verify.py failed to import grounding module (exit 1). Halting."
+            exit 1
+        fi
+
+        if [ "${GROUNDING_EXIT}" -eq 2 ]; then
+            log "GROUNDING FAILURE: CONTRADICTED claims detected."
+            log "Feeding correction prompt back to Claude (max 3 correction iterations)..."
+
+            CORRECTION_ITER=0
+            while [ "${CORRECTION_ITER}" -lt 3 ] && [ "${GROUNDING_EXIT}" -eq 2 ]; do
+                CORRECTION_ITER=$((CORRECTION_ITER + 1))
+                log "Correction iteration ${CORRECTION_ITER}/3..."
+
+                CORRECTION_PROMPT=$(CASE_DIR="${CASE_DIR}" python3 scripts/grounding_correction_prompt.py)
+                if [ $? -ne 0 ]; then log "ERROR: grounding_correction_prompt.py failed"; exit 1; fi
+                CLAUDE_OUTPUT=$(printf '%s' "${CORRECTION_PROMPT}" | claude -p 2>&1) || true
+                log "Correction ${CORRECTION_ITER} output length: ${#CLAUDE_OUTPUT} chars"
+
+                CASE_DIR="${CASE_DIR}" \
+                AUDIT_LOG="${CASE_DIR}/audit/mcp.jsonl" \
+                FINDINGS_FILE="${CASE_DIR}/findings.json" \
+                CLAIM_REPORT="${CASE_DIR}/analysis/claim_accuracy_report.json" \
+                python3 scripts/grounding_recheck.py
+                GROUNDING_EXIT=$?
+                log "Grounding re-check exit: ${GROUNDING_EXIT}"
+            done
+
+            if [ "${GROUNDING_EXIT}" -eq 1 ]; then
+                log "ERROR: grounding_recheck.py import failure (exit 1). Halting."
+                exit 1
+            elif [ "${GROUNDING_EXIT}" -eq 2 ]; then
+                log "WARNING: CONTRADICTED claims remain after 3 correction iterations."
+                log "Human review required. Proceeding with current findings."
+            else
+                log "Grounding correction successful after ${CORRECTION_ITER} iteration(s). ✓"
+            fi
+        fi
+
+        log "=== GROUNDING VERIFICATION COMPLETE ==="
         exit 0
     fi
 
