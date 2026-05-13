@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -139,12 +140,12 @@ CURRENT STATE OF THE REPO (as of this review):
   - Findings system: record_finding(), get_findings(), record_timeline_event()
     with CONFIRMED/INFERRED distinction. Human-in-the-loop approve gate
     (cli_approve) — AI cannot call it.
-  - Accuracy harness: accuracy.py + CFA-Bench, 6/6 checkpoints (target 8/8).
+  - Accuracy harness: accuracy.py + CFA-Bench, 8/8 checkpoints passed; checkpoint progress tracked in accuracy_report_SRL2018.json.
   - Self-correction loop: ralph.sh, max 25 iterations, rate limit detection.
   - Audit trail: audit/mcp.jsonl — every tool invocation logged with
     invocation_id, examiner, duration, parsed_record_count.
   - Two-stage review: this script (pre-push gate) + CodeRabbit on PR.
-  - Test suite: 268 tests passing, CI green.
+  - Test suite: actual count injected via AUTO-VERIFIED block (do not assume a specific number).
   - Pre-commit hook runs THIS script. If it exits non-zero, commit is blocked.
 
 JUDGING CRITERIA (the project is scored on these — flag things that hurt them):
@@ -485,67 +486,73 @@ def build_auto_context() -> str:
     """
     facts = []
 
-    def grep(pattern: str, path: str, flags: str = "") -> list[str]:
+    def find(pattern: str, path: str) -> list[tuple[int, str]]:
+        """Return [(lineno, line), ...] for lines matching pattern in path."""
         try:
-            r = subprocess.run(
-                ["grep", "-n"] + ([flags] if flags else []) + [pattern, path],
-                capture_output=True, text=True, check=False,
-            )
-            return [line.strip() for line in r.stdout.splitlines() if line.strip()]
-        except Exception as exc:
-            facts.append(f"  [auto-context grep failed: {exc}]")
+            text = Path(path).read_text(encoding="utf-8", errors="replace")
+        except OSError as exc:
+            facts.append(f"  [auto-context read failed: {path}: {exc}]")
             return []
+        rx = re.compile(pattern)
+        return [
+            (i, line)
+            for i, line in enumerate(text.splitlines(), 1)
+            if rx.search(line)
+        ]
 
     # MCP tool registrations
     server_py = "mcp_server/server.py"
     if Path(server_py).exists():
-        lines = grep("mcp.tool", server_py)
-        if lines:
-            facts.append(f"MCP tools registered in {server_py}: {len(lines)} tool(s)")
+        hits = find("mcp.tool", server_py)
+        if hits:
+            facts.append(f"MCP tools registered in {server_py}: {len(hits)} tool(s)")
         # Specific tools
         for tool in ["correlate_evidence", "parse_memory", "record_finding",
                      "approve_finding"]:
-            hits = grep(tool, server_py)
-            if hits:
-                facts.append(f"  {tool}: registered at {server_py} line(s) {', '.join(h.split(':')[0] for h in hits)}")
+            tool_hits = find(tool, server_py)
+            if tool_hits:
+                facts.append(f"  {tool}: registered at {server_py} line(s) {', '.join(str(ln) for ln, _ in tool_hits)}")
             else:
                 facts.append(f"  {tool}: NOT registered in {server_py}")
 
-    # Test count
+    # Test count — bounded by timeout to prevent hung commits.
     try:
         r = subprocess.run(
-            ["python3", "-m", "pytest", "tests/", "--co", "-q"],
-            capture_output=True, text=True, check=False,
+            [sys.executable, "-m", "pytest", "tests/", "--co", "-q"],
+            capture_output=True, text=True, check=False, timeout=10,
         )
         lines = [line for line in r.stdout.splitlines() if "selected" in line or "test" in line.lower()]
         if lines:
             facts.append(f"pytest --co: {lines[-1].strip()}")
+    except subprocess.TimeoutExpired:
+        facts.append("  [pytest collection skipped: > 10s]")
     except Exception as exc:
         facts.append(f"  [pytest collection failed: {exc}]")
 
     # approve_finding not in MCP tools (Law 5)
     corr = "mcp_server/tools/correlation.py"
     if Path(corr).exists():
-        hits = grep("approve_finding", corr)
+        hits = find("approve_finding", corr)
         if not hits:
             facts.append("approve_finding: not in correlation.py (Law 5 compliant)")
 
     # BLOCKED_COMMANDS presence
     shared = "mcp_server/tools/_shared.py"
     if Path(shared).exists():
-        hits = grep("BLOCKED_COMMANDS", shared)
+        hits = find("BLOCKED_COMMANDS", shared)
         if hits:
             facts.append(f"BLOCKED_COMMANDS: present in {shared}")
 
     # audit_log signature (keyword-only args)
     if Path(shared).exists():
-        hits = grep("def audit_log", shared)
+        hits = find("def audit_log", shared)
         if hits:
-            facts.append(f"audit_log signature: {hits[0]}")
+            _, sig_line = hits[0]
+            facts.append(f"audit_log signature: {sig_line.strip()}")
 
     if not facts:
         return ""
-    return "AUTO-VERIFIED REPO STATE (confirmed by grep — do not contradict):\n" + "\n".join(facts)
+    return "AUTO-VERIFIED REPO STATE (confirmed by find() — do not contradict):\n" + "\n".join(facts)
 
 def review_diff(diff: str, summary: str, model: str, combined_context: str = "") -> None:
     try:

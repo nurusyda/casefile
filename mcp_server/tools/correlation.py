@@ -41,6 +41,25 @@ class CorrelationToolError(Exception):
 # Path confinement helper
 # --------------------------------------------------------------------------- #
 
+def _enforce_case_root(path: Path) -> None:
+    """Raise CorrelationToolError if path escapes CASEFILE_CASE_ROOT (when set).
+
+    Single implementation of the confinement check — both _resolve_case_dir
+    and _require_within_case_root delegate here to prevent divergence.
+    Security-sensitive: any change to confinement logic must happen here only.
+    """
+    case_root_env = os.environ.get("CASEFILE_CASE_ROOT")
+    if not case_root_env:
+        return
+    root = Path(case_root_env).resolve()
+    try:
+        path.resolve().relative_to(root)
+    except ValueError as exc:
+        raise CorrelationToolError(
+            f"path escapes case root: {path}"
+        ) from exc
+
+
 def _resolve_case_dir(case_dir: str) -> Path:
     """Resolve and confine case_dir to CASEFILE_CASE_ROOT.
 
@@ -55,8 +74,8 @@ def _resolve_case_dir(case_dir: str) -> Path:
         case_root = Path(_case_root_env).resolve()
         resolved = (case_root / case_dir).resolve()
         try:
-            resolved.relative_to(case_root)
-        except ValueError as exc:
+            _enforce_case_root(resolved)
+        except CorrelationToolError as exc:
             raise CorrelationToolError(
                 f"case_dir escapes case root: {case_dir!r} resolves to {resolved}"
             ) from exc
@@ -227,7 +246,7 @@ def _call_parse_amcache(
             return SourceResult(
                 source="amcache",
                 present=False,
-                invocation_id=result["invocation_id"],
+                invocation_id=result.get("invocation_id", ""),
                 error=str(result["error"]),
             )
 
@@ -237,7 +256,7 @@ def _call_parse_amcache(
                 return SourceResult(
                     source="amcache",
                     present=True,
-                    invocation_id=result["invocation_id"],
+                    invocation_id=result.get("invocation_id", ""),
                     details={
                         "sha1":          entry.get("sha1", ""),
                         "full_path":     entry.get("full_path", ""),
@@ -248,7 +267,7 @@ def _call_parse_amcache(
         return SourceResult(
             source="amcache",
             present=False,
-            invocation_id=result["invocation_id"],
+            invocation_id=result.get("invocation_id", ""),
         )
     except Exception as exc:  # noqa: BLE001
         return SourceResult(source="amcache", present=False, error=str(exc))
@@ -276,7 +295,7 @@ def _call_parse_prefetch(
             return SourceResult(
                 source="prefetch",
                 present=False,
-                invocation_id=result["invocation_id"],
+                invocation_id=result.get("invocation_id", ""),
                 error=str(result["error"]),
             )
 
@@ -286,7 +305,7 @@ def _call_parse_prefetch(
                 return SourceResult(
                     source="prefetch",
                     present=True,
-                    invocation_id=result["invocation_id"],
+                    invocation_id=result.get("invocation_id", ""),
                     details={
                         "executable_name": entry.get("executable_name", ""),
                         "last_run_utc":    entry.get("last_run_utc", ""),
@@ -298,7 +317,7 @@ def _call_parse_prefetch(
         return SourceResult(
             source="prefetch",
             present=False,
-            invocation_id=result["invocation_id"],
+            invocation_id=result.get("invocation_id", ""),
         )
     except Exception as exc:  # noqa: BLE001
         return SourceResult(source="prefetch", present=False, error=str(exc))
@@ -307,18 +326,9 @@ def _call_parse_prefetch(
 def _require_within_case_root(path: Path) -> None:
     """Raise CorrelationToolError if path escapes CASEFILE_CASE_ROOT (when set).
 
-    Thin wrapper over the same confinement logic used in _resolve_case_dir,
-    for callers that already hold a resolved Path rather than a case_dir string.
-    Both functions share a single logical contract: no path may escape the root.
+    Delegates to _enforce_case_root — single implementation of confinement check.
     """
-    case_root_env = os.environ.get('CASEFILE_CASE_ROOT')
-    if not case_root_env:
-        return
-    root = Path(case_root_env).resolve()
-    try:
-        path.resolve().relative_to(root)
-    except ValueError as exc:
-        raise CorrelationToolError(f'path escapes case root: {path}') from exc
+    _enforce_case_root(path)
 
 
 def _call_parse_memory(
@@ -326,8 +336,14 @@ def _call_parse_memory(
 ) -> SourceResult:
     """Call parse_memory(windows.pslist) and search records for process_name.
 
-    Evidence file: {case_dir}/../*.img  (memory image lives one level above analysis/)
-    Match field:   record["ImageFileName"]  (case-insensitive)
+    Memory image resolution (priority order):
+      1. CASEFILE_MEMORY_IMAGE env var — absolute path to the image file,
+         confined under CASEFILE_CASE_ROOT when that env var is set.
+      2. First sorted *.img / *.mem / *.vmem / *.raw (case-insensitive) found
+         in {case_dir}/.. — sibling of the analysis directory.
+
+    Match field: record["ImageFileName"] (case-insensitive; honours the 14-char
+    Windows kernel truncation of ImageFileName).
 
     Returns SourceResult — never raises (CorrelationToolError is caught and
     returned as SourceResult with present=False and error set).
@@ -371,7 +387,7 @@ def _call_parse_memory(
             return SourceResult(
                 source="memory",
                 present=False,
-                invocation_id=result["invocation_id"],
+                invocation_id=result.get("invocation_id", ""),
                 error=str(result["error"]),
             )
 
@@ -387,7 +403,7 @@ def _call_parse_memory(
                 return SourceResult(
                     source="memory",
                     present=True,
-                    invocation_id=result["invocation_id"],
+                    invocation_id=result.get("invocation_id", ""),
                     details={
                         "pid":            str(record.get("PID", "")),
                         "ppid":           str(record.get("PPID", "")),
@@ -398,7 +414,7 @@ def _call_parse_memory(
         return SourceResult(
             source="memory",
             present=False,
-            invocation_id=result["invocation_id"],
+            invocation_id=result.get("invocation_id", ""),
         )
     except Exception as exc:  # noqa: BLE001
         return SourceResult(source="memory", present=False, error=str(exc))
@@ -426,7 +442,7 @@ def _call_parse_mft(
             return SourceResult(
                 source="mft",
                 present=False,
-                invocation_id=result["invocation_id"],
+                invocation_id=result.get("invocation_id", ""),
                 error=str(result["error"]),
             )
 
@@ -436,7 +452,7 @@ def _call_parse_mft(
                 return SourceResult(
                     source="mft",
                     present=True,
-                    invocation_id=result["invocation_id"],
+                    invocation_id=result.get("invocation_id", ""),
                     details={
                         "file_path":      entry.get("ParentPath", ""),
                         "si_created_utc": entry.get("Created0x10", ""),
@@ -448,7 +464,7 @@ def _call_parse_mft(
         return SourceResult(
             source="mft",
             present=False,
-            invocation_id=result["invocation_id"],
+            invocation_id=result.get("invocation_id", ""),
         )
     except Exception as exc:  # noqa: BLE001
         return SourceResult(source="mft", present=False, error=str(exc))
