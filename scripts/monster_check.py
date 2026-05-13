@@ -207,6 +207,10 @@ ARCHITECTURE — know which layer the diff targets:
       duplicates them. SourceResult dataclass, _decide_verdict() pure function.
     - tools/findings.py: Finding state machine. record_finding() creates
       findings with CONFIRMED/INFERRED labels and F-{examiner}-{NNN} IDs.
+    - tools/grounding.py: Anti-hallucination grounding layer. validate_evidence_quotes(),
+      verify_finding_claims() (GROUNDED/UNGROUNDED/CONTRADICTED/INFERRED_LABELED),
+      get_attested_sources(), assert_sources_attested(), detect_baseline_assumptions(),
+      build_claim_accuracy_report(). Called by record_finding() on every write.
 
   TEST LAYER (tests/):
     - Every parser has its own test file. Tests mock subprocess calls,
