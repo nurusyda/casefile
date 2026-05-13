@@ -76,19 +76,7 @@ PROMPT_EOF
     else
         # Feed progress back to Claude with specific failures
         # shellcheck disable=SC2016  # Python heredoc single-quoted literals are intentional
-        FAILED_TASKS=$(python3 - <<'PYEOF'
-import json, sys, os
-
-prd = json.load(open(os.environ.get('PRD_FILE', 'prd.json')))
-progress_file = os.environ.get('PROGRESS_FILE', 'analysis/progress.txt')
-
-failed = []
-for task in prd['tasks']:
-    failed.append(f"- {task['id']} ({task['name']}): {task['failure_action']}")
-
-print('\n'.join(failed) if failed else 'All tasks passed.')
-PYEOF
-        )
+        FAILED_TASKS=$(python3 scripts/extract_failed_tasks.py)
         PROMPT="Iteration ${iteration}. Previous run incomplete. Review ./analysis/progress.txt for what was found. The following tasks need attention:\n\n${FAILED_TASKS}\n\nContinue the investigation. Fix the gaps. Re-output <promise>TASK_COMPLETE</promise> when all criteria are met."
     fi
 
