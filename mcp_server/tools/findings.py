@@ -11,6 +11,11 @@ from pathlib import Path
 from typing import Optional
 
 from mcp_server.tools._shared import audit_log
+from mcp_server.tools.grounding import (
+    GroundingError,
+    GroundingSchemaError,
+    validate_evidence_quotes,
+)
 
 BLOCKED_COMMANDS = frozenset({
     "rm", "rmdir", "dd", "mkfs", "format", "shred", "wipe",
@@ -70,10 +75,31 @@ def record_finding(
     artifact_source: str,
     supporting_tool: str,
     mitre_technique: Optional[str] = None,
+    evidence_quotes: Optional[list] = None,
 ) -> dict:
     """Stage a forensic finding as DRAFT."""
     if confidence not in ("CONFIRMED", "INFERRED"):
         confidence = "INFERRED"
+
+    # Validate evidence_quotes before touching disk.
+    _eq = evidence_quotes or []
+    if not isinstance(_eq, list):
+        raise GroundingSchemaError(
+            f"evidence_quotes must be a list, got {type(evidence_quotes).__name__!r}"
+        )
+    _grounding_warning: str = ""
+    try:
+        validate_evidence_quotes({
+            "finding_id": "F-dummy-000",
+            "confidence": confidence,
+            "evidence_quotes": _eq,
+        })
+    except GroundingSchemaError:
+        raise  # malformed quote fields — always re-raise
+    except GroundingError as _ge:
+        # CONFIRMED without quotes — warning only until ralph.sh
+        # is updated to supply evidence_quotes in Phase 2.
+        _grounding_warning = str(_ge)
 
     case_dir = _case_dir()
     findings_file = case_dir / "findings.json"
@@ -102,6 +128,7 @@ def record_finding(
         "created_at": now,
         "approved_at": None,
         "approved_by": None,
+        "evidence_quotes": _eq,
     }
 
     findings.append(record)
@@ -121,6 +148,8 @@ def record_finding(
             "status": "DRAFT",
             "confidence": confidence,
             "examiner": _examiner(),
+            "evidence_quotes_count": len(_eq),
+            "grounding_warning": _grounding_warning,
         },
     )
 
@@ -129,6 +158,7 @@ def record_finding(
         "status": "DRAFT",
         "message": f"Finding staged as DRAFT. Run `casefile approve {finding_id}` to approve.",
         "record": record,
+        "grounding_warning": _grounding_warning or None,
     }
 
 

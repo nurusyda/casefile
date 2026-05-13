@@ -175,9 +175,12 @@ THE SEVEN LAWS (from CLAUDE.md — these are architectural, not suggestions):
 GOLDEN RULES (these are the rules that have bitten us — they exist because
 we violated them once and paid the price):
   - NEVER touch existing parser files (amcache.py, prefetch.py, memory.py,
-    mft.py, event_logs.py, registry.py, findings.py, accuracy.py).
+    mft.py, event_logs.py, registry.py, accuracy.py).
     Composition over modification. correlation.py CALLS parsers; it does
     not duplicate or modify their logic.
+    NOTE: findings.py is intentionally excluded from this list — it is the
+    investigation state machine, not a forensic parser; it evolves with
+    schema requirements (e.g. adding evidence_quotes). Do not re-add it here.
   - audit_log() uses keyword-only arguments. If you see positional args
     being passed, that's a BLOCKER — it will crash at runtime.
   - supporting_invocation_ids must filter on BOTH sr.present AND

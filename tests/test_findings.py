@@ -248,3 +248,89 @@ def test_cli_approve_rejects_extra_args():
     with pytest.raises(SystemExit) as e:
         cli_approve(["F-testuser-001", "extra"])
     assert e.value.code == 1
+
+
+def test_record_finding_confirmed_with_evidence_quotes_passes(isolated_case_dir):
+    """CONFIRMED finding with valid evidence_quotes is accepted."""
+    from mcp_server.tools.findings import record_finding
+    result = record_finding(
+        title="T", observation="O", interpretation="I",
+        confidence="CONFIRMED", artifact_source="/a", supporting_tool="parse_amcache",
+        evidence_quotes=[{"tool": "parse_amcache", "claim": "suspicious entry found"}],
+    )
+    assert result["status"] == "DRAFT"
+    assert result["grounding_warning"] is None
+    assert result["record"]["evidence_quotes"] == [
+        {"tool": "parse_amcache", "claim": "suspicious entry found"}
+    ]
+
+
+def test_record_finding_confirmed_without_evidence_quotes_warns(isolated_case_dir):
+    """CONFIRMED finding with no evidence_quotes returns grounding_warning (Phase 1)."""
+    from mcp_server.tools.findings import record_finding
+    result = record_finding(
+        title="T", observation="O", interpretation="I",
+        confidence="CONFIRMED", artifact_source="/a", supporting_tool="parse_amcache",
+    )
+    assert result["status"] == "DRAFT"
+    assert result["grounding_warning"] is not None
+    assert "evidence_quotes" in result["grounding_warning"]
+
+
+def test_record_finding_inferred_without_evidence_quotes_passes(isolated_case_dir):
+    """INFERRED finding with no evidence_quotes is accepted, no warning."""
+    from mcp_server.tools.findings import record_finding
+    result = record_finding(
+        title="T", observation="O", interpretation="I",
+        confidence="INFERRED", artifact_source="/a", supporting_tool="parse_prefetch",
+    )
+    assert result["status"] == "DRAFT"
+    assert result["grounding_warning"] is None
+    assert result["record"]["evidence_quotes"] == []
+
+
+def test_record_finding_evidence_quotes_persisted(isolated_case_dir):
+    """evidence_quotes is written to findings.json."""
+    import json
+    from mcp_server.tools.findings import record_finding
+    quotes = [{"tool": "parse_amcache", "claim": "sha1 matches known malware"}]
+    record_finding(
+        title="T", observation="O", interpretation="I",
+        confidence="CONFIRMED", artifact_source="/a", supporting_tool="parse_amcache",
+        evidence_quotes=quotes,
+    )
+    data = json.loads((isolated_case_dir / "findings.json").read_text())
+    assert data[0]["evidence_quotes"] == quotes
+
+
+def test_record_finding_evidence_quotes_count_in_audit(isolated_case_dir, tmp_path, monkeypatch):
+    """evidence_quotes_count appears in audit log extra."""
+    import json
+    import mcp_server.tools._shared as shared
+    audit_file = tmp_path / "mcp.jsonl"
+    monkeypatch.setattr(shared, "AUDIT_FILE", audit_file)
+    from mcp_server.tools.findings import record_finding
+    record_finding(
+        title="T", observation="O", interpretation="I",
+        confidence="CONFIRMED", artifact_source="/a", supporting_tool="parse_amcache",
+        evidence_quotes=[
+            {"tool": "parse_amcache", "claim": "claim 1"},
+            {"tool": "parse_amcache", "claim": "claim 2"},
+        ],
+    )
+    record = json.loads(audit_file.read_text().strip())
+    assert record["evidence_quotes_count"] == 2
+    assert record["grounding_warning"] == ""
+
+
+def test_record_finding_non_list_evidence_quotes_raises(isolated_case_dir):
+    """Non-list evidence_quotes raises GroundingSchemaError immediately."""
+    from mcp_server.tools.findings import record_finding
+    from mcp_server.tools.grounding import GroundingSchemaError
+    import pytest
+    with pytest.raises(GroundingSchemaError, match="must be a list"):
+        record_finding(
+            title="T", observation="O", interpretation="I",
+            confidence="CONFIRMED", artifact_source="/a", supporting_tool="parse_amcache",
+            evidence_quotes="not a list",
+        )
