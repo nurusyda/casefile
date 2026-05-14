@@ -18,6 +18,7 @@
 #   3. max_iterations is reached (default: 25)
 
 set -euo pipefail
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # ─── CONFIG ────────────────────────────────────────────────────────────────────
 CASE_DIR="${1:-${CASEFILE_CASE_ROOT:-.}}"
@@ -137,6 +138,7 @@ PYEOF
         AUDIT_LOG="${CASE_DIR}/audit/mcp.jsonl" \
         FINDINGS_FILE="${CASE_DIR}/findings.json" \
         CLAIM_REPORT="${CASE_DIR}/analysis/claim_accuracy_report.json" \
+        PYTHONPATH="${SCRIPT_DIR}" \
         python3 scripts/grounding_verify.py
         GROUNDING_EXIT=$?
         set -e
@@ -156,7 +158,7 @@ PYEOF
                 CORRECTION_ITER=$((CORRECTION_ITER + 1))
                 log "Correction iteration ${CORRECTION_ITER}/3..."
 
-                if ! CORRECTION_PROMPT=$(CASE_DIR="${CASE_DIR}" python3 scripts/grounding_correction_prompt.py); then
+                if ! CORRECTION_PROMPT=$(CASE_DIR="${CASE_DIR}" PYTHONPATH="${SCRIPT_DIR}" python3 scripts/grounding_correction_prompt.py); then
                     log "ERROR: grounding_correction_prompt.py failed"
                     exit 1
                 fi
@@ -168,6 +170,7 @@ PYEOF
                 AUDIT_LOG="${CASE_DIR}/audit/mcp.jsonl" \
                 FINDINGS_FILE="${CASE_DIR}/findings.json" \
                 CLAIM_REPORT="${CASE_DIR}/analysis/claim_accuracy_report.json" \
+                PYTHONPATH="${SCRIPT_DIR}" \
                 python3 scripts/grounding_recheck.py
                 GROUNDING_EXIT=$?
                 set -e
