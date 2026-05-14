@@ -40,7 +40,9 @@ Design principles (must not violate):
 
 from __future__ import annotations
 
+import csv
 import json
+import os
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -315,6 +317,82 @@ def _check_audit_field(
 
 
 # ---------------------------------------------------------------------------
+# _verify_exact_value_in_csv — Tier 2: value verification against CSV output
+# ---------------------------------------------------------------------------
+
+def _verify_exact_value_in_csv(
+    csv_files: list[str],
+    exact_value: str,
+) -> tuple[bool, str, bool]:
+    """Search csv_files for exact_value (case-insensitive exact field match).
+
+    Reads each CSV with csv.reader and checks whether any cell's stripped
+    value equals exact_value — prevents false grounding from partial or
+    path matches (e.g. "subject_srv.exe" must not match "subject_srv.exe.bak"
+    or "C:\\Temp\\subject_srv.exe").
+
+    Returns (found: bool, note: str, any_read: bool).
+    any_read is False when all files were skipped (too large, unreadable,
+    outside case root) — callers must not CONTRADICT when any_read is False.
+    Empty csv_files list -> (False, 'no CSV files available', False).
+    """
+    if not csv_files:
+        return False, "no CSV files available in audit entry", False
+
+    needle = exact_value.lower()
+    read_count = 0  # files actually opened and parsed (excludes skipped)
+
+    for csv_path in csv_files:
+        try:
+            p = Path(csv_path)  # malformed path string (null bytes etc.) → skip
+        except (ValueError, OSError):
+            continue
+        # Path confinement — same pattern as _enforce_case_root() in correlation.py.
+        # CR3: dev/test passthrough when CASEFILE_CASE_ROOT unset (project-wide policy).
+        _case_root_env = os.environ.get("CASEFILE_CASE_ROOT")
+        if _case_root_env:
+            try:
+                p.resolve().relative_to(Path(_case_root_env).resolve())
+            except ValueError:
+                continue  # outside case root — skip, not counted as read
+        try:
+            file_size = p.stat().st_size
+        except OSError:
+            continue  # unreadable stat — skip
+        _MAX_CSV_BYTES = 50 * 1024 * 1024  # 50 MB guard — avoid OOM on large dumps
+        if file_size > _MAX_CSV_BYTES:
+            continue  # too large — skip
+        # Exact field-level equality via csv.reader — prevents false grounding
+        # from substring matches (e.g. "subject_srv.exe" in "subject_srv.exe.bak").
+        # Streams line-by-line — avoids loading full file twice.
+        # Delimiter assumption: all CaseFile parsers produce comma-delimited CSV.
+        # TSV/PSV output would cause whole-line single-field reads (false negatives).
+        # csv.Error caught: malformed CSV treated as unreadable, not a crash.
+        try:
+            with p.open(newline="", encoding="utf-8", errors="replace") as fh:
+                reader = csv.reader(fh)
+                field_match = any(
+                    field.strip().lower() == needle
+                    for row in reader
+                    for field in row
+                )
+        except (OSError, csv.Error):
+            continue  # malformed or unreadable — skip, not counted as read
+        read_count += 1
+        if field_match:
+            return True, (
+                f"exact_value {exact_value!r} found in CSV output "
+                f"({read_count} of {len(csv_files)} file(s) read)"
+            ), True
+
+    any_read = read_count > 0
+    return False, (
+        f"exact_value {exact_value!r} NOT found in any CSV "
+        f"({read_count} file(s) read, {len(csv_files)} total considered)"
+    ), any_read
+
+
+# ---------------------------------------------------------------------------
 # validate_evidence_quotes — called before record_finding writes to disk
 # ---------------------------------------------------------------------------
 
@@ -374,6 +452,83 @@ def validate_evidence_quotes(finding: dict) -> None:
 
 
 # ---------------------------------------------------------------------------
+# _should_run_tier2 — type-safe csv_files extractor
+# ---------------------------------------------------------------------------
+
+def _should_run_tier2(entry: dict) -> "list[str] | None":
+    """Return csv_files from audit entry extra if valid, else None.
+
+    Guards against malformed audit entries where csv_files is not a list
+    (e.g. a string or None). Returning None causes callers to fall through
+    to Tier 1 attestation only, preventing false CONTRADICTED verdicts.
+    """
+    raw = (entry.get("extra") or {}).get("csv_files")
+    if not isinstance(raw, list) or not raw:
+        return None
+    return raw  # type: ignore[return-value]
+
+
+# _apply_tier2_csv_check — shared Tier 2 dispatch used by both branches
+# ---------------------------------------------------------------------------
+
+def _apply_tier2_csv_check(
+    entry: dict,  # kept for future extensibility (e.g. tool name in notes)
+    csv_files: list[str],
+    exact_value: str,
+    display: str,
+    used_inv_id: str | None,
+    tool: str,
+    base_note: str,
+) -> ClaimVerification:
+    """Run Tier 2 CSV check and return a ClaimVerification.
+
+    Called from both the audit_field-satisfied branch and the attestation-only
+    branch of verify_finding_claims. Returns GROUNDED if exact_value found in
+    any csv_files entry, CONTRADICTED otherwise.
+
+    base_note is prepended to the CSV result note so each branch can supply
+    its own context (e.g. field-check result for the satisfied branch).
+    """
+    # csv_files already validated by _should_run_tier2() in caller — use directly
+    csv_found, csv_note, any_read = _verify_exact_value_in_csv(
+        csv_files, exact_value
+    )
+    if csv_found:
+        return ClaimVerification(
+            claim_text=display,
+            status="GROUNDED",
+            supporting_invocation_id=used_inv_id,
+            note=(
+                (base_note + " and " if base_note else "")
+                + f"Tier 2 CSV check passed: {csv_note}"
+            ),
+        )
+    if not any_read:
+        # All CSV files were skipped (too large, outside case root, unreadable).
+        # Cannot verify — do not CONTRADICT; fall back to Tier 1 attestation.
+        return ClaimVerification(
+            claim_text=display,
+            status="GROUNDED",
+            supporting_invocation_id=used_inv_id,
+            note=(
+                (base_note + " — " if base_note else "")
+                + f"Tier 2 CSV check skipped (no file readable): {csv_note}. "
+                "Tier 1 attestation only."
+            ),
+        )
+    return ClaimVerification(
+        claim_text=display,
+        status="CONTRADICTED",
+        supporting_invocation_id=used_inv_id,
+        note=(
+            f"HALLUCINATION DETECTED (Tier 2): "
+            + (f"{base_note} but " if base_note else "")
+            + f"exact_value not in CSV: {csv_note}. "
+            "Correct the finding to use only values present in tool output."
+        ),
+    )
+
+
 # verify_finding_claims — Tier 1: invocation attestation
 # ---------------------------------------------------------------------------
 
@@ -516,12 +671,29 @@ def verify_finding_claims(
                 entry, audit_field, audit_expected
             )
             if satisfied:
-                claim_results.append(ClaimVerification(
-                    claim_text=display,
-                    status="GROUNDED",
-                    supporting_invocation_id=used_inv_id,
-                    note=f"Tool attested and field check passed: {field_note}",
-                ))
+                # Field check passed — additionally run Tier 2 CSV check
+                # if exact_value is supplied.
+                exact_value = quote.get("exact_value")
+                tier2_csv = _should_run_tier2(entry)
+                if exact_value and tier2_csv:
+                    claim_results.append(_apply_tier2_csv_check(
+                        entry, tier2_csv, exact_value, display, used_inv_id, tool,
+                        base_note=f"field check passed ({field_note})",
+                    ))
+                else:
+                    # CR9: consistent note — flag when exact_value supplied but unverifiable
+                    _f_note = f"Tool attested and field check passed: {field_note}"
+                    if exact_value and not tier2_csv:
+                        _f_note += (
+                            " exact_value supplied but no valid csv_files in audit"
+                            " entry — Tier 2 skipped, Tier 1 attestation only."
+                        )
+                    claim_results.append(ClaimVerification(
+                        claim_text=display,
+                        status="GROUNDED",
+                        supporting_invocation_id=used_inv_id,
+                        note=_f_note,
+                    ))
             else:
                 claim_results.append(ClaimVerification(
                     claim_text=display,
@@ -534,17 +706,36 @@ def verify_finding_claims(
                     ),
                 ))
         else:
-            # Attestation-only — tool ran, no field check
-            claim_results.append(ClaimVerification(
-                claim_text=display,
-                status="GROUNDED",
-                supporting_invocation_id=used_inv_id,
-                note=(
+            # Attestation-only — tool ran, no audit_field check.
+            # Tier 2: if exact_value + csv_files present, verify value in CSV.
+            exact_value = quote.get("exact_value")
+            tier2_csv = _should_run_tier2(entry)
+
+            if exact_value and tier2_csv:
+                claim_results.append(_apply_tier2_csv_check(
+                    entry, tier2_csv, exact_value, display, used_inv_id, tool,
+                    base_note=f"Tool {tool!r} attested",
+                ))
+            else:
+                # No exact_value, no csv_files, or csv_files not a list — Tier 1 only
+                _t1_note = (
                     f"Tool {tool!r} attested in audit log "
                     f"(invocation_id={used_inv_id!r}, "
                     f"parsed_record_count={entry.get('parsed_record_count')})."
-                ),
-            ))
+                )
+                if exact_value and not tier2_csv:
+                    _t1_note += (
+                        " exact_value supplied but no valid csv_files in audit entry"
+                        " — Tier 2 skipped, Tier 1 attestation only."
+                    )
+                elif not exact_value:
+                    _t1_note += " No exact_value supplied — Tier 1 attestation only."
+                claim_results.append(ClaimVerification(
+                    claim_text=display,
+                    status="GROUNDED",
+                    supporting_invocation_id=used_inv_id,
+                    note=_t1_note,
+                ))
 
     grounded = sum(1 for c in claim_results if c.status == "GROUNDED")
     ungrounded = sum(1 for c in claim_results if c.status == "UNGROUNDED")

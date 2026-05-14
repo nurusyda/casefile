@@ -805,3 +805,347 @@ def test_record_finding_non_list_evidence_quotes_raises(tmp_path, monkeypatch, b
             confidence="CONFIRMED", artifact_source="/a", supporting_tool="parse_amcache",
             evidence_quotes=bad_quotes,
         )
+
+
+# ===========================================================================
+# Tier 2: _verify_exact_value_in_csv unit tests
+# ===========================================================================
+
+class TestVerifyExactValueInCsv:
+
+    def test_value_found_exact_match(self, tmp_path):
+        csv = tmp_path / "amcache.csv"
+        csv.write_text("Name,Path\nsubject_srv.exe,C:\\Temp\\subject_srv.exe\n")
+        from mcp_server.tools.grounding import _verify_exact_value_in_csv
+        found, note, _ = _verify_exact_value_in_csv([str(csv)], "subject_srv.exe")
+        assert found is True
+        assert "subject_srv.exe" in note
+
+    def test_value_found_case_insensitive(self, tmp_path):
+        csv = tmp_path / "amcache.csv"
+        csv.write_text("Name\nSUBJECT_SRV.EXE\n")
+        from mcp_server.tools.grounding import _verify_exact_value_in_csv
+        found, note, _ = _verify_exact_value_in_csv([str(csv)], "subject_srv.exe")
+        assert found is True
+
+    def test_full_path_field_does_not_match_filename_alone(self, tmp_path):
+        # Exact field equality — "C:\Windows\Temp\subject_srv.exe" != "subject_srv.exe"
+        # Prevents false grounding: subject_srv.exe.bak or full paths must not match.
+        csv = tmp_path / "amcache.csv"
+        csv.write_text("Path\nC:\\Windows\\Temp\\subject_srv.exe\n")
+        from mcp_server.tools.grounding import _verify_exact_value_in_csv
+        found, note, _ = _verify_exact_value_in_csv([str(csv)], "subject_srv.exe")
+        assert found is False  # full path field != filename alone
+
+    def test_exact_field_value_matches(self, tmp_path):
+        # A field that IS exactly the value → matches (case-insensitive).
+        csv = tmp_path / "amcache.csv"
+        csv.write_text("Name,Path\nsubject_srv.exe,C:\\Windows\\Temp\\subject_srv.exe\n")
+        from mcp_server.tools.grounding import _verify_exact_value_in_csv
+        found, note, _ = _verify_exact_value_in_csv([str(csv)], "subject_srv.exe")
+        assert found is True  # "Name" field is exactly "subject_srv.exe"
+
+    def test_value_not_found(self, tmp_path):
+        csv = tmp_path / "amcache.csv"
+        csv.write_text("Name\nlegit.exe\n")
+        from mcp_server.tools.grounding import _verify_exact_value_in_csv
+        found, note, _ = _verify_exact_value_in_csv([str(csv)], "subject_srv.exe")
+        assert found is False
+        assert "NOT found" in note
+
+    def test_empty_csv_files_list(self):
+        from mcp_server.tools.grounding import _verify_exact_value_in_csv
+        found, note, _ = _verify_exact_value_in_csv([], "subject_srv.exe")
+        assert found is False
+        assert "no CSV files" in note
+
+    def test_searches_multiple_files_stops_on_first_hit(self, tmp_path):
+        csv1 = tmp_path / "miss.csv"
+        csv1.write_text("Name\nlegit.exe\n")
+        csv2 = tmp_path / "hit.csv"
+        csv2.write_text("Name\nsubject_srv.exe\n")
+        from mcp_server.tools.grounding import _verify_exact_value_in_csv
+        found, note, _ = _verify_exact_value_in_csv([str(csv1), str(csv2)], "subject_srv.exe")
+        assert found is True
+        assert "found in CSV output" in note  # path not exposed — CR2 path-disclosure fix
+
+    def test_unreadable_file_skipped_continues_to_next(self, tmp_path):
+        missing = tmp_path / "does_not_exist.csv"
+        good = tmp_path / "good.csv"
+        good.write_text("Name\nsubject_srv.exe\n")
+        from mcp_server.tools.grounding import _verify_exact_value_in_csv
+        found, note, _ = _verify_exact_value_in_csv([str(missing), str(good)], "subject_srv.exe")
+        assert found is True
+
+    def test_all_files_unreadable_returns_not_found(self, tmp_path):
+        missing = tmp_path / "does_not_exist.csv"
+        from mcp_server.tools.grounding import _verify_exact_value_in_csv
+        found, note, _ = _verify_exact_value_in_csv([str(missing)], "subject_srv.exe")
+        assert found is False
+
+    def test_note_contains_searched_path_on_miss(self, tmp_path):
+        csv = tmp_path / "amcache.csv"
+        csv.write_text("Name\nlegit.exe\n")
+        from mcp_server.tools.grounding import _verify_exact_value_in_csv
+        found, note, _ = _verify_exact_value_in_csv([str(csv)], "subject_srv.exe")
+        assert "NOT found" in note  # path not exposed — CR2 path-disclosure fix
+        assert "1 file(s) read" in note
+
+
+# ===========================================================================
+# Tier 2: verify_finding_claims — else branch (attestation + exact_value)
+# ===========================================================================
+
+class TestVerifyFindingClaimsTier2AttestedBranch:
+
+    def _make_audit_log(self, tmp_path, csv_content):
+        import json, uuid
+        csv_path = tmp_path / "amcache_output.csv"
+        csv_path.write_text(csv_content)
+        inv_id = f"inv_{uuid.uuid4().hex[:8]}"
+        audit = tmp_path / "mcp.jsonl"
+        entry = {
+            "invocation_id": inv_id,
+            "tool": "parse_amcache",
+            "ts": "2026-05-13T10:00:00Z",
+            "examiner": "test",
+            "cmd": "AmcacheParser",
+            "returncode": 0,
+            "stdout_lines": 1,
+            "stderr_excerpt": "",
+            "parsed_record_count": 1,
+            "duration_ms": 100,
+            "extra": {
+                "amcache_path": str(tmp_path / "Amcache.hve"),
+                "output_dir": str(tmp_path),
+                "csv_files": [str(csv_path)],
+                "suspicious_count": 1,
+                "capped": False,
+            },
+        }
+        audit.write_text(json.dumps(entry) + "\n")
+        return audit, inv_id
+
+    def test_exact_value_found_in_csv_grounded(self, tmp_path):
+        from mcp_server.tools.grounding import verify_finding_claims
+        audit, inv_id = self._make_audit_log(
+            tmp_path, "Name,Path\nsubject_srv.exe,C:\\Temp\\subject_srv.exe\n"
+        )
+        finding = {
+            "id": "F-001",
+            "confidence": "CONFIRMED",
+            "evidence_quotes": [{
+                "tool": "parse_amcache",
+                "claim": "subject_srv.exe was present in Amcache",
+                "invocation_id": inv_id,
+                "exact_value": "subject_srv.exe",
+            }],
+        }
+        result = verify_finding_claims(finding, str(audit))
+        assert result.contradicted == 0
+        assert result.grounded == 1
+        assert result.passed is True
+        assert "Tier 2" in result.claims[0].note
+
+    def test_exact_value_not_in_csv_contradicted(self, tmp_path):
+        from mcp_server.tools.grounding import verify_finding_claims
+        audit, inv_id = self._make_audit_log(
+            tmp_path, "Name,Path\nlegit.exe,C:\\Windows\\legit.exe\n"
+        )
+        finding = {
+            "id": "F-001",
+            "confidence": "CONFIRMED",
+            "evidence_quotes": [{
+                "tool": "parse_amcache",
+                "claim": "subject_srv.exe was present in Amcache",
+                "invocation_id": inv_id,
+                "exact_value": "subject_srv.exe",
+            }],
+        }
+        result = verify_finding_claims(finding, str(audit))
+        assert result.contradicted == 1
+        assert result.grounded == 0
+        assert result.passed is False
+        assert "HALLUCINATION DETECTED (Tier 2)" in result.claims[0].note
+
+    def test_no_exact_value_falls_through_to_tier1_grounded(self, tmp_path):
+        from mcp_server.tools.grounding import verify_finding_claims
+        audit, inv_id = self._make_audit_log(tmp_path, "Name\nlegit.exe\n")
+        finding = {
+            "id": "F-001",
+            "confidence": "CONFIRMED",
+            "evidence_quotes": [{
+                "tool": "parse_amcache",
+                "claim": "Amcache was parsed",
+                "invocation_id": inv_id,
+            }],
+        }
+        result = verify_finding_claims(finding, str(audit))
+        assert result.grounded == 1
+        assert result.contradicted == 0
+        note = result.claims[0].note
+        assert "Tier 1" in note or "attested" in note.lower()
+
+    def test_no_csv_files_in_audit_falls_through_to_tier1_grounded(self, tmp_path):
+        import json
+        inv_id = "inv_nocsv001"
+        audit = tmp_path / "mcp.jsonl"
+        entry = {
+            "invocation_id": inv_id,
+            "tool": "parse_prefetch",
+            "ts": "2026-05-13T10:00:00Z",
+            "examiner": "test",
+            "cmd": "pyscca",
+            "returncode": 0,
+            "stdout_lines": 1,
+            "stderr_excerpt": "",
+            "parsed_record_count": 1,
+            "duration_ms": 50,
+            "extra": {
+                "prefetch_path": str(tmp_path / "Prefetch"),
+                "pf_files_found": 1,
+                "parse_errors": 0,
+                "suspicious_count": 1,
+                "capped": False,
+            },
+        }
+        audit.write_text(json.dumps(entry) + "\n")
+        from mcp_server.tools.grounding import verify_finding_claims
+        finding = {
+            "id": "F-001",
+            "confidence": "CONFIRMED",
+            "evidence_quotes": [{
+                "tool": "parse_prefetch",
+                "claim": "subject_srv.exe ran 8 times",
+                "invocation_id": inv_id,
+                "exact_value": "subject_srv.exe",
+            }],
+        }
+        result = verify_finding_claims(finding, str(audit))
+        assert result.grounded == 1
+        assert result.contradicted == 0
+        note = result.claims[0].note
+        assert "Tier 1" in note or "csv_files" in note.lower() or "attested" in note.lower()
+
+
+# ===========================================================================
+# Tier 2: verify_finding_claims — audit_field satisfied + exact_value
+# ===========================================================================
+
+class TestVerifyFindingClaimsTier2FieldBranch:
+
+    def _make_audit_log_with_field(self, tmp_path, csv_content):
+        import json
+        csv_path = tmp_path / "amcache_output.csv"
+        csv_path.write_text(csv_content)
+        inv_id = "inv_field001"
+        audit = tmp_path / "mcp.jsonl"
+        entry = {
+            "invocation_id": inv_id,
+            "tool": "parse_amcache",
+            "ts": "2026-05-13T10:00:00Z",
+            "examiner": "test",
+            "cmd": "AmcacheParser",
+            "returncode": 0,
+            "stdout_lines": 1,
+            "stderr_excerpt": "",
+            "parsed_record_count": 5,
+            "duration_ms": 200,
+            "extra": {
+                "amcache_path": str(tmp_path / "Amcache.hve"),
+                "output_dir": str(tmp_path),
+                "csv_files": [str(csv_path)],
+                "suspicious_count": 3,
+                "capped": False,
+            },
+        }
+        audit.write_text(json.dumps(entry) + "\n")
+        return audit, inv_id
+
+    def test_field_pass_and_csv_pass_grounded(self, tmp_path):
+        from mcp_server.tools.grounding import verify_finding_claims
+        audit, inv_id = self._make_audit_log_with_field(
+            tmp_path, "Name\nsubject_srv.exe\n"
+        )
+        finding = {
+            "id": "F-001",
+            "confidence": "CONFIRMED",
+            "evidence_quotes": [{
+                "tool": "parse_amcache",
+                "claim": "3 suspicious entries found",
+                "invocation_id": inv_id,
+                "audit_field": "extra.suspicious_count",
+                "audit_expected": ">= 1",
+                "exact_value": "subject_srv.exe",
+            }],
+        }
+        result = verify_finding_claims(finding, str(audit))
+        assert result.grounded == 1
+        assert result.contradicted == 0
+        assert "Tier 2 CSV check passed" in result.claims[0].note
+
+    def test_field_pass_but_csv_fail_contradicted(self, tmp_path):
+        from mcp_server.tools.grounding import verify_finding_claims
+        audit, inv_id = self._make_audit_log_with_field(
+            tmp_path, "Name\nlegit.exe\n"
+        )
+        finding = {
+            "id": "F-001",
+            "confidence": "CONFIRMED",
+            "evidence_quotes": [{
+                "tool": "parse_amcache",
+                "claim": "subject_srv.exe found with 3 suspicious entries",
+                "invocation_id": inv_id,
+                "audit_field": "extra.suspicious_count",
+                "audit_expected": ">= 1",
+                "exact_value": "subject_srv.exe",
+            }],
+        }
+        result = verify_finding_claims(finding, str(audit))
+        assert result.contradicted == 1
+        assert result.grounded == 0
+        assert "HALLUCINATION DETECTED (Tier 2)" in result.claims[0].note
+
+    def test_field_pass_no_exact_value_tier1_only(self, tmp_path):
+        from mcp_server.tools.grounding import verify_finding_claims
+        audit, inv_id = self._make_audit_log_with_field(
+            tmp_path, "Name\nlegit.exe\n"
+        )
+        finding = {
+            "id": "F-001",
+            "confidence": "CONFIRMED",
+            "evidence_quotes": [{
+                "tool": "parse_amcache",
+                "claim": "suspicious entries found",
+                "invocation_id": inv_id,
+                "audit_field": "extra.suspicious_count",
+                "audit_expected": ">= 1",
+            }],
+        }
+        result = verify_finding_claims(finding, str(audit))
+        assert result.grounded == 1
+        assert result.contradicted == 0
+
+    def test_field_fail_csv_not_checked(self, tmp_path):
+        from mcp_server.tools.grounding import verify_finding_claims
+        audit, inv_id = self._make_audit_log_with_field(
+            tmp_path, "Name\nsubject_srv.exe\n"
+        )
+        finding = {
+            "id": "F-001",
+            "confidence": "CONFIRMED",
+            "evidence_quotes": [{
+                "tool": "parse_amcache",
+                "claim": "zero suspicious entries",
+                "invocation_id": inv_id,
+                "audit_field": "extra.suspicious_count",
+                "audit_expected": "== 0",
+                "exact_value": "subject_srv.exe",
+            }],
+        }
+        result = verify_finding_claims(finding, str(audit))
+        assert result.contradicted == 1
+        note = result.claims[0].note
+        assert "HALLUCINATION DETECTED" in note
+        assert "Tier 2" not in note
+
