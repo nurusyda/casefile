@@ -5,6 +5,7 @@
 #
 # Usage:
 #   bash ralph.sh [case_dir]
+#   CASEFILE_CASE_ROOT env var used if no arg given
 #
 # Requirements:
 #   - claude (Claude Code CLI) in PATH
@@ -19,11 +20,11 @@
 set -euo pipefail
 
 # ─── CONFIG ────────────────────────────────────────────────────────────────────
-CASE_DIR="${1:-.}"
+CASE_DIR="${1:-${CASEFILE_CASE_ROOT:-.}}"
 PRD_FILE="${CASE_DIR}/prd.json"
 PROGRESS_FILE="${CASE_DIR}/analysis/progress.txt"
 LOG_FILE="${CASE_DIR}/analysis/ralph.log"
-MAX_ITER=$(python3 -c "import json; print(json.load(open('${PRD_FILE}'))['max_iterations'])" 2>/dev/null || echo 25)
+MAX_ITER=$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["max_iterations"])' "$PRD_FILE" 2>/dev/null || echo 25)
 COMPLETION_SIGNAL="TASK_COMPLETE"
 RALPH_JSONL="${CASE_DIR}/audit/ralph.jsonl"
 
