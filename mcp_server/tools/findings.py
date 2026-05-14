@@ -84,9 +84,27 @@ def record_finding(
     # Validate evidence_quotes before touching disk.
     _eq = evidence_quotes if evidence_quotes is not None else []
     if not isinstance(_eq, list):
-        raise GroundingSchemaError(
+        _schema_err = GroundingSchemaError(
             f"evidence_quotes must be a list, got {type(evidence_quotes).__name__!r}"
         )
+        audit_log(
+            tool="record_finding",
+            invocation_id=str(uuid.uuid4()),
+            cmd="record_finding (validation failed)",
+            returncode=1,
+            stdout_lines=0,
+            stderr_excerpt=str(_schema_err)[:500],
+            parsed_record_count=0,
+            duration_ms=0,
+            extra={
+                "finding_id": None,
+                "confidence": confidence,
+                "examiner": _examiner(),
+                "evidence_quotes_count": 0,
+                "validation_error": "GroundingSchemaError",
+            },
+        )
+        raise _schema_err
     _grounding_warning: str = ""
     try:
         validate_evidence_quotes({
@@ -94,7 +112,27 @@ def record_finding(
             "confidence": confidence,
             "evidence_quotes": _eq,
         })
-    except GroundingSchemaError:
+    except GroundingSchemaError as _gse:
+        try:
+            audit_log(
+                tool="record_finding",
+                invocation_id=str(uuid.uuid4()),
+                cmd="record_finding (validation failed)",
+                returncode=1,
+                stdout_lines=0,
+                stderr_excerpt=str(_gse)[:500],
+                parsed_record_count=0,
+                duration_ms=0,
+                extra={
+                    "finding_id": None,
+                    "confidence": confidence,
+                    "examiner": _examiner(),
+                    "evidence_quotes_count": len(_eq),
+                    "validation_error": "GroundingSchemaError",
+                },
+            )
+        except Exception as _audit_exc:
+            print(f"[findings] audit_log failed during schema error: {_audit_exc}", flush=True)
         raise  # malformed quote fields — always re-raise
     except GroundingError as _ge:
         # CONFIRMED without quotes — warning only until ralph.sh

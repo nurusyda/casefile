@@ -22,6 +22,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # ─── CONFIG ────────────────────────────────────────────────────────────────────
 CASE_DIR="${1:-${CASEFILE_CASE_ROOT:-.}}"
+CASEFILE_CASE_DIR="${CASEFILE_CASE_DIR:-${CASE_DIR}}"
+CASEFILE_CASE_DIR="$(realpath "${CASEFILE_CASE_DIR}")"
+[ -d "${CASEFILE_CASE_DIR}" ] || { log "ERROR: CASEFILE_CASE_DIR is not a directory: ${CASEFILE_CASE_DIR}"; exit 1; }
 PRD_FILE="${CASE_DIR}/prd.json"
 PROGRESS_FILE="${CASE_DIR}/analysis/progress.txt"
 LOG_FILE="${CASE_DIR}/analysis/ralph.log"
@@ -59,15 +62,18 @@ Read CLAUDE.md and prd.json. Begin the CRIMSON OSPREY investigation. Work throug
 EVIDENCE GROUNDING REQUIREMENT (mandatory — not optional):
 Every call to record_finding() MUST include evidence_quotes as a list of dicts.
 Each dict MUST have exactly these keys:
-  source     : the MCP tool name that produced this value (e.g. parse_amcache, parse_memory, correlate_evidence)
-  field      : the exact field name from the tool output (e.g. path, pid, sha1_hash, last_run_time)
-  exact_value: the exact string from the tool output — copied verbatim. Do NOT summarize. Do NOT paraphrase. Copy character-for-character.
-  invocation_id: the invocation_id from the audit log entry for that tool call.
+  tool         : the MCP tool name (e.g. parse_amcache, parse_memory, correlate_evidence)
+  claim        : short claim text grounded by this tool output
+  invocation_id: the invocation_id from the audit log entry for that tool call
+Optional keys:
+  audit_field  : exact audit field path to validate (e.g. path, pid)
+  audit_expected: expected value or comparison (e.g. ">0", "True")
+  exact_value  : verbatim value from tool output for Tier-2 CSV verification
 
 Example (correct):
   evidence_quotes=[
-    {"source": "parse_amcache", "field": "path", "exact_value": "C:\Windows\Temp\subject_srv.exe", "invocation_id": "inv_abc123"},
-    {"source": "parse_memory", "field": "pid", "exact_value": "1096", "invocation_id": "inv_def456"}
+    {"tool": "parse_amcache", "claim": "subject_srv.exe present in Amcache", "invocation_id": "inv_abc123", "exact_value": "C:\\Windows\\Temp\\subject_srv.exe"},
+    {"tool": "parse_memory", "claim": "subject_srv.exe running in memory (PID 1096)", "invocation_id": "inv_def456", "exact_value": "1096"}
   ]
 
 If you do not have an exact value from a tool output, do NOT invent one. Label the finding INFERRED and explain the reasoning in interpretation.
@@ -135,8 +141,8 @@ PYEOF
         log "Running post-completion grounding verification..."
         set +e
         CASE_DIR="${CASE_DIR}" \
-        AUDIT_LOG="${CASE_DIR}/audit/mcp.jsonl" \
-        FINDINGS_FILE="${CASE_DIR}/findings.json" \
+        AUDIT_LOG="${CASEFILE_CASE_DIR}/audit/mcp.jsonl" \
+        FINDINGS_FILE="${CASEFILE_CASE_DIR}/findings.json" \
         CLAIM_REPORT="${CASE_DIR}/analysis/claim_accuracy_report.json" \
         PYTHONPATH="${SCRIPT_DIR}" \
         python3 scripts/grounding_verify.py
@@ -158,7 +164,7 @@ PYEOF
                 CORRECTION_ITER=$((CORRECTION_ITER + 1))
                 log "Correction iteration ${CORRECTION_ITER}/3..."
 
-                if ! CORRECTION_PROMPT=$(CASE_DIR="${CASE_DIR}" PYTHONPATH="${SCRIPT_DIR}" python3 scripts/grounding_correction_prompt.py); then
+                if ! CORRECTION_PROMPT=$(CASE_DIR="${CASE_DIR}" AUDIT_LOG="${CASEFILE_CASE_DIR}/audit/mcp.jsonl" FINDINGS_FILE="${CASEFILE_CASE_DIR}/findings.json" PYTHONPATH="${SCRIPT_DIR}" python3 scripts/grounding_correction_prompt.py); then
                     log "ERROR: grounding_correction_prompt.py failed"
                     exit 1
                 fi
@@ -167,8 +173,8 @@ PYEOF
 
                 set +e
                 CASE_DIR="${CASE_DIR}" \
-                AUDIT_LOG="${CASE_DIR}/audit/mcp.jsonl" \
-                FINDINGS_FILE="${CASE_DIR}/findings.json" \
+                AUDIT_LOG="${CASEFILE_CASE_DIR}/audit/mcp.jsonl" \
+                FINDINGS_FILE="${CASEFILE_CASE_DIR}/findings.json" \
                 CLAIM_REPORT="${CASE_DIR}/analysis/claim_accuracy_report.json" \
                 PYTHONPATH="${SCRIPT_DIR}" \
                 python3 scripts/grounding_recheck.py

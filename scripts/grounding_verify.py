@@ -110,7 +110,7 @@ if results:
     print(f"[grounding] Claim accuracy report written to {claim_report_path}", flush=True)
     print(
         f"[grounding] Summary: "
-        f"findings={report.get('total_findings', '?')} "
+        f"findings={len(results)} "
         f"claims={report.get('total_claims', '?')} "
         f"grounded={report.get('grounded', '?')} "
         f"contradicted={report.get('contradicted', '?')} "

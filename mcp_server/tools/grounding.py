@@ -465,7 +465,9 @@ def _should_run_tier2(entry: dict) -> "list[str] | None":
     raw = (entry.get("extra") or {}).get("csv_files")
     if not isinstance(raw, list) or not raw:
         return None
-    return raw  # type: ignore[return-value]
+    # Filter to non-empty strings only — Path(non-string) raises TypeError
+    filtered = [x for x in raw if isinstance(x, str) and x]
+    return filtered if filtered else None
 
 
 # _apply_tier2_csv_check — shared Tier 2 dispatch used by both branches
@@ -609,8 +611,16 @@ def verify_finding_claims(
 
     # --- Main path: verify each quote ---
     for quote in quotes:
-        tool = quote["tool"]
-        claim_text = quote["claim"]
+        tool = quote.get("tool")
+        claim_text = quote.get("claim", "")
+        if not tool or not claim_text:
+            claim_results.append(ClaimVerification(
+                claim_text=str(quote),
+                status="UNGROUNDED",
+                supporting_invocation_id=None,
+                note="Malformed evidence_quote: missing 'tool' or 'claim' key.",
+            ))
+            continue
         inv_id = quote.get("invocation_id")
         audit_field = quote.get("audit_field")
         audit_expected = quote.get("audit_expected")
