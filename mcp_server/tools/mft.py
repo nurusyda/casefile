@@ -421,7 +421,7 @@ def parse_mft(
     else:
         # Write outside evidence tree — use CASEFILE_CASE_DIR/analysis/
         _case = os.environ.get("CASEFILE_CASE_DIR", str(Path.home() / "cases" / "active"))
-        out_dir = Path(_case) / "analysis" / "mft_out"
+        out_dir = Path(_case) / "analysis" / "mft_out" / invocation_id  # isolate per-run: prevents stale CSV ingestion / invocation_id
     out_dir.mkdir(parents=True, exist_ok=True)
 
     prefix = "mft"
