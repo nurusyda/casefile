@@ -303,6 +303,12 @@ def parse_prefetch(
     """
     invocation_id = str(uuid.uuid4())
     t_start = time.monotonic()
+    if pyscca is None:
+        return _error_result(
+            invocation_id, prefetch_path,
+            "pyscca (libscca) not installed. "
+            "Install with: sudo apt install libscca-python3"
+        )
     pf_path = Path(prefetch_path)
 
     if not pf_path.exists():

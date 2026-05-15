@@ -65,6 +65,7 @@ Usage by Claude:
 
 import csv
 import io
+import shlex
 import time
 import uuid
 from datetime import datetime, timezone
@@ -369,7 +370,9 @@ def parse_registry(
     if output_dir:
         out_dir = Path(output_dir)
     else:
-        out_dir = hive_path.parent / "registry_out"
+        # Write outside evidence tree — use CASEFILE_CASE_DIR/analysis/
+        _case = os.environ.get("CASEFILE_CASE_DIR", str(Path.home() / "cases" / "active"))
+        out_dir = Path(_case) / "analysis" / "registry_out"
     out_dir.mkdir(parents=True, exist_ok=True)
 
     prefix = "registry"
@@ -383,10 +386,10 @@ def parse_registry(
     #   -q   quiet
     cmd = (
         f"{RECMD_BIN} "
-        f"-d {hive_path} "
-        f"--bn {batch} "
-        f"--csv {out_dir} "
-        f"--csvf {prefix}.csv"
+        f"-d {shlex.quote(str(hive_path))} "
+        f"--bn {shlex.quote(str(batch))} "
+        f"--csv {shlex.quote(str(out_dir))} "
+        f"--csvf {shlex.quote(prefix + '.csv')}"
     )
 
     # ── Run RECmd ─────────────────────────────────────────────────────────────

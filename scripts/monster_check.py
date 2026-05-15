@@ -301,9 +301,11 @@ THE SEVEN LAWS (from CLAUDE.md — these are architectural, not suggestions):
 GOLDEN RULES (these are the rules that have bitten us — they exist because
 we violated them once and paid the price):
   - NEVER touch existing parser files (amcache.py, prefetch.py, memory.py,
-    mft.py, event_logs.py, registry.py, accuracy.py).
+    mft.py, event_logs.py, registry.py, accuracy.py) for logic changes.
     Composition over modification. correlation.py CALLS parsers; it does
     not duplicate or modify their logic.
+    EXCEPTION: security fixes (shlex.quote, evidence-dir write, pyscca guard)
+    are permitted with explicit examiner sign-off.
     NOTE: findings.py is intentionally excluded from this list — it is the
     investigation state machine, not a forensic parser; it evolves with
     schema requirements (e.g. adding evidence_quotes). Do not re-add it here.

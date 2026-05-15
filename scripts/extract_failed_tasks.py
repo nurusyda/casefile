@@ -32,8 +32,10 @@ except (OSError, json.JSONDecodeError) as exc:
 
 failed = []
 for task in prd.get("tasks", []):
-    failed.append(
-	f"- {task.get('id', '?')} ({task.get('name', '?')}): {task.get('failure_action', '?')}"
-    )
+    if not task.get("passed", False):
+        failed.append(
+            f"- {task.get('id', '?')} ({task.get('name', '?')}): "
+            f"{task.get('failure_action', '?')}"
+        )
 
 print("\n".join(failed) if failed else "All tasks passed.")

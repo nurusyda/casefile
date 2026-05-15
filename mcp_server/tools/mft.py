@@ -52,6 +52,7 @@ Usage by Claude:
 
 import csv
 import io
+import shlex
 import time
 import uuid
 from datetime import datetime, timezone
@@ -417,7 +418,9 @@ def parse_mft(
     if output_dir:
         out_dir = Path(output_dir)
     else:
-        out_dir = mft.parent / "mft_out"
+        # Write outside evidence tree — use CASEFILE_CASE_DIR/analysis/
+        _case = os.environ.get("CASEFILE_CASE_DIR", str(Path.home() / "cases" / "active"))
+        out_dir = Path(_case) / "analysis" / "mft_out"
     out_dir.mkdir(parents=True, exist_ok=True)
 
     prefix = "mft"
@@ -431,10 +434,10 @@ def parse_mft(
     #   -q   quiet
     cmd = (
         f"{MFTECMD_BIN} "
-        f"-f {mft} "
+        f"-f {shlex.quote(str(mft))} "
         f"--at "
-        f"--csv {out_dir} "
-        f"--csvf {prefix}"
+        f"--csv {shlex.quote(str(out_dir))} "
+        f"--csvf {shlex.quote(prefix)}"
     )
 
     # ── Run MFTECmd ───────────────────────────────────────────────────────────
@@ -470,7 +473,7 @@ def parse_mft(
 
     # ── Find and parse CSV output ─────────────────────────────────────────────
     # MFTECmd --at writes: mft_MFTECmd_Output.csv
-    csv_files = list(out_dir.glob("*.csv"))
+    csv_files = list(out_dir.glob(f"{prefix}_*.csv")) or list(out_dir.glob("*.csv"))
 
     if not csv_files:
         duration_ms = int((time.monotonic() - t_start) * 1000)

@@ -9,7 +9,7 @@ Reads findings.json, runs verify_finding_claims() and assert_sources_attested()
 on every finding, writes analysis/claim_accuracy_report.json.
 
 Exit codes:
-  0 — all claims grounded (or grounding module unavailable)
+  0 — all claims grounded
   2 — one or more CONTRADICTED claims detected (triggers correction loop)
 
 Environment variables (all required):
@@ -100,8 +100,17 @@ for finding in findings:
     except Exception as exc:
         print(f"[grounding] verify_finding_claims failed for {fid}: {exc}", flush=True)
         total_contradicted += 1  # Treat verifier failure as unresolved grounding failure
+        results.append(None)  # Sentinel — prevents incomplete report from being written
 
 # Build and write claim accuracy report
+# Check for sentinel None values (verification crashes) before building report
+if any(r is None for r in results):
+    print(
+        "[grounding] FATAL: one or more findings could not be verified — "
+        "forcing correction loop.",
+        flush=True,
+    )
+    sys.exit(2)
 if results:
     report = build_claim_accuracy_report(results)
     Path(claim_report_path).parent.mkdir(parents=True, exist_ok=True)

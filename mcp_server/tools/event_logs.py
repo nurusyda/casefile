@@ -69,6 +69,7 @@ Usage by Claude:
 
 import csv
 import io
+import shlex
 import time
 import uuid
 from datetime import datetime, timezone
@@ -408,8 +409,9 @@ def parse_event_logs(
     if output_dir:
         out_dir = Path(output_dir)
     else:
-        base = evtx if evtx.is_dir() else evtx.parent
-        out_dir = base.parent / "evtx_out"
+        # Write outside evidence tree — use CASEFILE_CASE_DIR/analysis/
+        _case = os.environ.get("CASEFILE_CASE_DIR", str(Path.home() / "cases" / "active"))
+        out_dir = Path(_case) / "analysis" / "evtx_out"
     out_dir.mkdir(parents=True, exist_ok=True)
 
     prefix = evtx.stem if not evtx.is_dir() else "evtx"
@@ -423,9 +425,9 @@ def parse_event_logs(
     #   --csvf filename prefix
     #   -q   quiet
     if evtx.is_dir():
-        input_flag = f"-d {evtx}"
+        input_flag = f"-d {shlex.quote(str(evtx))}"
     else:
-        input_flag = f"-f {evtx}"
+        input_flag = f"-f {shlex.quote(str(evtx))}"
         prefix = evtx.stem
 
     inc_flag = ""
@@ -436,8 +438,8 @@ def parse_event_logs(
         f"{EVTXECMD_BIN} "
         f"{input_flag} "
         f"{inc_flag} "
-        f"--csv {out_dir} "
-        f"--csvf {prefix}.csv"
+        f"--csv {shlex.quote(str(out_dir))} "
+        f"--csvf {shlex.quote(prefix + '.csv')}"
     ).strip()
 
     # ── Run EvtxECmd ──────────────────────────────────────────────────────────
