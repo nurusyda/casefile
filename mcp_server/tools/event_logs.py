@@ -70,6 +70,7 @@ Usage by Claude:
 import csv
 import io
 import shlex
+import os
 import time
 import uuid
 from datetime import datetime, timezone

@@ -35,7 +35,14 @@ def _audit_file() -> Path:
         return AUDIT_FILE
     case_dir = os.environ.get("CASEFILE_CASE_DIR", "")
     if case_dir:
-        return Path(case_dir).resolve() / "audit" / "mcp.jsonl"
+        target = Path(case_dir).resolve() / "audit" / "mcp.jsonl"
+        # Prevent writes into the read-only evidence mount
+        _evidence = Path("/mnt/evidence").resolve()
+        if _evidence in target.parents or target == _evidence:
+            raise ValueError(
+                f"audit log path must not be inside /mnt/evidence: {target}"
+            )
+        return target
     return AUDIT_FILE
 
 # Sentinel used when CASEFILE_EXAMINER env var is not set.

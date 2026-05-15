@@ -66,6 +66,7 @@ Usage by Claude:
 import csv
 import io
 import shlex
+import os
 import time
 import uuid
 from datetime import datetime, timezone
@@ -358,7 +359,7 @@ def parse_registry(
         )
 
     # ── Resolve batch file ────────────────────────────────────────────────────
-    batch = Path(batch_file) if batch_file else Path(KROLL_BATCH_FILE)
+    batch = Path(batch_file).resolve() if batch_file else Path(KROLL_BATCH_FILE).resolve()
     if not batch.exists():
         return _error_result(
             invocation_id, hive_dir,

@@ -25,14 +25,6 @@ from mcp_server.tools.findings import (
     record_timeline_event,
 )
 
-# ── Verified tool paths ──────────────────────────────────────────────────────
-VOL        = "/usr/local/bin/vol"          # symlink → /opt/volatility3/bin/vol
-MFTECMD    = "dotnet /opt/zimmermantools/MFTECmd.dll"
-AMCACHE    = "dotnet /opt/zimmermantools/AmcacheParser.dll"
-EVTXECMD   = "dotnet /opt/zimmermantools/EvtxeCmd/EvtxECmd.dll"   # note subdirectory
-RECMD      = "dotnet /opt/zimmermantools/RECmd/RECmd.dll"          # note subdirectory
-SHIMCACHE  = "dotnet /opt/zimmermantools/AppCompatCacheParser.dll"
-PREFETCH   = "dotnet /opt/zimmermantools/PECmd.dll"
 SRUM       = "dotnet /opt/zimmermantools/SrumECmd.dll"
 SHELLBAGS  = "dotnet /opt/zimmermantools/SBECmd.dll"
 REGRIPPER  = "/usr/share/regripper/rip.pl"

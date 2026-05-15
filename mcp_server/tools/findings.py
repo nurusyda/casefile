@@ -43,7 +43,7 @@ def _next_finding_id(case_dir: Path) -> str:
         try:
             data = json.loads(findings_file.read_text(encoding="utf-8"))
             n = len(data) + 1
-        except Exception:
+        except (json.JSONDecodeError, ValueError, TypeError):
             n = 1
     else:
         n = 1
@@ -56,7 +56,7 @@ def _next_timeline_id(case_dir: Path) -> str:
         try:
             data = json.loads(tl_file.read_text(encoding="utf-8"))
             n = len(data) + 1
-        except Exception:
+        except (json.JSONDecodeError, ValueError, TypeError):
             n = 1
     else:
         n = 1

@@ -309,7 +309,7 @@ def parse_prefetch(
             "pyscca (libscca) not installed. "
             "Install with: sudo apt install libscca-python3"
         )
-    pf_path = Path(prefetch_path)
+    pf_path = Path(prefetch_path).resolve()
 
     if not pf_path.exists():
         return _error_result(invocation_id, prefetch_path,
