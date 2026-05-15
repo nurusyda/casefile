@@ -16,7 +16,9 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import glob
 import os
+import py_compile
 import re
 import subprocess
 import sys
@@ -104,6 +106,130 @@ def capture_diff(mode: str) -> tuple[str, str]:
     else:
         die(f"Unknown diff mode: {mode}")
     return diff, f"{label}\n{files or '(no files)'}"
+
+
+# --------------------------------------------------------------------------- #
+# Shared helper: parse git name-status into changed file list
+# --------------------------------------------------------------------------- #
+def _changed_files(mode: str, py_only: bool = False) -> list[str]:
+    """Return list of modified/added files from git name-status."""
+    if mode == "staged":
+        name_status = run_git(["diff", "--cached", "--name-status"])
+    elif mode == "unstaged":
+        name_status = run_git(["diff", "--name-status"])
+    else:
+        name_status = run_git(["diff", "HEAD", "--name-status"])
+    files = []
+    for line in name_status.splitlines():
+        parts = line.split("\t")
+        if len(parts) >= 2 and parts[0] != "D":
+            f = parts[-1]
+            if py_only and not f.endswith(".py"):
+                continue
+            files.append(f)
+    return files
+
+
+# --------------------------------------------------------------------------- #
+# Option C: py_compile pre-validation
+# --------------------------------------------------------------------------- #
+def compile_check(mode: str) -> str:
+    """Run py_compile on all modified .py files. Return a status string."""
+    changed_py = _changed_files(mode, py_only=True)
+    if not changed_py:
+        return "COMPILE CHECK: no .py files modified."
+    results = []
+    all_ok = True
+    for f in changed_py:
+        fp = Path(f)
+        if not fp.exists():
+            results.append(f"  SKIP (deleted): {f}")
+            continue
+        try:
+            py_compile.compile(str(fp), doraise=True)
+            results.append(f"  OK: {f}")
+        except py_compile.PyCompileError as exc:
+            all_ok = False
+            results.append(f"  COMPILE ERROR: {f}: {exc}")
+    prefix = (
+        "COMPILE CHECK (all modified .py files parse without error — "
+        "do NOT flag missing imports as blockers, they exist):"
+        if all_ok else
+        "COMPILE CHECK (compile errors found — these are real blockers):"
+    )
+    return prefix + "\n" + "\n".join(results)
+
+
+# --------------------------------------------------------------------------- #
+# Option A: full file content for modified files
+# --------------------------------------------------------------------------- #
+def full_file_context(mode: str, max_bytes_per_file: int = 40_000) -> str:
+    """Return full content of all modified files for LLM context."""
+    changed = _changed_files(mode)
+    if not changed:
+        return ""
+    sections = [
+        "FULL FILE CONTENT (use this to verify imports, function signatures, "
+        "surrounding context — do not contradict what you see here):"
+    ]
+    for f in changed:
+        fp = Path(f)
+        if not fp.exists():
+            continue
+        try:
+            content = fp.read_text(encoding="utf-8", errors="replace")
+            content_bytes = content.encode("utf-8")
+            if len(content_bytes) > max_bytes_per_file:
+                content = content_bytes[:max_bytes_per_file].decode("utf-8", errors="replace") + "\n... [truncated at 40KB]"
+            sections.append(f"\n### {f} ###\n{content}")
+        except OSError as exc:
+            sections.append(f"\n### {f} ### [unreadable: {exc}]")
+    return "\n".join(sections)
+
+
+# --------------------------------------------------------------------------- #
+# --deep mode: scan all .py files 2 at a time
+# --------------------------------------------------------------------------- #
+def deep_scan(model: str) -> None:
+    """Scan all .py files in the repo 2 at a time. One-time full audit."""
+    py_files = sorted(glob.glob("**/*.py", recursive=True))
+    py_files = [f for f in py_files if not any(
+        seg in f for seg in ("venv/", "__pycache__", ".git/", "patch_")
+    )]
+    if not py_files:
+        print("No .py files found.")
+        return
+    pairs = [py_files[i:i + 2] for i in range(0, len(py_files), 2)]
+    total = len(pairs)
+    print(f"{C.CYAN}{C.BOLD}DEEP SCAN: {len(py_files)} files -> {total} pairs{C.RESET}")
+    for idx, pair in enumerate(pairs, 1):
+        banner(f"DEEP SCAN [{idx}/{total}]: {', '.join(pair)}", C.MAGENTA)
+        sections = [
+            f"DEEP SCAN [{idx}/{total}] — full file review. "
+            "Review these complete files for correctness, security, "
+            "golden-rule violations, and system cohesion. "
+            "These are NOT diffs — review the entire file content."
+        ]
+        for f in pair:
+            fp = Path(f)
+            if not fp.exists():
+                sections.append(f"### {f} [NOT FOUND]")
+                continue
+            try:
+                content = fp.read_text(encoding="utf-8", errors="replace")
+                sections.append(f"### {f} ###\n{content}")
+            except OSError as exc:
+                sections.append(f"### {f} [unreadable: {exc}]")
+        payload = "\n\n".join(sections)
+        payload_bytes = len(payload.encode("utf-8"))
+        max_bytes = 300_000
+        if payload_bytes > max_bytes:
+            print(f"{C.YELLOW}[deep_scan] pair {idx}/{total} too large ({payload_bytes:,} bytes > {max_bytes:,}) — skipping.{C.RESET}")
+            continue
+        summary = f"DEEP SCAN [{idx}/{total}]: " + ", ".join(pair)
+        review_diff(payload, summary, model, combined_context="")
+        print()
+    print(f"{C.GREEN}{C.BOLD}DEEP SCAN COMPLETE — {len(py_files)} files in {total} pairs.{C.RESET}")
 
 
 # --------------------------------------------------------------------------- #
@@ -680,9 +806,17 @@ def main() -> None:
         "--context", "-C", default="",
         help="Verified context preamble to prepend to the review prompt.",
     )
+    parser.add_argument(
+        "--deep", action="store_true",
+        help="Full repo audit: review all .py files 2 at a time. One-time use.",
+    )
     args = parser.parse_args()
 
     ensure_git_repo()
+
+    if args.deep:
+        deep_scan(args.model)
+        sys.exit(0)
 
     if args.unstaged:
         mode = "unstaged"
@@ -701,7 +835,14 @@ def main() -> None:
             die(f"No {mode} changes to review.", code=0)
 
     auto_facts = build_auto_context()
-    combined_context = "\n".join(filter(None, [auto_facts, args.context or ""]))
+    compile_status = compile_check(mode)
+    if "COMPILE ERROR" in compile_status:
+        print(compile_status)
+        die("Compile errors in modified .py files — fix before committing.")
+    file_contents = full_file_context(mode)
+    combined_context = "\n".join(filter(None, [
+        compile_status, auto_facts, file_contents, args.context or ""
+    ]))
 
     diff_bytes = len(diff.encode("utf-8"))
     context_bytes = len(combined_context.encode("utf-8"))
