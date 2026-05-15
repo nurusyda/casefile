@@ -474,7 +474,7 @@ def parse_mft(
 
     # ── Find and parse CSV output ─────────────────────────────────────────────
     # MFTECmd --at writes: mft_MFTECmd_Output.csv
-    csv_files = list(out_dir.glob(f"{prefix}_*.csv")) or list(out_dir.glob("*.csv"))
+    csv_files = list(out_dir.glob(f"{prefix}_*.csv"))
 
     if not csv_files:
         duration_ms = int((time.monotonic() - t_start) * 1000)

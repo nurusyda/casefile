@@ -9,7 +9,7 @@ import pytest
 
 
 @pytest.fixture(autouse=True)
-def _clear_casefile_env(monkeypatch):
+def _clear_casefile_env(monkeypatch) -> None:
     """Clear CaseFile runtime env vars before every test.
 
     Prevents shell-session exports (e.g. CASEFILE_CASE_ROOT=~/cases/SRL-2018)

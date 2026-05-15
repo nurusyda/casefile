@@ -304,6 +304,18 @@ def parse_prefetch(
     invocation_id = str(uuid.uuid4())
     t_start = time.monotonic()
     if pyscca is None:
+        duration_ms = int((time.monotonic() - t_start) * 1000)
+        audit_log(
+            tool="pyscca",
+            invocation_id=invocation_id,
+            cmd=f"pyscca({prefetch_path})",
+            returncode=127,
+            stdout_lines=0,
+            stderr_excerpt="pyscca (libscca) not installed",
+            parsed_record_count=0,
+            duration_ms=duration_ms,
+            extra={"prefetch_path": prefetch_path},
+        )
         return _error_result(
             invocation_id, prefetch_path,
             "pyscca (libscca) not installed. "

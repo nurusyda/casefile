@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "casefile": {
+      "command": "python3",
+      "args": ["-m", "mcp_server.server"],
+      "env": {
+        "PYTHONPATH": "/path/to/casefile",
+        "CASEFILE_CASE_DIR": "/path/to/cases/active",
+        "CASEFILE_EXAMINER": "analyst"
+      }
+    }
+  }
+}

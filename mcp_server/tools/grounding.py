@@ -241,24 +241,27 @@ def _check_audit_field(
     entry: dict,
     audit_field: str,
     audit_expected: str,
-) -> tuple[bool, str]:
+) -> tuple[str, str]:
     """Check whether entry[audit_field] satisfies audit_expected.
 
     Supports dot-notation for nested fields (e.g. "params.process_name").
 
-    Returns (satisfied: bool, note: str).
+    Returns (status: str, note: str) where status is one of:
+      "OK"      — field found and satisfies audit_expected
+      "MISMATCH" — field found but does not satisfy audit_expected (hallucination)
+      "MISSING"  — field not found in audit entry (cannot verify)
     """
     current: object = entry
     for part in audit_field.split("."):
         if isinstance(current, dict):
             if part not in current:
-                return False, (
+                return "MISSING", (
                     f"Field {audit_field!r} not found in audit entry. "
                     f"Top-level keys: {sorted(entry.keys())}"
                 )
             current = current[part]
         else:
-            return False, (
+            return "MISSING", (
                 f"Cannot descend into {type(current).__name__} "
                 f"at part {part!r} of field path {audit_field!r}."
             )
@@ -276,12 +279,12 @@ def _check_audit_field(
                 actual = float(value)  # type: ignore[arg-type]
                 ok = {">": actual > threshold, ">=": actual >= threshold,
                       "<": actual < threshold, "<=": actual <= threshold}[op]
-                return ok, (
+                return ("OK" if ok else "MISMATCH"), (
                     f"{audit_field} = {value!r} "
                     f"{'satisfies' if ok else 'does NOT satisfy'} {expected!r}"
                 )
             except (TypeError, ValueError):
-                return False, (
+                return "MISSING", (
                     f"Cannot compare {audit_field} = {value!r} "
                     f"numerically with {expected!r}"
                 )
@@ -289,7 +292,7 @@ def _check_audit_field(
             match = str(value) == rhs
             if op == "!=":
                 match = not match
-            return match, (
+            return ("OK" if match else "MISMATCH"), (
                 f"{audit_field} = {value!r} "
                 f"{op} expected {rhs!r} -> {'PASS' if match else 'FAIL'}"
             )
@@ -300,17 +303,17 @@ def _check_audit_field(
             actual_bool = bool(value)
         else:
             actual_bool = str(value).lower() not in ("false", "0", "0.0", "", "none", "null")
-        return actual_bool, f"{audit_field} = {value!r} (expected truthy)"
+        return ("OK" if actual_bool else "MISMATCH"), f"{audit_field} = {value!r} (expected truthy)"
     if expected.lower() == "false":
         if isinstance(value, (int, float)):
             actual_bool = bool(value)
         else:
             actual_bool = str(value).lower() not in ("false", "0", "0.0", "", "none", "null")
-        return not actual_bool, f"{audit_field} = {value!r} (expected falsy)"
+        return ("OK" if not actual_bool else "MISMATCH"), f"{audit_field} = {value!r} (expected falsy)"
 
     # Substring / string containment
     match = expected.lower() in str(value).lower()
-    return match, (
+    return ("OK" if match else "MISMATCH"), (
         f"{audit_field} = {value!r} "
         f"{'contains' if match else 'does not contain'} {expected!r}"
     )
@@ -372,9 +375,9 @@ def _verify_exact_value_in_csv(
             with p.open(newline="", encoding="utf-8", errors="replace") as fh:
                 reader = csv.reader(fh)
                 field_match = any(
-                    field.strip().lower() == needle
+                    cell.strip().lower() == needle
                     for row in reader
-                    for field in row
+                    for cell in row
                 )
         except (OSError, csv.Error):
             continue  # malformed or unreadable — skip, not counted as read
@@ -671,16 +674,25 @@ def verify_finding_claims(
                     ),
                 ))
                 continue
-            entry = entries_for_tool[0]
+            # If audit_field supplied, find first entry that satisfies;
+            # attestation-only → first entry is fine.
+            if audit_field is not None and audit_expected is not None:
+                entry = next(
+                    (e for e in entries_for_tool
+                     if _check_audit_field(e, audit_field, audit_expected)[0] == "OK"),
+                    entries_for_tool[0],
+                )
+            else:
+                entry = entries_for_tool[0]
 
         used_inv_id = entry.get("invocation_id")
 
         # Step 2: optional audit_field check
         if audit_field is not None and audit_expected is not None:
-            satisfied, field_note = _check_audit_field(
+            field_status, field_note = _check_audit_field(
                 entry, audit_field, audit_expected
             )
-            if satisfied:
+            if field_status == "OK":
                 # Field check passed — additionally run Tier 2 CSV check
                 # if exact_value is supplied.
                 exact_value = quote.get("exact_value")
@@ -704,7 +716,14 @@ def verify_finding_claims(
                         supporting_invocation_id=used_inv_id,
                         note=_f_note,
                     ))
-            else:
+            elif field_status == "MISSING":
+                claim_results.append(ClaimVerification(
+                    claim_text=display,
+                    status="UNGROUNDED",
+                    supporting_invocation_id=used_inv_id,
+                    note=f"Cannot verify — {field_note}",
+                ))
+            else:  # MISMATCH
                 claim_results.append(ClaimVerification(
                     claim_text=display,
                     status="CONTRADICTED",
@@ -811,7 +830,7 @@ BASELINE_ASSUMPTION_PATTERNS: list[re.Pattern] = [
     re.compile(r"expected behavior", re.IGNORECASE),
     re.compile(r"usually found in", re.IGNORECASE),
     re.compile(r"in a normal environment", re.IGNORECASE),
-    re.compile(r"by default", re.IGNORECASE),
+    re.compile(r"\bby default\s+\w+\s+(runs|lives|writes|loads|executes|spawns)\b", re.IGNORECASE),
 ]
 
 

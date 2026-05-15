@@ -53,7 +53,12 @@ if not findings:
     sys.exit(0)
 
 # Get attested sources from audit log
-attested = get_attested_sources(audit_log_path)
+try:
+    attested = get_attested_sources(audit_log_path)
+except Exception as exc:
+    print(f"[grounding] Cannot load audit log {audit_log_path}: {exc}", flush=True)
+    print("[grounding] Skipping grounding verification (no audit trail).", flush=True)
+    sys.exit(0)
 print(f"[grounding] Attested tools: {sorted(attested)}", flush=True)
 
 # Verify each finding

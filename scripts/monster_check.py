@@ -628,7 +628,7 @@ def build_auto_context() -> str:
         except OSError as exc:
             facts.append(f"  [auto-context read failed: {path}: {exc}]")
             return []
-        rx = re.compile(pattern)
+        rx = re.compile(re.escape(pattern))
         return [
             (i, line)
             for i, line in enumerate(text.splitlines(), 1)
@@ -642,11 +642,25 @@ def build_auto_context() -> str:
         if hits:
             facts.append(f"MCP tools registered in {server_py}: {len(hits)} tool(s)")
         # Specific tools
+        try:
+            server_text = Path(server_py).read_text(encoding="utf-8", errors="replace")
+        except OSError as exc:
+            facts.append(f"  [auto-context read failed: {server_py}: {exc}]")
+            server_text = ""
+        server_lines = server_text.splitlines()
         for tool in ["correlate_evidence", "parse_memory", "record_finding",
                      "approve_finding"]:
-            tool_hits = find(tool, server_py)
-            if tool_hits:
-                facts.append(f"  {tool}: registered at {server_py} line(s) {', '.join(str(ln) for ln, _ in tool_hits)}")
+            registered_at = [
+                i + 1
+                for i, line in enumerate(server_lines)
+                if re.match(rf"\s*def\s+{re.escape(tool)}\s*\(", line)
+                and i > 0 and "@mcp.tool" in server_lines[i - 1]
+            ]
+            if registered_at:
+                facts.append(
+                    f"  {tool}: registered at {server_py} line(s) "
+                    + ", ".join(str(ln) for ln in registered_at)
+                )
             else:
                 facts.append(f"  {tool}: NOT registered in {server_py}")
 
@@ -656,20 +670,31 @@ def build_auto_context() -> str:
             [sys.executable, "-m", "pytest", "tests/", "--co", "-q"],
             capture_output=True, text=True, check=False, timeout=10,
         )
-        lines = [line for line in r.stdout.splitlines() if "selected" in line or "test" in line.lower()]
-        if lines:
-            facts.append(f"pytest --co: {lines[-1].strip()}")
+        if r.returncode != 0:
+            facts.append(f"  [pytest collection failed (rc={r.returncode})]")
+        else:
+            summary_line = next(
+                (ln for ln in reversed(r.stdout.splitlines())
+                 if re.search(r"\d+\s+tests?\s+collected", ln)),
+                None,
+            )
+            if summary_line:
+                facts.append(f"pytest --co: {summary_line.strip()}")
     except subprocess.TimeoutExpired:
         facts.append("  [pytest collection skipped: > 10s]")
     except Exception as exc:
         facts.append(f"  [pytest collection failed: {exc}]")
 
-    # approve_finding not in MCP tools (Law 5)
-    corr = "mcp_server/tools/correlation.py"
-    if Path(corr).exists():
-        hits = find("approve_finding", corr)
-        if not hits:
-            facts.append("approve_finding: not in correlation.py (Law 5 compliant)")
+    # approve_finding must never be MCP-registered (Law 5) — check server.py
+    if Path(server_py).exists():
+        approve_hits = find("approve_finding", server_py)
+        if approve_hits:
+            facts.append(
+                "  [VIOLATION] approve_finding appears in mcp_server/server.py at line(s) "
+                + ", ".join(str(ln) for ln, _ in approve_hits)
+            )
+        else:
+            facts.append("approve_finding: NOT registered in mcp_server/server.py (Law 5 compliant)")
 
     # BLOCKED_COMMANDS presence
     shared = "mcp_server/tools/_shared.py"
@@ -805,6 +830,10 @@ def main() -> None:
         help="Refuse to send diffs larger than this (default 300 KB).",
     )
     parser.add_argument(
+        "--full-file-context", action="store_true",
+        help="Include full modified source files in the review payload (may transmit sensitive paths).",
+    )
+    parser.add_argument(
         "--context", "-C", default="",
         help="Verified context preamble to prepend to the review prompt.",
     )
@@ -841,7 +870,7 @@ def main() -> None:
     if "COMPILE ERROR" in compile_status:
         print(compile_status)
         die("Compile errors in modified .py files — fix before committing.")
-    file_contents = full_file_context(mode)
+    file_contents = full_file_context(mode) if args.full_file_context else ""
     combined_context = "\n".join(filter(None, [
         compile_status, auto_facts, file_contents, args.context or ""
     ]))

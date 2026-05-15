@@ -227,49 +227,49 @@ class TestCheckAuditField:
     def test_gt_zero_satisfied(self):
         entry = _audit_entry("inv_001", suspicious_count=3)
         ok, note = _check_audit_field(entry, "suspicious_count", "> 0")
-        assert ok is True
+        assert ok == "OK"
         assert "satisfies" in note
 
     def test_gt_zero_not_satisfied(self):
         entry = _audit_entry("inv_001", suspicious_count=0)
         ok, note = _check_audit_field(entry, "suspicious_count", "> 0")
-        assert ok is False
+        assert ok == "MISMATCH"
         assert "does NOT satisfy" in note
 
     def test_gte_satisfied(self):
         entry = _audit_entry("inv_001", parsed_record_count=1)
         ok, _ = _check_audit_field(entry, "parsed_record_count", ">= 1")
-        assert ok is True
+        assert ok == "OK"
 
     def test_equality_string(self):
         entry = _audit_entry("inv_001", verdict="CONFIRMED_RUNNING")
         ok, _ = _check_audit_field(entry, "verdict", "== CONFIRMED_RUNNING")
-        assert ok is True
+        assert ok == "OK"
 
     def test_equality_mismatch(self):
         entry = _audit_entry("inv_001", verdict="NOT_FOUND")
         ok, _ = _check_audit_field(entry, "verdict", "== CONFIRMED_RUNNING")
-        assert ok is False
+        assert ok == "MISMATCH"
 
     def test_boolean_true(self):
         entry = _audit_entry("inv_001", capped=True)
         ok, _ = _check_audit_field(entry, "capped", "true")
-        assert ok is True
+        assert ok == "OK"
 
     def test_boolean_false_on_truthy_value(self):
         entry = _audit_entry("inv_001", capped=True)
         ok, _ = _check_audit_field(entry, "capped", "false")
-        assert ok is False
+        assert ok == "MISMATCH"
 
     def test_substring_match(self):
         entry = _audit_entry("inv_001", verdict="CONFIRMED_RUNNING")
         ok, _ = _check_audit_field(entry, "verdict", "CONFIRMED")
-        assert ok is True
+        assert ok == "OK"
 
     def test_missing_field_returns_false(self):
         entry = _audit_entry("inv_001")
         ok, note = _check_audit_field(entry, "nonexistent_field", "> 0")
-        assert ok is False
+        assert ok == "MISSING"
         assert "not found" in note
 
     def test_nested_dot_path(self):
@@ -278,17 +278,17 @@ class TestCheckAuditField:
             **{"params": {"process_name": "subject_srv.exe"}},
         )
         ok, _ = _check_audit_field(entry, "params.process_name", "subject_srv.exe")
-        assert ok is True
+        assert ok == "OK"
 
     def test_nested_path_missing_key(self):
         entry = _audit_entry("inv_001", **{"params": {"other": "x"}})
         ok, note = _check_audit_field(entry, "params.process_name", "subject_srv.exe")
-        assert ok is False
+        assert ok == "MISSING"
 
     def test_numeric_comparison_on_non_numeric_returns_false(self):
         entry = _audit_entry("inv_001", verdict="CONFIRMED_RUNNING")
         ok, note = _check_audit_field(entry, "verdict", "> 0")
-        assert ok is False
+        assert ok == "MISSING"
 
 
 # ---------------------------------------------------------------------------
@@ -637,7 +637,7 @@ class TestDetectBaselineAssumptions:
         assert len(detect_baseline_assumptions(narrative)) >= 1
 
     def test_by_default_detected(self):
-        narrative = "By default, Windows stores these files in System32."
+        narrative = "By default explorer runs."
         assert len(detect_baseline_assumptions(narrative)) >= 1
 
     def test_multiple_patterns_multiple_warnings(self):
@@ -769,9 +769,9 @@ def test_check_audit_field_no_space_operator():
     from mcp_server.tools.grounding import _check_audit_field
     entry = {"suspicious_count": 3}
     ok, msg = _check_audit_field(entry, "suspicious_count", ">0")
-    assert ok is True, f"Expected True for 3 > 0, got: {msg}"
+    assert ok == "OK", f"Expected True for 3 > 0, got: {msg}"
     ok2, msg2 = _check_audit_field(entry, "suspicious_count", ">=10")
-    assert ok2 is False, f"Expected False for 3 >= 10, got: {msg2}"
+    assert ok2 == "MISMATCH", f"Expected MISMATCH for 3 >= 10, got: {ok2} / {msg2}"
 
 
 def test_check_audit_field_stringified_boolean():
@@ -779,9 +779,9 @@ def test_check_audit_field_stringified_boolean():
     from mcp_server.tools.grounding import _check_audit_field
     entry = {"capped": "false"}
     ok, _ = _check_audit_field(entry, "capped", "true")
-    assert ok is False
+    assert ok == "MISMATCH"
     ok2, _ = _check_audit_field(entry, "capped", "false")
-    assert ok2 is True
+    assert ok2 == "OK"
 
 
 import pytest  # noqa: E402
@@ -1148,4 +1148,3 @@ class TestVerifyFindingClaimsTier2FieldBranch:
         note = result.claims[0].note
         assert "HALLUCINATION DETECTED" in note
         assert "Tier 2" not in note
-

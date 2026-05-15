@@ -412,7 +412,7 @@ def parse_event_logs(
     else:
         # Write outside evidence tree — use CASEFILE_CASE_DIR/analysis/
         _case = os.environ.get("CASEFILE_CASE_DIR", str(Path.home() / "cases" / "active"))
-        out_dir = Path(_case) / "analysis" / "evtx_out"
+        out_dir = Path(_case) / "analysis" / "evtx_out" / invocation_id
     out_dir.mkdir(parents=True, exist_ok=True)
 
     prefix = evtx.stem if not evtx.is_dir() else "evtx"

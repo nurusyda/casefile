@@ -56,3 +56,6 @@ fix_*.py
 *.bak
 scripts/*.bak
 scripts/prep*.py
+
+# MCP local config — contains machine-specific paths
+.mcp.json

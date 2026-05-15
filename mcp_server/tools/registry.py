@@ -373,7 +373,7 @@ def parse_registry(
     else:
         # Write outside evidence tree — use CASEFILE_CASE_DIR/analysis/
         _case = os.environ.get("CASEFILE_CASE_DIR", str(Path.home() / "cases" / "active"))
-        out_dir = Path(_case) / "analysis" / "registry_out"
+        out_dir = Path(_case) / "analysis" / "registry_out" / invocation_id
     out_dir.mkdir(parents=True, exist_ok=True)
 
     prefix = "registry"
@@ -425,7 +425,7 @@ def parse_registry(
         return _error_result(invocation_id, hive_dir, f"Unexpected error: {exc}")
 
     # ── Find and parse CSV output ─────────────────────────────────────────────
-    csv_files = list(out_dir.glob("*.csv")) or list(out_dir.glob("**/*.csv"))
+    csv_files = list(out_dir.glob("*.csv"))
 
     if not csv_files:
         duration_ms = int((time.monotonic() - t_start) * 1000)

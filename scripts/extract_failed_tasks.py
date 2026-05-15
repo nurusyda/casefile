@@ -15,7 +15,7 @@ import os
 import sys
 
 _project_root = os.path.realpath(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-prd_path = os.environ.get("PRD_FILE", "prd.json")
+prd_path = os.environ.get("PRD_FILE") or os.path.join(_project_root, "prd.json")
 _resolved_prd = os.path.realpath(prd_path)
 if not (_resolved_prd.startswith(_project_root + os.sep) or _resolved_prd == _project_root):
     print(f"PRD_FILE outside project root: {prd_path!r}", file=sys.stderr)

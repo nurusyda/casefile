@@ -232,7 +232,7 @@ def parse_amcache(
     else:
         # Write outside evidence tree — use CASEFILE_CASE_DIR/analysis/
         _case = os.environ.get("CASEFILE_CASE_DIR", str(Path.home() / "cases" / "active"))
-        out_dir = Path(_case) / "analysis" / "amcache_out"
+        out_dir = Path(_case) / "analysis" / "amcache_out" / invocation_id
     out_dir.mkdir(parents=True, exist_ok=True)
 
     # ── Build AmcacheParser command ───────────────────────────────────────────
