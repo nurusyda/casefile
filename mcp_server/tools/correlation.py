@@ -50,6 +50,10 @@ def _enforce_case_root(path: Path) -> None:
     """
     case_root_env = os.environ.get("CASEFILE_CASE_ROOT")
     if not case_root_env:
+        if "CASEFILE_CASE_ROOT" in os.environ:
+            raise CorrelationToolError(
+                "CASEFILE_CASE_ROOT is set but empty — path confinement cannot be applied"
+            )
         return
     root = Path(case_root_env).resolve()
     try:

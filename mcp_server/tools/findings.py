@@ -64,7 +64,11 @@ def _next_timeline_id(case_dir: Path) -> str:
 
 
 def _write_json(path: Path, data: list) -> None:
-    path.write_text(json.dumps(data, indent=2, default=str), encoding="utf-8")
+    """Atomic write — temp file + rename prevents corruption on crash."""
+    import shutil
+    tmp = path.with_suffix(".tmp")
+    tmp.write_text(json.dumps(data, indent=2, default=str), encoding="utf-8")
+    shutil.move(str(tmp), str(path))
 
 
 def record_finding(

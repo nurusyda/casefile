@@ -334,6 +334,24 @@ class TestSupportingIds:
         assert "ghost_inv_001" not in result["supporting_invocation_ids"]
         assert result["supporting_invocation_ids"] == []
 
+    def test_excludes_empty_invocation_id_from_present_source(self, case_dir):
+        """present=True with empty invocation_id must NOT appear (ghost ID guard)."""
+        fake_amcache = SourceResult(
+            source="amcache", present=True, invocation_id=""
+        )
+        fake_prefetch = SourceResult(source="prefetch", present=False)
+        fake_memory = SourceResult(source="memory", present=False)
+        fake_mft = SourceResult(source="mft", present=False)
+        with (
+            patch("mcp_server.tools.correlation._call_parse_amcache", return_value=fake_amcache),
+            patch("mcp_server.tools.correlation._call_parse_prefetch", return_value=fake_prefetch),
+            patch("mcp_server.tools.correlation._call_parse_memory", return_value=fake_memory),
+            patch("mcp_server.tools.correlation._call_parse_mft", return_value=fake_mft),
+        ):
+            result = correlate_evidence("test.exe", case_dir=str(case_dir))
+        assert "" not in result["supporting_invocation_ids"]
+        assert result["supporting_invocation_ids"] == []
+
 
 # --------------------------------------------------------------------------- #
 # TestAuditLog

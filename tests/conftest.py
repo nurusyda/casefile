@@ -5,7 +5,6 @@ Ensures environment variables set during ralph.sh runs (e.g.
 CASEFILE_CASE_ROOT, CASEFILE_EXAMINER) do not leak into tests and
 cause path-confinement failures or wrong case-dir resolution.
 """
-import os
 import pytest
 
 
