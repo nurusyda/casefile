@@ -15,9 +15,35 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
-# Audit log location — relative to repo root regardless of CWD
+# Audit log location — follows CASEFILE_CASE_DIR if set, else repo root.
+# This allows ralph.sh to direct audit output to the active case directory.
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-AUDIT_FILE  = _REPO_ROOT / "audit" / "mcp.jsonl"
+AUDIT_FILE  = _REPO_ROOT / "audit" / "mcp.jsonl"  # module-level fallback
+
+
+def _audit_file() -> Path:
+    """Resolve audit log path at call time.
+
+    If AUDIT_FILE has been monkeypatched (e.g. in tests), use it directly.
+    Otherwise read CASEFILE_CASE_DIR env var so the MCP server writes to
+    the active case directory when invoked by ralph.sh, falling back to the
+    repo-root audit/ dir for dev/test runs where CASEFILE_CASE_DIR is unset.
+    """
+    _default = _REPO_ROOT / "audit" / "mcp.jsonl"
+    if AUDIT_FILE != _default:
+        # Monkeypatched in tests — honour the override.
+        return AUDIT_FILE
+    case_dir = os.environ.get("CASEFILE_CASE_DIR", "")
+    if case_dir:
+        target = Path(case_dir).resolve() / "audit" / "mcp.jsonl"
+        # Prevent writes into the read-only evidence mount
+        _evidence = Path("/mnt/evidence").resolve()
+        if _evidence in target.parents or target == _evidence:
+            raise ValueError(
+                f"audit log path must not be inside /mnt/evidence: {target}"
+            )
+        return target
+    return AUDIT_FILE
 
 # Sentinel used when CASEFILE_EXAMINER env var is not set.
 # Overridden at runtime — never hardcode examiner identity in tool calls.
@@ -43,7 +69,8 @@ def audit_log(
     """
     if examiner is None:
         examiner = os.environ.get("CASEFILE_EXAMINER", _DEFAULT_EXAMINER)
-    AUDIT_FILE.parent.mkdir(parents=True, exist_ok=True)
+    _af = _audit_file()
+    _af.parent.mkdir(parents=True, exist_ok=True)
     record = {
         "ts": datetime.now(timezone.utc).isoformat(),
         "invocation_id": invocation_id,
@@ -58,7 +85,7 @@ def audit_log(
     }
     if extra:
         record.update(extra)
-    with AUDIT_FILE.open("a", encoding="utf-8") as fh:
+    with _af.open("a", encoding="utf-8") as fh:
         fh.write(json.dumps(record) + "\n")
 
 

@@ -58,7 +58,7 @@ def generate_accuracy_report(
         )
 
     # Load ground truth
-    gt_path = Path(ground_truth_file)
+    gt_path = Path(ground_truth_file).resolve()
     if not gt_path.exists():
         _audit_error(f"Ground truth file not found: {ground_truth_file}")
         return {"error": f"Ground truth file not found: {ground_truth_file}"}

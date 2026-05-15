@@ -202,6 +202,11 @@ class TestDefaultEventIds:
 # ── parse_event_logs integration (mocked) ────────────────────────────────────
 
 class TestParseEventLogsIntegration:
+    @pytest.fixture(autouse=True)
+    def _patch_audit(self, tmp_path, monkeypatch):
+        """Redirect audit log to tmp_path — prevents writes to real audit/mcp.jsonl."""
+        monkeypatch.setattr("mcp_server.tools._shared.AUDIT_FILE", tmp_path / "mcp.jsonl")
+
     def _write_csv(self, out_dir: Path, prefix: str, content: str) -> None:
         out_dir.mkdir(parents=True, exist_ok=True)
         (out_dir / f"{prefix}_EvtxECmd_Output.csv").write_text(content, encoding="utf-8")

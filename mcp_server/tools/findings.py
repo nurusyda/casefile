@@ -11,6 +11,11 @@ from pathlib import Path
 from typing import Optional
 
 from mcp_server.tools._shared import audit_log
+from mcp_server.tools.grounding import (
+    GroundingError,
+    GroundingSchemaError,
+    validate_evidence_quotes,
+)
 
 BLOCKED_COMMANDS = frozenset({
     "rm", "rmdir", "dd", "mkfs", "format", "shred", "wipe",
@@ -38,7 +43,7 @@ def _next_finding_id(case_dir: Path) -> str:
         try:
             data = json.loads(findings_file.read_text(encoding="utf-8"))
             n = len(data) + 1
-        except Exception:
+        except (json.JSONDecodeError, ValueError, TypeError):
             n = 1
     else:
         n = 1
@@ -51,7 +56,7 @@ def _next_timeline_id(case_dir: Path) -> str:
         try:
             data = json.loads(tl_file.read_text(encoding="utf-8"))
             n = len(data) + 1
-        except Exception:
+        except (json.JSONDecodeError, ValueError, TypeError):
             n = 1
     else:
         n = 1
@@ -59,7 +64,11 @@ def _next_timeline_id(case_dir: Path) -> str:
 
 
 def _write_json(path: Path, data: list) -> None:
-    path.write_text(json.dumps(data, indent=2, default=str), encoding="utf-8")
+    """Atomic write — temp file + rename prevents corruption on crash."""
+    import shutil
+    tmp = path.with_suffix(".tmp")
+    tmp.write_text(json.dumps(data, indent=2, default=str), encoding="utf-8")
+    shutil.move(str(tmp), str(path))
 
 
 def record_finding(
@@ -70,10 +79,69 @@ def record_finding(
     artifact_source: str,
     supporting_tool: str,
     mitre_technique: Optional[str] = None,
+    evidence_quotes: Optional[list] = None,
 ) -> dict:
     """Stage a forensic finding as DRAFT."""
     if confidence not in ("CONFIRMED", "INFERRED"):
         confidence = "INFERRED"
+
+    # Validate evidence_quotes before touching disk.
+    _eq = evidence_quotes if evidence_quotes is not None else []
+    if not isinstance(_eq, list):
+        _schema_err = GroundingSchemaError(
+            f"evidence_quotes must be a list, got {type(evidence_quotes).__name__!r}"
+        )
+        audit_log(
+            tool="record_finding",
+            invocation_id=str(uuid.uuid4()),
+            cmd="record_finding (validation failed)",
+            returncode=1,
+            stdout_lines=0,
+            stderr_excerpt=str(_schema_err)[:500],
+            parsed_record_count=0,
+            duration_ms=0,
+            extra={
+                "finding_id": None,
+                "confidence": confidence,
+                "examiner": _examiner(),
+                "evidence_quotes_count": 0,
+                "validation_error": "GroundingSchemaError",
+            },
+        )
+        raise _schema_err
+    _grounding_warning: str = ""
+    try:
+        validate_evidence_quotes({
+            "finding_id": "F-dummy-000",
+            "confidence": confidence,
+            "evidence_quotes": _eq,
+        })
+    except GroundingSchemaError as _gse:
+        try:
+            audit_log(
+                tool="record_finding",
+                invocation_id=str(uuid.uuid4()),
+                cmd="record_finding (validation failed)",
+                returncode=1,
+                stdout_lines=0,
+                stderr_excerpt=str(_gse)[:500],
+                parsed_record_count=0,
+                duration_ms=0,
+                extra={
+                    "finding_id": None,
+                    "confidence": confidence,
+                    "examiner": _examiner(),
+                    "evidence_quotes_count": len(_eq),
+                    "validation_error": "GroundingSchemaError",
+                },
+            )
+        except Exception as _audit_exc:
+            print(f"[findings] audit_log failed during schema error: {_audit_exc}", flush=True)
+        raise  # malformed quote fields — always re-raise
+    except GroundingError as _ge:
+        # CONFIRMED without quotes — warning only until ralph.sh
+        # is updated to supply evidence_quotes in Phase 2.
+        _grounding_warning = str(_ge)
 
     case_dir = _case_dir()
     findings_file = case_dir / "findings.json"
@@ -102,6 +170,7 @@ def record_finding(
         "created_at": now,
         "approved_at": None,
         "approved_by": None,
+        "evidence_quotes": _eq,
     }
 
     findings.append(record)
@@ -121,6 +190,8 @@ def record_finding(
             "status": "DRAFT",
             "confidence": confidence,
             "examiner": _examiner(),
+            "evidence_quotes_count": len(_eq),
+            "grounding_warning": _grounding_warning,
         },
     )
 
@@ -129,6 +200,7 @@ def record_finding(
         "status": "DRAFT",
         "message": f"Finding staged as DRAFT. Run `casefile approve {finding_id}` to approve.",
         "record": record,
+        "grounding_warning": _grounding_warning or None,
     }
 
 

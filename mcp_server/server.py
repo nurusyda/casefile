@@ -18,20 +18,13 @@ from mcp_server.tools.registry import parse_registry
 from mcp_server.tools.mft import parse_mft
 from mcp_server.tools.accuracy import generate_accuracy_report
 from mcp_server.tools.memory import parse_memory
+from mcp_server.tools.correlation import correlate_evidence
 from mcp_server.tools.findings import (
     record_finding,
     get_findings,
     record_timeline_event,
 )
 
-# ── Verified tool paths ──────────────────────────────────────────────────────
-VOL        = "/usr/local/bin/vol"          # symlink → /opt/volatility3/bin/vol
-MFTECMD    = "dotnet /opt/zimmermantools/MFTECmd.dll"
-AMCACHE    = "dotnet /opt/zimmermantools/AmcacheParser.dll"
-EVTXECMD   = "dotnet /opt/zimmermantools/EvtxeCmd/EvtxECmd.dll"   # note subdirectory
-RECMD      = "dotnet /opt/zimmermantools/RECmd/RECmd.dll"          # note subdirectory
-SHIMCACHE  = "dotnet /opt/zimmermantools/AppCompatCacheParser.dll"
-PREFETCH   = "dotnet /opt/zimmermantools/PECmd.dll"
 SRUM       = "dotnet /opt/zimmermantools/SrumECmd.dll"
 SHELLBAGS  = "dotnet /opt/zimmermantools/SBECmd.dll"
 REGRIPPER  = "/usr/share/regripper/rip.pl"
@@ -68,6 +61,7 @@ mcp.tool()(get_findings)
 mcp.tool()(record_timeline_event)
 mcp.tool()(generate_accuracy_report)
 mcp.tool()(parse_memory)
+mcp.tool()(correlate_evidence)
 
 if __name__ == "__main__":
     mcp.run()

@@ -45,3 +45,17 @@ analysis/ralph*.log
 # Local analysis artifacts
 analysis/
 mcp_server/tools/*.pecmd_backup
+
+# Patch/fix scripts (session working files)
+patch_*.py
+fix_*.py
+*_cr[0-9]*.py
+*_commit[0-9]*.py
+
+# Backup files
+*.bak
+scripts/*.bak
+scripts/prep*.py
+
+# MCP local config — contains machine-specific paths
+.mcp.json

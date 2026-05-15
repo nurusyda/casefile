@@ -12,7 +12,9 @@
       "Bash(mkdir -p ./analysis ./reports)",
       "Bash(free -h)",
       "Bash(ls -la *)",
-      "Bash(sha256sum *)"
+      "Bash(sha256sum *)",
+      "mcp__casefile__parse_memory",
+      "mcp__casefile__correlate_evidence"
     ],
     "deny": [
       "Write(/mnt/evidence/*)",
@@ -25,7 +27,32 @@
       "Edit(**/audit/mcp.jsonl)",
       "Write(**/approvals.jsonl)",
       "Edit(**/approvals.jsonl)",
-      "Write(mcp_server/tools/findings.json)"
+      "Write(mcp_server/tools/findings.json)",
+      "Write(/cases/**)",
+      "Edit(/cases/**)",
+      "Write(/media/**)",
+      "Edit(/media/**)",
+      "Write(/evidence/**)",
+      "Edit(/evidence/**)",
+      "Write(**/*.E01)",
+      "Edit(**/*.E01)",
+      "Write(**/*.img)",
+      "Edit(**/*.img)",
+      "Write(**/*.vmem)",
+      "Edit(**/*.vmem)",
+      "Write(CLAUDE.md)",
+      "Edit(CLAUDE.md)",
+      "Write(/mnt/**)",
+      "Edit(/mnt/**)",
+      "Bash(rm * /cases/**)",
+      "Bash(rm * /media/**)",
+      "Bash(rm * /evidence/**)",
+      "Bash(rm * /mnt/**)",
+      "Bash(rm **/*.E01)",
+      "Bash(rm **/*.img)",
+      "Bash(rm **/*.vmem)",
+      "Bash(shred * /mnt/**)",
+      "Bash(shred * /cases/**)"
     ]
   }
 }

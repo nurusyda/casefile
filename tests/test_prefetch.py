@@ -200,7 +200,21 @@ class TestSafeInt:
 # ── parse_prefetch integration (mocked subprocess) ───────────────────────────
 
 class TestParsePrefetchIntegration:
-    """Integration tests — mocks _parse_pf_file instead of run_tool."""
+    """Integration tests — mocks _parse_pf_file instead of run_tool.
+
+    pyscca is also patched to a sentinel so the 'pyscca is None' guard
+    does not fire on CI runners where libscca is not installed.
+    """
+
+    def setup_method(self):
+        """Patch pyscca to a non-None sentinel for every test in this class."""
+        import unittest.mock as _mock
+        import mcp_server.tools.prefetch as _pf
+        self._pyscca_patcher = _mock.patch.object(_pf, "pyscca", new=object())
+        self._pyscca_patcher.start()
+
+    def teardown_method(self):
+        self._pyscca_patcher.stop()
 
     CLEAN_ENTRIES = [
         {

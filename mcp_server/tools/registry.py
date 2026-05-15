@@ -65,6 +65,8 @@ Usage by Claude:
 
 import csv
 import io
+import shlex
+import os
 import time
 import uuid
 from datetime import datetime, timezone
@@ -357,7 +359,7 @@ def parse_registry(
         )
 
     # ── Resolve batch file ────────────────────────────────────────────────────
-    batch = Path(batch_file) if batch_file else Path(KROLL_BATCH_FILE)
+    batch = Path(batch_file).resolve() if batch_file else Path(KROLL_BATCH_FILE).resolve()
     if not batch.exists():
         return _error_result(
             invocation_id, hive_dir,
@@ -369,7 +371,9 @@ def parse_registry(
     if output_dir:
         out_dir = Path(output_dir)
     else:
-        out_dir = hive_path.parent / "registry_out"
+        # Write outside evidence tree — use CASEFILE_CASE_DIR/analysis/
+        _case = os.environ.get("CASEFILE_CASE_DIR", str(Path.home() / "cases" / "active"))
+        out_dir = Path(_case) / "analysis" / "registry_out" / invocation_id
     out_dir.mkdir(parents=True, exist_ok=True)
 
     prefix = "registry"
@@ -383,10 +387,10 @@ def parse_registry(
     #   -q   quiet
     cmd = (
         f"{RECMD_BIN} "
-        f"-d {hive_path} "
-        f"--bn {batch} "
-        f"--csv {out_dir} "
-        f"--csvf {prefix}.csv"
+        f"-d {shlex.quote(str(hive_path))} "
+        f"--bn {shlex.quote(str(batch))} "
+        f"--csv {shlex.quote(str(out_dir))} "
+        f"--csvf {shlex.quote(prefix + '.csv')}"
     )
 
     # ── Run RECmd ─────────────────────────────────────────────────────────────
@@ -421,7 +425,7 @@ def parse_registry(
         return _error_result(invocation_id, hive_dir, f"Unexpected error: {exc}")
 
     # ── Find and parse CSV output ─────────────────────────────────────────────
-    csv_files = list(out_dir.glob("*.csv")) or list(out_dir.glob("**/*.csv"))
+    csv_files = list(out_dir.glob("*.csv"))
 
     if not csv_files:
         duration_ms = int((time.monotonic() - t_start) * 1000)

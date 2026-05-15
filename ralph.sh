@@ -5,6 +5,7 @@
 #
 # Usage:
 #   bash ralph.sh [case_dir]
+#   CASEFILE_CASE_ROOT env var used if no arg given
 #
 # Requirements:
 #   - claude (Claude Code CLI) in PATH
@@ -17,13 +18,17 @@
 #   3. max_iterations is reached (default: 25)
 
 set -euo pipefail
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # ─── CONFIG ────────────────────────────────────────────────────────────────────
-CASE_DIR="${1:-.}"
+CASE_DIR="${1:-${CASEFILE_CASE_ROOT:-.}}"
+CASEFILE_CASE_DIR="${CASEFILE_CASE_DIR:-${CASE_DIR}}"
+CASEFILE_CASE_DIR="$(realpath "${CASEFILE_CASE_DIR}")"
+[ -d "${CASEFILE_CASE_DIR}" ] || { log "ERROR: CASEFILE_CASE_DIR is not a directory: ${CASEFILE_CASE_DIR}"; exit 1; }
 PRD_FILE="${CASE_DIR}/prd.json"
 PROGRESS_FILE="${CASE_DIR}/analysis/progress.txt"
 LOG_FILE="${CASE_DIR}/analysis/ralph.log"
-MAX_ITER=$(python3 -c "import json; print(json.load(open('${PRD_FILE}'))['max_iterations'])" 2>/dev/null || echo 25)
+MAX_ITER=$(python3 scripts/read_max_iter.py "$PRD_FILE" 2>/dev/null || echo 25)
 COMPLETION_SIGNAL="TASK_COMPLETE"
 RALPH_JSONL="${CASE_DIR}/audit/ralph.jsonl"
 
@@ -51,29 +56,41 @@ while [ "${iteration}" -lt "${MAX_ITER}" ]; do
 
     # Build the prompt for this iteration
     if [ "${iteration}" -eq 1 ]; then
-        PROMPT="Read CLAUDE.md and prd.json. Begin the CRIMSON OSPREY investigation. Work through the OODA loop. Call MCP tools. Document all findings with CONFIRMED/INFERRED/HYPOTHESIS labels. Output the <promise>TASK_COMPLETE</promise> block when done."
+        PROMPT=$(cat <<'PROMPT_EOF'
+Read CLAUDE.md and prd.json. Begin the CRIMSON OSPREY investigation. Work through the OODA loop. Call MCP tools. Document all findings with CONFIRMED/INFERRED/HYPOTHESIS labels.
+
+EVIDENCE GROUNDING REQUIREMENT (mandatory — not optional):
+Every call to record_finding() MUST include evidence_quotes as a list of dicts.
+Each dict MUST have exactly these keys:
+  tool         : the MCP tool name (e.g. parse_amcache, parse_memory, correlate_evidence)
+  claim        : short claim text grounded by this tool output
+  invocation_id: the invocation_id from the audit log entry for that tool call
+Optional keys:
+  audit_field  : exact audit field path to validate (e.g. path, pid)
+  audit_expected: expected value or comparison (e.g. ">0", "True")
+  exact_value  : verbatim value from tool output for Tier-2 CSV verification
+
+Example (correct):
+  evidence_quotes=[
+    {"tool": "parse_amcache", "claim": "subject_srv.exe present in Amcache", "invocation_id": "inv_abc123", "exact_value": "C:\\Windows\\Temp\\subject_srv.exe"},
+    {"tool": "parse_memory", "claim": "subject_srv.exe running in memory (PID 1096)", "invocation_id": "inv_def456", "exact_value": "1096"}
+  ]
+
+If you do not have an exact value from a tool output, do NOT invent one. Label the finding INFERRED and explain the reasoning in interpretation.
+
+Output the <promise>TASK_COMPLETE</promise> block when done.
+PROMPT_EOF
+        )
     else
         # Feed progress back to Claude with specific failures
         # shellcheck disable=SC2016  # Python heredoc single-quoted literals are intentional
-        FAILED_TASKS=$(python3 - <<'PYEOF'
-import json, sys, os
-
-prd = json.load(open(os.environ.get('PRD_FILE', 'prd.json')))
-progress_file = os.environ.get('PROGRESS_FILE', 'analysis/progress.txt')
-
-failed = []
-for task in prd['tasks']:
-    failed.append(f"- {task['id']} ({task['name']}): {task['failure_action']}")
-
-print('\n'.join(failed) if failed else 'All tasks passed.')
-PYEOF
-        )
+        FAILED_TASKS=$(python3 scripts/extract_failed_tasks.py)
         PROMPT="Iteration ${iteration}. Previous run incomplete. Review ./analysis/progress.txt for what was found. The following tasks need attention:\n\n${FAILED_TASKS}\n\nContinue the investigation. Fix the gaps. Re-output <promise>TASK_COMPLETE</promise> when all criteria are met."
     fi
 
     # Run Claude Code (non-interactive, pipe prompt)
     log "Running Claude Code..."
-    CLAUDE_OUTPUT=$(echo "${PROMPT}" | claude -p 2>&1) || true
+    CLAUDE_OUTPUT=$(printf '%s' "${PROMPT}" | claude -p 2>&1) || true
     last_output="${CLAUDE_OUTPUT}"
 
     # Log output summary
@@ -119,6 +136,65 @@ for cp in prd['scoring']['checkpoints']:
 PYEOF
 
         log "=== RALPH LOOP COMPLETE after ${iteration} iterations ==="
+
+        # ── PHASE 2: GROUNDING VERIFICATION ─────────────────────────────────
+        log "Running post-completion grounding verification..."
+        set +e
+        CASE_DIR="${CASE_DIR}" \
+        AUDIT_LOG="${CASEFILE_CASE_DIR}/audit/mcp.jsonl" \
+        FINDINGS_FILE="${CASEFILE_CASE_DIR}/findings.json" \
+        CLAIM_REPORT="${CASE_DIR}/analysis/claim_accuracy_report.json" \
+        PYTHONPATH="${SCRIPT_DIR}" \
+        python3 scripts/grounding_verify.py
+        GROUNDING_EXIT=$?
+        set -e
+        log "Grounding verify exit: ${GROUNDING_EXIT}"
+
+        if [ "${GROUNDING_EXIT}" -eq 1 ]; then
+            log "ERROR: grounding_verify.py failed to import grounding module (exit 1). Halting."
+            exit 1
+        fi
+
+        if [ "${GROUNDING_EXIT}" -eq 2 ]; then
+            log "GROUNDING FAILURE: CONTRADICTED claims detected."
+            log "Feeding correction prompt back to Claude (max 3 correction iterations)..."
+
+            CORRECTION_ITER=0
+            while [ "${CORRECTION_ITER}" -lt 3 ] && [ "${GROUNDING_EXIT}" -eq 2 ]; do
+                CORRECTION_ITER=$((CORRECTION_ITER + 1))
+                log "Correction iteration ${CORRECTION_ITER}/3..."
+
+                if ! CORRECTION_PROMPT=$(CASE_DIR="${CASE_DIR}" AUDIT_LOG="${CASEFILE_CASE_DIR}/audit/mcp.jsonl" FINDINGS_FILE="${CASEFILE_CASE_DIR}/findings.json" PYTHONPATH="${SCRIPT_DIR}" python3 scripts/grounding_correction_prompt.py); then
+                    log "ERROR: grounding_correction_prompt.py failed"
+                    exit 1
+                fi
+                CLAUDE_OUTPUT=$(printf '%s' "${CORRECTION_PROMPT}" | claude -p 2>&1) || true
+                log "Correction ${CORRECTION_ITER} output length: ${#CLAUDE_OUTPUT} chars"
+
+                set +e
+                CASE_DIR="${CASE_DIR}" \
+                AUDIT_LOG="${CASEFILE_CASE_DIR}/audit/mcp.jsonl" \
+                FINDINGS_FILE="${CASEFILE_CASE_DIR}/findings.json" \
+                CLAIM_REPORT="${CASE_DIR}/analysis/claim_accuracy_report.json" \
+                PYTHONPATH="${SCRIPT_DIR}" \
+                python3 scripts/grounding_recheck.py
+                GROUNDING_EXIT=$?
+                set -e
+                log "Grounding re-check exit: ${GROUNDING_EXIT}"
+            done
+
+            if [ "${GROUNDING_EXIT}" -eq 1 ]; then
+                log "ERROR: grounding_recheck.py import failure (exit 1). Halting."
+                exit 1
+            elif [ "${GROUNDING_EXIT}" -eq 2 ]; then
+                log "WARNING: CONTRADICTED claims remain after 3 correction iterations."
+                log "Human review required. Proceeding with current findings."
+            else
+                log "Grounding correction successful after ${CORRECTION_ITER} iteration(s). ✓"
+            fi
+        fi
+
+        log "=== GROUNDING VERIFICATION COMPLETE ==="
         exit 0
     fi
 
