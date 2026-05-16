@@ -646,7 +646,7 @@ def verify_finding_claims(
 
     # --- Main path: verify each quote ---
     for quote in quotes:
-        tool = quote.get("tool")
+        tool = _resolve_tool_name(quote.get("tool") or "")
         claim_text = quote.get("claim", "")
         if not tool or not claim_text:
             claim_results.append(ClaimVerification(
@@ -681,7 +681,7 @@ def verify_finding_claims(
                     ),
                 ))
                 continue
-            if entry.get("tool") != tool:
+            if _resolve_tool_name(entry.get("tool") or "") != tool:
                 claim_results.append(ClaimVerification(
                     claim_text=display,
                     status="CONTRADICTED",
@@ -693,7 +693,7 @@ def verify_finding_claims(
                 ))
                 continue
         else:
-            entries_for_tool = by_tool.get(tool, [])
+            entries_for_tool = by_tool.get(tool) or by_tool.get(quote.get("tool") or "", [])
             if not entries_for_tool:
                 claim_results.append(ClaimVerification(
                     claim_text=display,
