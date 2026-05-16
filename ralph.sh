@@ -99,6 +99,10 @@ PROMPT_EOF
     # Run Claude Code (non-interactive, pipe prompt)
     log "Running Claude Code..."
     CLAUDE_OUTPUT=$(printf '%s' "${PROMPT}" | claude -p 2>&1) || true
+    if [ "${#CLAUDE_OUTPUT}" -lt 100 ]; then
+        log "Output too short (${#CLAUDE_OUTPUT} chars) — likely rate limit. Exiting."
+        exit 1
+    fi
     last_output="${CLAUDE_OUTPUT}"
 
     # Log output summary
