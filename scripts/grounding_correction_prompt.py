@@ -48,27 +48,36 @@ lines = [
     "The following claims are CONTRADICTED (tool output does not support them):",
 ]
 
-found_any = False
+# Collect CONTRADICTED and UNGROUNDED independently — both must always
+# be shown. Previously UNGROUNDED were suppressed when CONTRADICTED existed,
+# causing the self-correction loop to miss incomplete corrections.
+contradicted_lines = []
+ungrounded_lines = []
 for fdata in report.get("findings", []):
     fid = fdata.get("finding_id", "<unknown>")
     for claim in fdata.get("claims", []):
-        if claim.get("status") == "CONTRADICTED":
-            found_any = True
-            lines.append(
+        status = claim.get("status")
+        if status == "CONTRADICTED":
+            contradicted_lines.append(
                 f"  Finding {fid}: claim '{claim.get('claim_text', '')[:120]}'"
                 f"\n    Reason: {claim.get('note', '')}"
             )
+        elif status == "UNGROUNDED":
+            ungrounded_lines.append(
+                f"  Finding {fid} UNGROUNDED: '{claim.get('claim_text', '')[:120]}'"
+            )
 
-if not found_any:
-    lines.append("  (No CONTRADICTED claims found in report — check for UNGROUNDED claims.)")
-    for fdata in report.get("findings", []):
-        fid = fdata.get("finding_id", "<unknown>")
-        for claim in fdata.get("claims", []):
-            if claim.get("status") == "UNGROUNDED":
-                lines.append(
-                    f"  Finding {fid} UNGROUNDED: '{claim.get('claim_text', '')[:120]}'"
-                )
+if contradicted_lines:
+    lines.append("CONTRADICTED claims (tool output does not support them):")
+    lines.extend(contradicted_lines)
+else:
+    lines.append("  (No CONTRADICTED claims found.)")
 
+if ungrounded_lines:
+    lines.append("UNGROUNDED claims (no tool output found for these):")
+    lines.extend(ungrounded_lines)
+else:
+    lines.append("  (No UNGROUNDED claims found.)")
 lines += [
     "",
     "For each CONTRADICTED or UNGROUNDED claim:",
