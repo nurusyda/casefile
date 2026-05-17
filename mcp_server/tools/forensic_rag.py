@@ -181,11 +181,33 @@ def search_knowledge(
     _inv_id = str(uuid.uuid4())
     _load_kb()
     if not _RECORDS:
+        audit_log(
+            tool="search_knowledge",
+            invocation_id=_inv_id,
+            cmd=f"search_knowledge(query={query!r}, max_results={max_results}, category={category!r})",
+            returncode=0,
+            stdout_lines=0,
+            stderr_excerpt="Knowledge base empty",
+            parsed_record_count=0,
+            duration_ms=round((time.monotonic() - _t0) * 1000),
+            extra={"query": query, "category_filter": category or "all", "result": "kb_empty"},
+        )
         return []
 
     max_results = min(max(1, max_results), 10)
     query_tokens = _tokenize(query)
     if not query_tokens:
+        audit_log(
+            tool="search_knowledge",
+            invocation_id=_inv_id,
+            cmd=f"search_knowledge(query={query!r}, max_results={max_results}, category={category!r})",
+            returncode=0,
+            stdout_lines=0,
+            stderr_excerpt="No query tokens",
+            parsed_record_count=0,
+            duration_ms=round((time.monotonic() - _t0) * 1000),
+            extra={"query": query, "category_filter": category or "all", "result": "no_tokens"},
+        )
         return []
 
     candidates = _RECORDS
