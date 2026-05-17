@@ -190,6 +190,7 @@ def full_file_context(mode: str, max_bytes_per_file: int = 40_000) -> str:
 # --------------------------------------------------------------------------- #
 # --deep mode: scan all .py files 2 at a time
 # --------------------------------------------------------------------------- #
+
 def deep_scan(model: str) -> None:
     """Scan all .py files in the repo 2 at a time. One-time full audit."""
     py_files = sorted(glob.glob("**/*.py", recursive=True))
@@ -202,6 +203,7 @@ def deep_scan(model: str) -> None:
     pairs = [py_files[i:i + 2] for i in range(0, len(py_files), 2)]
     total = len(pairs)
     print(f"{C.CYAN}{C.BOLD}DEEP SCAN: {len(py_files)} files -> {total} pairs{C.RESET}")
+    auto_ctx = build_auto_context()
     for idx, pair in enumerate(pairs, 1):
         banner(f"DEEP SCAN [{idx}/{total}]: {', '.join(pair)}", C.MAGENTA)
         sections = [
@@ -227,7 +229,7 @@ def deep_scan(model: str) -> None:
             print(f"{C.YELLOW}[deep_scan] pair {idx}/{total} too large ({payload_bytes:,} bytes > {max_bytes:,}) — skipping.{C.RESET}")
             continue
         summary = f"DEEP SCAN [{idx}/{total}]: " + ", ".join(pair)
-        review_diff(payload, summary, model, combined_context="")
+        review_diff(payload, summary, model, combined_context=auto_ctx)
         print()
     print(f"{C.GREEN}{C.BOLD}DEEP SCAN COMPLETE — {len(py_files)} files in {total} pairs.{C.RESET}")
 
@@ -364,6 +366,13 @@ Constraints that apply to ALL layers, always:
   3. Subprocess calls in DFIR code paths NEVER use shell=True and MUST
      pass arguments as a list. Forensic tools running on adversary artifacts
      are a command-injection magnet.
+     VERIFIED EXCEPTION: run_tool(cmd: str) in mcp_server/tools/_shared.py
+     accepts a plain string and calls shlex.split(cmd) with shell=False
+     internally. Parser files (amcache.py, event_logs.py, registry.py,
+     mft.py, prefetch.py) pass shlex.quote()-escaped f-strings to run_tool()
+     — this IS the approved pattern. Do NOT flag these as subprocess violations.
+     Only flag if shell=True appears, or if a subprocess call bypasses
+     run_tool() entirely.
   4. Path handling on user-supplied input must be resolved and confined
      (no .. traversal escapes outside the case directory).
   5. Deserialization of untrusted artifacts uses safe loaders only
