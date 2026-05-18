@@ -201,22 +201,19 @@ Warning: `/opt/volatility3-2.20.0/vol.py` does NOT exist on this install. Use VO
 
 ---
 
-## KNOWN CRIMSON OSPREY IOCs (GROUND TRUTH)
-
+## KNOWN IOCs (GROUND TRUTH)
 Cross-reference all findings against these. Any match = CONFIRMED lead.
 
-| IOC                    | Type                | Notes                                           |
-|------------------------|---------------------|-------------------------------------------------|
-| `STUN.exe`             | Confirmed malware   | C:\Windows\System32\ — start here               |
-| `msedge.exe` (x7)      | Trojan masquerading | Trojan:Win32/PowerRunner.A — non-standard paths |
-| `pssdnsvc.exe`         | Suspicious service  | Name/path mismatch for PsShutdown               |
-| `atmfd.dll`            | Missing driver      | Absent from filesystem, listed in Autoruns      |
-| `net.exe` PID 9128     | Lateral movement    | net use H: \\172.16.6.12\c$\Users               |
-| `172.15.1.20`          | Attacker IP         | External C2                                     |
-| `172.16.6.12`          | Lateral target      | R&D subnet                                      |
+IOCs are case-specific. Read them from the case directory:
+  $CASEFILE_CASE_DIR/iocs.md
+
+If that file does not exist, check:
+  $CASEFILE_CASE_DIR/CASE.md
+
+Do NOT use IOCs from memory or from a previous case. Always read the file.
+If no IOC file exists, proceed without IOC cross-referencing and note the absence.
 
 ---
-
 ## BLOCKED COMMANDS (ARCHITECTURAL DENYLIST)
 
 The following commands are in `BLOCKED_COMMANDS` frozenset in `findings.py`.
