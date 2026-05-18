@@ -205,7 +205,7 @@ def record_finding(
                     duration_ms=0,
                     extra={"finding_id": finding_id, "tagged_invocation_id": _ref_inv},
                 )
-            except (OSError, IOError) as _ptag_exc:
+            except (OSError, IOError, json.JSONDecodeError) as _ptag_exc:
                 import logging
                 logging.warning("Provenance tag failed for %s: %s", finding_id, _ptag_exc)
 

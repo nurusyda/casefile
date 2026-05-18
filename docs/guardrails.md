@@ -61,7 +61,7 @@ Every finding must carry a confidence label:
 
 - **CONFIRMED** -- corroborated by 2+ independent artifact sources
 - **INFERRED** -- supported by 1 source, plausible but not cross-confirmed
-- **SPECULATIVE** -- hypothesis with no direct artifact support
+- **SPECULATIVE** -- hypothesis with no direct artifact support (accepted but flags for human review)
 
 `record_finding()` rejects CONFIRMED findings that lack `evidence_quotes`. A finding
 cannot claim CONFIRMED status without citing the specific tool output that supports it.

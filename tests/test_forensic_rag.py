@@ -194,5 +194,6 @@ class TestSearchEdgeCases:
         # Should find service installation references
         all_keywords = []
         for r in results[:3]:
-            all_keywords.extend(r.get("keywords", r.get("tags", [])))
+            kw = r.get("keywords") or r.get("tags", [])
+            all_keywords.extend(kw if isinstance(kw, list) else [kw])
         assert any("7045" in str(k) for k in all_keywords)

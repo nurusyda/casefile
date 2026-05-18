@@ -490,7 +490,7 @@ def detect_contradictions(
     contradictions: list[dict] = []
 
     # 1. Execution before creation -> timestomping indicator (T1070.006)
-    pf_time = prefetch.details.get("last_run_time") if prefetch.present and prefetch.details else None
+    pf_time = prefetch.details.get("last_run_utc") if prefetch.present and prefetch.details else None
     mft_si = (mft.details.get("si_created_utc") or mft.details.get("Created0x10")) if mft.present and mft.details else None
     if pf_time and mft_si:
         try:

@@ -158,11 +158,6 @@ def _score_record(rec: dict, query_tokens: list[str]) -> float:
         if qt in cat.lower():
             score *= 1.3
             break
-    tid = rec.get("technique_id", "").lower()
-    for qt in query_tokens:
-        if qt == tid or qt == tid.replace(".", ""):
-            score += 10.0  # Strong boost for exact technique ID match
-            break
     return score
 
 
