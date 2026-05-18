@@ -1,0 +1,52 @@
+site_name: CaseFile Documentation
+site_description: CaseFile -- Autonomous forensic investigation for Claude Code
+site_url: https://nurusyda.github.io/casefile/
+repo_url: https://github.com/nurusyda/casefile
+repo_name: nurusyda/casefile
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - User Guide: user-guide.md
+  - Anti-Hallucination Guardrails: guardrails.md
+  - Dataset Documentation: dataset.md
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - tables
+  - toc:
+      permalink: true
+
+plugins:
+  - search
