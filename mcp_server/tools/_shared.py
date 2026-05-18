@@ -87,8 +87,6 @@ def audit_log(
         record.update(extra)
     with _af.open("a", encoding="utf-8") as fh:
         fh.write(json.dumps(record) + "\n")
-
-
 def run_tool(cmd: str, timeout: int = 300) -> subprocess.CompletedProcess:
     """
     Run cmd as a subprocess. Capture stdout and stderr.

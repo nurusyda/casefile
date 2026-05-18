@@ -475,6 +475,83 @@ def _call_parse_mft(
 
 
 # --------------------------------------------------------------------------- #
+
+def detect_contradictions(
+    amcache: "SourceResult",
+    prefetch: "SourceResult",
+    memory: "SourceResult",
+    mft: "SourceResult",
+) -> list[dict]:
+    """Detect cross-source contradictions. Deterministic -- zero LLM involvement.
+
+    Returns list of contradiction dicts, each with:
+      name, sources, implication, severity, details, mitre
+    """
+    contradictions: list[dict] = []
+
+    # 1. Execution before creation -> timestomping indicator (T1070.006)
+    pf_time = prefetch.details.get("last_run_time") if prefetch.present and prefetch.details else None
+    mft_si = (mft.details.get("si_created_utc") or mft.details.get("Created0x10")) if mft.present and mft.details else None
+    if pf_time and mft_si:
+        try:
+            def _p(ts: str):
+                return _dt.fromisoformat(str(ts).replace("Z", "+00:00"))
+            pt, mc = _p(pf_time), _p(mft_si)
+            if pt < mc:
+                contradictions.append({
+                    "name": "execution_before_creation",
+                    "sources": ["prefetch", "mft"],
+                    "implication": (
+                        "Process executed before MFT $SI creation timestamp -- "
+                        "possible timestomping (T1070.006)."
+                    ),
+                    "severity": "CRITICAL",
+                    "details": {
+                        "prefetch_last_run": str(pf_time),
+                        "mft_si_created": str(mft_si),
+                    },
+                    "mitre": "T1070.006",
+                })
+        except (ValueError, TypeError, AttributeError):
+            pass
+
+    # 2. Memory only, no disk artifacts -> fileless / process injection (T1055)
+    if memory.present and not amcache.present and not prefetch.present and not mft.present:
+        contradictions.append({
+            "name": "memory_only_no_amcache_prefetch_mft",
+            "sources": ["memory"],
+            "implication": (
+                "Process found in memory with no Amcache/Prefetch/MFT artifacts -- "
+                "possible fileless malware or process injection (T1055). "
+                "Note: registry and event log sources not evaluated here."
+            ),
+            "severity": "HIGH",
+            "details": {
+                "pid": memory.details.get("pid") if memory.details else None,
+                "image_filename": memory.details.get("image_filename") if memory.details else None,
+            },
+            "mitre": "T1055",
+        })
+
+    # 3. Amcache path vs MFT path mismatch -> DLL sideloading / binary replacement
+    ac_path = (amcache.details.get("full_path") or amcache.details.get("path", "")).lower() if amcache.present and amcache.details else ""
+    mft_fp = (mft.details.get("file_path") or "").lower() if mft.present and mft.details else ""
+    if ac_path and mft_fp and ac_path not in mft_fp and mft_fp not in ac_path:
+        contradictions.append({
+            "name": "path_mismatch_amcache_mft",
+            "sources": ["amcache", "mft"],
+            "implication": (
+                "Executable path differs between Amcache and MFT -- "
+                "possible DLL sideloading or binary replacement (T1574.001)."
+            ),
+            "severity": "HIGH",
+            "details": {"amcache_path": ac_path, "mft_path": mft_fp},
+            "mitre": "T1574.001",
+        })
+
+    return contradictions
+
+
 # Main entry point
 # --------------------------------------------------------------------------- #
 
@@ -547,6 +624,7 @@ def correlate_evidence(
             "mft": mft.to_dict(),
             "verdict": verdict,
             "verdict_reasoning": verdict_reasoning,
+            "contradictions": detect_contradictions(amcache, prefetch, memory, mft),
             "confidence": _VERDICT_CONFIDENCE[verdict],
             "supporting_invocation_ids": supporting_invocation_ids,
             "invocation_id": invocation_id,
