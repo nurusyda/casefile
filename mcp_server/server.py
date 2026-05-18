@@ -21,6 +21,7 @@ from mcp_server.tools.memory import parse_memory
 from mcp_server.tools.correlation import correlate_evidence
 from mcp_server.tools.forensic_rag import search_knowledge, get_knowledge_stats
 from mcp_server.tools.shellbags import parse_shellbags
+from mcp_server.tools.hayabusa import parse_hayabusa
 from mcp_server.tools.findings import (
     record_finding,
     get_findings,
@@ -67,6 +68,7 @@ mcp.tool()(correlate_evidence)
 mcp.tool()(search_knowledge)
 mcp.tool()(get_knowledge_stats)
 mcp.tool()(parse_shellbags)
+mcp.tool()(parse_hayabusa)
 
 if __name__ == "__main__":
     mcp.run()
