@@ -244,14 +244,13 @@ This prevents the LLM from substituting one hallucination for another.
 
 | Gap | Status | Rationale |
 |---|---|---|
-| Per-claim confidence scoring | Planned (post-submission) | Requires evidence_quotes schema extension |
-| Cross-source contradiction detector | Planned (post-submission) | Requires correlate_evidence() extension |
-| Evidence provenance tagging | Planned (post-submission) | Requires _shared.py audit wrapper |
+| Per-claim confidence scoring | ✅ Implemented | `_agg()` in `findings.py`, HIGH/MEDIUM/LOW/UNSCORED |
+| Cross-source contradiction detector | ✅ Implemented | `detect_contradictions()` in `correlation.py` |
+| Evidence provenance tagging | ✅ Implemented | `provenance_tag` records via `audit_log()` in `findings.py` |
 | Training data contamination guard | ✅ Implemented | `detect_baseline_assumptions()` in `grounding.py` |
 
-The 11 implemented layers address the primary hallucination vectors identified in
-production runs. The 4 planned improvements address edge cases that did not appear
-in the SRL-2018 investigation.
+All 11 layers are implemented. The anti-hallucination stack is complete for the
+SRL-2018 investigation scope.
 
 ---
 
