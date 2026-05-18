@@ -196,7 +196,7 @@ def record_finding(
             try:
                 audit_log(
                     tool="provenance_tag",
-                    invocation_id=_ref_inv,
+                    invocation_id=str(uuid.uuid4()),
                     cmd="link_finding",
                     returncode=0,
                     stdout_lines=0,
