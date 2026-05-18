@@ -143,6 +143,18 @@ def record_finding(
         # is updated to supply evidence_quotes in Phase 2.
         _grounding_warning = str(_ge)
 
+    # Gap 6: aggregate claim confidence from evidence_quotes
+    def _agg(quotes: list) -> str:
+        if not quotes:
+            return "UNSCORED"
+        levels = [q.get("confidence", "MEDIUM") for q in quotes]
+        if any(lv == "LOW" for lv in levels):
+            return "LOW"
+        if all(lv == "HIGH" for lv in levels):
+            return "HIGH"
+        return "MEDIUM"
+    _claim_confidence = _agg(_eq)
+
     case_dir = _case_dir()
     findings_file = case_dir / "findings.json"
     findings: list = []
@@ -171,10 +183,31 @@ def record_finding(
         "approved_at": None,
         "approved_by": None,
         "evidence_quotes": _eq,
+        "claim_confidence": _claim_confidence,
     }
 
     findings.append(record)
     _write_json(findings_file, findings)
+
+    # Gap 8: append provenance tag records via audit_log() (append-only, Law 1 compliant)
+    for _q in _eq:
+        _ref_inv = _q.get("invocation_id")
+        if _ref_inv:
+            try:
+                audit_log(
+                    tool="provenance_tag",
+                    invocation_id=str(uuid.uuid4()),
+                    cmd="link_finding",
+                    returncode=0,
+                    stdout_lines=0,
+                    stderr_excerpt="",
+                    parsed_record_count=0,
+                    duration_ms=0,
+                    extra={"finding_id": finding_id, "tagged_invocation_id": _ref_inv},
+                )
+            except (OSError, IOError, json.JSONDecodeError) as _ptag_exc:
+                import logging
+                logging.warning("Provenance tag failed for %s: %s", finding_id, _ptag_exc)
 
     audit_log(
         tool="record_finding",
@@ -200,6 +233,7 @@ def record_finding(
         "status": "DRAFT",
         "message": f"Finding staged as DRAFT. Run `casefile approve {finding_id}` to approve.",
         "record": record,
+        "claim_confidence": _claim_confidence,
         "grounding_warning": _grounding_warning or None,
     }
 

@@ -497,7 +497,7 @@ def _should_run_tier2(entry: dict) -> "list[str] | None":
     (e.g. a string or None). Returning None causes callers to fall through
     to Tier 1 attestation only, preventing false CONTRADICTED verdicts.
     """
-    raw = (entry.get("extra") or {}).get("csv_files")
+    raw = entry.get("csv_files") or (entry.get("extra") or {}).get("csv_files")
     if not isinstance(raw, list) or not raw:
         return None
     # Filter to non-empty strings only — Path(non-string) raises TypeError

@@ -66,14 +66,17 @@ def _record_to_text(rec: dict) -> str:
     """Flatten a record into a single searchable string."""
     parts: list[str] = []
     for key in ("name", "description", "category", "tactic", "detection_logic",
-                "forensic_value"):
+                "forensic_value", "content", "title"):
         val = rec.get(key)
         if val:
             parts.append(str(val))
-    # keywords get extra weight by repeating
+    # keywords and tags get extra weight by repeating
     keywords = rec.get("keywords", [])
     if isinstance(keywords, list):
         parts.append(" ".join(str(k) for k in keywords) * 2)
+    tags = rec.get("tags", [])
+    if isinstance(tags, list):
+        parts.append(" ".join(str(t) for t in tags) * 2)
     # artifacts, tools, key_fields, caveats
     for listkey in ("artifacts", "tools", "key_fields", "caveats",
                      "best_practices"):
@@ -98,7 +101,7 @@ def _load_kb() -> None:
     try:
         with open(_KB_PATH, encoding="utf-8") as f:
             data = json.load(f)
-        _RECORDS = data.get("records", [])
+        _RECORDS = data if isinstance(data, list) else data.get("records", [])
         _IDF = _build_index(_RECORDS)
     except (json.JSONDecodeError, OSError, KeyError):
         _RECORDS = []
@@ -136,17 +139,24 @@ def _score_record(rec: dict, query_tokens: list[str]) -> float:
                     idf = _IDF.get(dt, 0.5)
                     score += 0.5 * (1 + math.log(count)) * idf
                     break
+    # Bonus for title and id keyword match
+    title_text = (rec.get("title", "") + " " + rec.get("id", "")).lower()
+    for qt in query_tokens:
+        if qt in title_text:
+            score += 5.0
+    # Bonus for technique_id match (exact or prefix)
+    if query_tokens:
+        tid = rec.get("technique_id", "").lower()
+        if tid:
+            for qt in query_tokens:
+                if qt == tid or tid.startswith(qt) or qt == tid.replace(".", ""):
+                    score += 10.0
+                    break
     # Bonus for category match
-    cat = rec.get("category", "")
+    cat = rec.get("category") or rec.get("source", "")
     for qt in query_tokens:
         if qt in cat.lower():
             score *= 1.3
-            break
-    # Bonus for technique_id exact match
-    tid = rec.get("technique_id", "").lower()
-    for qt in query_tokens:
-        if qt == tid or qt == tid.replace(".", ""):
-            score += 10.0  # Strong boost for exact technique ID match
             break
     return score
 
@@ -213,7 +223,10 @@ def search_knowledge(
     candidates = _RECORDS
     if category:
         cat_lower = category.lower().strip()
-        candidates = [r for r in _RECORDS if r.get("category", "").lower() == cat_lower]
+        def _norm_cat(r: dict) -> str:
+            _c = r.get("category") or r.get("source", "")
+            return "sigma_rule" if _c == "sigma" else _c
+        candidates = [r for r in _RECORDS if _norm_cat(r).lower() == cat_lower]
 
     scored: list[tuple[float, dict]] = []
     for rec in candidates:
@@ -221,6 +234,9 @@ def search_knowledge(
         if s > 0:
             result = dict(rec)
             result["relevance_score"] = round(s, 3)
+            if "category" not in result:
+                _src = result.get("source", "unknown")
+                result["category"] = "sigma_rule" if _src == "sigma" else _src
             scored.append((s, result))
 
     scored.sort(key=lambda x: x[0], reverse=True)
@@ -246,7 +262,8 @@ def get_knowledge_stats() -> dict:
     _load_kb()
     categories: dict[str, int] = {}
     for rec in _RECORDS:
-        cat = rec.get("category", "unknown")
+        _src = rec.get("category") or rec.get("source", "unknown")
+        cat = "sigma_rule" if _src == "sigma" else _src
         categories[cat] = categories.get(cat, 0) + 1
     _stats = {
         "total_records": len(_RECORDS),

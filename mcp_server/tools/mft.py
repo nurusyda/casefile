@@ -568,6 +568,7 @@ def parse_mft(
         extra={
             "mft_path":           str(mft),
             "output_dir":         str(out_dir),
+            "csv_files":          [str(f) for f in csv_files],
             "filename_filter":    filename_filter,
             "timestomped_count":  len(timestomped),
             "suspicious_count":   len(suspicious),

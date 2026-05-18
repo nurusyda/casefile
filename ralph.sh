@@ -56,8 +56,8 @@ while [ "${iteration}" -lt "${MAX_ITER}" ]; do
 
     # Build the prompt for this iteration
     if [ "${iteration}" -eq 1 ]; then
-        PROMPT=$(cat <<'PROMPT_EOF'
-Read CLAUDE.md and prd.json. Begin the CRIMSON OSPREY investigation. Work through the OODA loop. Call MCP tools. Document all findings with CONFIRMED/INFERRED/HYPOTHESIS labels.
+        PROMPT=$(cat <<PROMPT_EOF
+Read CLAUDE.md and prd.json. Read ${CASEFILE_CASE_DIR}/iocs.md if it exists — these are IOCs propagated from a prior host investigation, cross-reference all findings against them. Begin the investigation of the current case. Work through the OODA loop. Call MCP tools. Document all findings with CONFIRMED/INFERRED/HYPOTHESIS labels.
 
 EVIDENCE GROUNDING REQUIREMENT (mandatory — not optional):
 Every call to record_finding() MUST include evidence_quotes as a list of dicts.
