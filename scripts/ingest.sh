@@ -100,7 +100,7 @@ if ! sudo mount -o ro,loop,offset=${BYTE_OFFSET},noatime \
         "${EWF_MOUNT}/ewf1" "${FS_MOUNT}" 2>/dev/null; then
     echo "ERROR: Failed to mount filesystem."
     echo "Try: sudo mount -o ro,loop,offset=<bytes> ${EWF_MOUNT}/ewf1 ${FS_MOUNT}"
-    ewfmount -u "${EWF_MOUNT}" 2>/dev/null || true
+    fusermount -u "${EWF_MOUNT}" 2>/dev/null || true
     exit 1
 fi
 echo "[+] Filesystem mounted at ${FS_MOUNT}"
@@ -130,7 +130,7 @@ WIN=$(find "${FS_MOUNT}" -maxdepth 1 -iname "Windows" -type d -print -quit 2>/de
 if [ -z "${WIN}" ]; then
     echo "ERROR: Windows directory not found on mounted filesystem"
     sudo umount "${FS_MOUNT}" 2>/dev/null || true
-    ewfmount -u "${EWF_MOUNT}" 2>/dev/null || true
+    fusermount -u "${EWF_MOUNT}" 2>/dev/null || true
     exit 1
 fi
 
@@ -181,8 +181,8 @@ fi
 # MFT
 MFT_SRC=$(find "${FS_MOUNT}" -maxdepth 1 -name '$MFT' -print -quit 2>/dev/null || true)
 if [ -n "${MFT_SRC}" ]; then
-    sudo cp "${MFT_SRC}" "${ANALYSIS_DIR}/MFT" 2>/dev/null
-    sudo chown "$(whoami)" "${ANALYSIS_DIR}/MFT"
+    sudo cp --no-preserve=ownership "${MFT_SRC}" "${ANALYSIS_DIR}/MFT" 2>/dev/null
+    sudo chmod a+r "${ANALYSIS_DIR}/MFT"
     echo "[+] MFT ($(du -sh "${ANALYSIS_DIR}/MFT" | cut -f1))"
 else
     echo "[!] \$MFT not found"

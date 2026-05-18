@@ -93,15 +93,10 @@ def main() -> None:
 
     findings = load_findings(source_dir)
     confirmed = [f for f in findings if f.get("confidence") == "CONFIRMED"]
-    approved = [f for f in confirmed if f.get("status") == "APPROVED"]
 
     print(f"Source: {source_dir.name}")
     print(f"  Total findings : {len(findings)}")
     print(f"  CONFIRMED      : {len(confirmed)}")
-    print(f"  APPROVED       : {len(approved)}")
-    if len(approved) < len(confirmed):
-        unapproved = len(confirmed) - len(approved)
-        print(f"  NOTE: Including {unapproved} unapproved CONFIRMED findings")
 
     all_ips: dict[str, list[str]] = {}
     all_hostnames: dict[str, list[str]] = {}
@@ -139,7 +134,7 @@ def main() -> None:
         f"# IOCs Propagated from {source_dir.name}",
         f"Generated: {now}  ",
         f"Source: `{source_dir}`  ",
-        f"Extracted from **{len(confirmed)} CONFIRMED** findings ({len(approved)} approved).",
+        f"Extracted from **{len(confirmed)} CONFIRMED** findings.",
         "",
         "> Cross-reference all findings against these IOCs.",
         "> These were found by CaseFile on the source host — treat as high-confidence leads.",
