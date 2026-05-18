@@ -272,7 +272,13 @@ When calling `record_finding()`, each `evidence_quote` MUST include an `exact_va
 Rules:
 1. `exact_value` MUST be a single field value exactly as it appears in one CSV column.
 2. For EvtxECmd: use `PayloadData1`, `PayloadData2`, `TimeCreated`, or `MapDescription` field values verbatim.
-3. For AmcacheParser: use `Name`, `SHA1`, `FullPath`, or `FileDescription` field values verbatim.
+3. For AmcacheParser: use `Name`, `SHA1`, `FullPath`, or `FileKeyLastWriteTimestamp` field values verbatim.
+   - WRONG: `"exact_value": "total_entries: 223, entries_capped: false"` — this is a tool summary, NOT a CSV cell
+   - WRONG: `"exact_value": "2046-01-12T06:37:24Z"` — ISO 8601 format, but CSV uses `2046-01-12 06:37:24` (space, no Z)
+   - CORRECT: `"exact_value": "csrss.exe"` (Name column)
+   - CORRECT: `"exact_value": "0300c7833bfba831b67f9291097655cb162263fd"` (SHA1 column)
+   - CORRECT: `"exact_value": "2046-01-12 06:37:24"` (FileKeyLastWriteTimestamp — copy exactly as shown in CSV)
+   - Tool summary fields like total_entries, entries_capped are NOT in the CSV — never use them as exact_value
 4. For RECmd: use `ValueName`, `ValueData`, or `LastWriteTimestamp` field values verbatim.
 5. For MFTECmd: use `FileName`, `Created0x10`, or `FullPath` field values verbatim.
 6. Do NOT construct composite strings. Do NOT paraphrase. Copy ONE cell value exactly.
