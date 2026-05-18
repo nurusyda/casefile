@@ -1,0 +1,657 @@
+{
+  "version": "1.0.0",
+  "description": "CaseFile Forensic Knowledge Base \u2014 curated DFIR references for grounded analysis",
+  "record_count": 22,
+  "sources": [
+    "MITRE ATT&CK v16",
+    "SANS FOR508 artifact references",
+    "Sigma rule categories",
+    "Windows forensic artifact guides"
+  ],
+  "records": [
+    {
+      "id": "ATT-T1059.001",
+      "category": "mitre_attack",
+      "technique_id": "T1059.001",
+      "name": "PowerShell Execution",
+      "tactic": "Execution",
+      "description": "Adversaries may abuse PowerShell commands and scripts for execution. PowerShell is a powerful interactive command-line interface and scripting environment included in Windows.",
+      "artifacts": [
+        "Event Log EID 4104 (Script Block Logging)",
+        "Event Log EID 4688 (Process Creation)",
+        "Prefetch POWERSHELL.EXE-*.pf",
+        "Registry PowerShell transcription settings",
+        "ConsoleHost_history.txt"
+      ],
+      "tools": [
+        "EvtxECmd",
+        "RECmd",
+        "pyscca"
+      ],
+      "keywords": [
+        "powershell",
+        "powershell.exe",
+        "scriptblock",
+        "4104",
+        "invoke-expression",
+        "iex",
+        "encoded",
+        "bypass"
+      ]
+    },
+    {
+      "id": "ATT-T1059.003",
+      "category": "mitre_attack",
+      "technique_id": "T1059.003",
+      "name": "Windows Command Shell",
+      "tactic": "Execution",
+      "description": "Adversaries may abuse the Windows command shell (cmd.exe) for execution. The Windows command shell is the primary command prompt on Windows systems.",
+      "artifacts": [
+        "Event Log EID 4688 (Process Creation)",
+        "Prefetch CMD.EXE-*.pf",
+        "MFT entries for batch files"
+      ],
+      "tools": [
+        "EvtxECmd",
+        "pyscca",
+        "MFTECmd"
+      ],
+      "keywords": [
+        "cmd.exe",
+        "cmd",
+        "batch",
+        "bat",
+        "command",
+        "shell",
+        "4688"
+      ]
+    },
+    {
+      "id": "ATT-T1543.003",
+      "category": "mitre_attack",
+      "technique_id": "T1543.003",
+      "name": "Windows Service (Persistence)",
+      "tactic": "Persistence",
+      "description": "Adversaries may create or modify Windows services to repeatedly execute malicious payloads. When Windows boots up, it starts programs or applications called services that perform background system functions.",
+      "artifacts": [
+        "Event Log EID 7045 (Service Installed)",
+        "Event Log EID 4697 (Service Installed)",
+        "Registry HKLM\\SYSTEM\\CurrentControlSet\\Services",
+        "Amcache.hve entries"
+      ],
+      "tools": [
+        "EvtxECmd",
+        "RECmd",
+        "AmcacheParser"
+      ],
+      "keywords": [
+        "service",
+        "7045",
+        "4697",
+        "currentcontrolset",
+        "services",
+        "auto-start",
+        "persistence",
+        "sc.exe",
+        "sc create"
+      ]
+    },
+    {
+      "id": "ATT-T1021.002",
+      "category": "mitre_attack",
+      "technique_id": "T1021.002",
+      "name": "SMB/Windows Admin Shares",
+      "tactic": "Lateral Movement",
+      "description": "Adversaries may use valid accounts to interact with a remote network share using Server Message Block (SMB). The adversary may then perform actions as the logged-on user.",
+      "artifacts": [
+        "Event Log EID 4624 Type 3 (Network Logon)",
+        "Event Log EID 5140 (Share Access)",
+        "Event Log EID 5145 (Detailed Share Access)",
+        "MFT entries for copied executables"
+      ],
+      "tools": [
+        "EvtxECmd",
+        "MFTECmd"
+      ],
+      "keywords": [
+        "smb",
+        "admin share",
+        "c$",
+        "admin$",
+        "ipc$",
+        "4624",
+        "type 3",
+        "network logon",
+        "lateral",
+        "5140",
+        "5145"
+      ]
+    },
+    {
+      "id": "ATT-T1078",
+      "category": "mitre_attack",
+      "technique_id": "T1078",
+      "name": "Valid Accounts",
+      "tactic": "Persistence, Privilege Escalation, Initial Access",
+      "description": "Adversaries may obtain and abuse credentials of existing accounts as a means of gaining Initial Access, Persistence, Privilege Escalation, or Defense Evasion.",
+      "artifacts": [
+        "Event Log EID 4624 (Successful Logon)",
+        "Event Log EID 4625 (Failed Logon)",
+        "Event Log EID 4648 (Explicit Credential Logon)",
+        "SAM registry hive"
+      ],
+      "tools": [
+        "EvtxECmd",
+        "RECmd"
+      ],
+      "keywords": [
+        "4624",
+        "4625",
+        "4648",
+        "logon",
+        "credential",
+        "valid account",
+        "admin",
+        "administrator",
+        "sam",
+        "rid 500"
+      ]
+    },
+    {
+      "id": "ATT-T1036.005",
+      "category": "mitre_attack",
+      "technique_id": "T1036.005",
+      "name": "Match Legitimate Name or Location (Masquerading)",
+      "tactic": "Defense Evasion",
+      "description": "Adversaries may match or approximate the name or location of legitimate files or resources when naming/placing them. This is done for the sake of evading defenses and observation.",
+      "artifacts": [
+        "Prefetch for suspicious paths",
+        "Amcache entries with unusual paths",
+        "MFT entries showing executables in temp/user directories",
+        "Process memory showing mismatched parent-child"
+      ],
+      "tools": [
+        "pyscca",
+        "AmcacheParser",
+        "MFTECmd",
+        "Volatility3"
+      ],
+      "keywords": [
+        "masquerade",
+        "fake",
+        "csrss",
+        "svchost",
+        "lsass",
+        "temp",
+        "perfmon",
+        "disguise",
+        "impersonate",
+        "legitimate name"
+      ]
+    },
+    {
+      "id": "ATT-T1070.001",
+      "category": "mitre_attack",
+      "technique_id": "T1070.001",
+      "name": "Clear Windows Event Logs",
+      "tactic": "Defense Evasion",
+      "description": "Adversaries may clear Windows Event Logs to hide the activity of an intrusion. Windows Event Logs are a record of a computer's alerts and notifications.",
+      "artifacts": [
+        "Event Log EID 1102 (Audit Log Cleared)",
+        "Event Log EID 104 (System Log Cleared)",
+        "Prefetch WEVTUTIL.EXE-*.pf",
+        "MFT timestamps on .evtx files"
+      ],
+      "tools": [
+        "EvtxECmd",
+        "pyscca",
+        "MFTECmd"
+      ],
+      "keywords": [
+        "1102",
+        "104",
+        "wevtutil",
+        "clear",
+        "cleared",
+        "event log",
+        "anti-forensics",
+        "cover tracks"
+      ]
+    },
+    {
+      "id": "ATT-T1070.004",
+      "category": "mitre_attack",
+      "technique_id": "T1070.004",
+      "name": "File Deletion",
+      "tactic": "Defense Evasion",
+      "description": "Adversaries may delete files left behind by the actions of their intrusion activity. Malware, tools, or other non-native files dropped or created on a system by an adversary may leave traces.",
+      "artifacts": [
+        "Prefetch SDELETE.EXE-*.pf or SDELETE64.EXE-*.pf",
+        "MFT entries with $FILE_NAME but no $DATA",
+        "USN Journal delete records",
+        "Recycle Bin $I/$R files"
+      ],
+      "tools": [
+        "pyscca",
+        "MFTECmd"
+      ],
+      "keywords": [
+        "sdelete",
+        "delete",
+        "deleted",
+        "file deletion",
+        "anti-forensics",
+        "usn",
+        "recycle",
+        "cover tracks"
+      ]
+    },
+    {
+      "id": "ATT-T1053.005",
+      "category": "mitre_attack",
+      "technique_id": "T1053.005",
+      "name": "Scheduled Task",
+      "tactic": "Execution, Persistence, Privilege Escalation",
+      "description": "Adversaries may abuse the Windows Task Scheduler to perform task scheduling for initial or recurring execution of malicious code.",
+      "artifacts": [
+        "Event Log EID 4698 (Scheduled Task Created)",
+        "Event Log EID 106 (Task Registered)",
+        "Registry SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Schedule",
+        "Prefetch for scheduled executables"
+      ],
+      "tools": [
+        "EvtxECmd",
+        "RECmd",
+        "pyscca"
+      ],
+      "keywords": [
+        "scheduled task",
+        "schtasks",
+        "task scheduler",
+        "4698",
+        "106",
+        "at.exe",
+        "persistence"
+      ]
+    },
+    {
+      "id": "ATT-T1003.001",
+      "category": "mitre_attack",
+      "technique_id": "T1003.001",
+      "name": "LSASS Memory Credential Dumping",
+      "tactic": "Credential Access",
+      "description": "Adversaries may attempt to access credential material stored in the process memory of the Local Security Authority Subsystem Service (LSASS).",
+      "artifacts": [
+        "Event Log EID 4688 (Process Creation for mimikatz/procdump)",
+        "Memory analysis \u2014 lsass.exe handle access",
+        "Prefetch for credential tools",
+        "Amcache entries for credential tools"
+      ],
+      "tools": [
+        "EvtxECmd",
+        "Volatility3",
+        "pyscca",
+        "AmcacheParser"
+      ],
+      "keywords": [
+        "lsass",
+        "mimikatz",
+        "procdump",
+        "credential",
+        "dump",
+        "sekurlsa",
+        "password",
+        "hash"
+      ]
+    },
+    {
+      "id": "ART-PREFETCH",
+      "category": "artifact_guide",
+      "name": "Windows Prefetch Analysis",
+      "description": "Prefetch files (C:\\Windows\\Prefetch\\*.pf) record application execution history including run count, last run times (up to 8), and referenced files/directories. Available on Windows client OS by default (disabled on Server unless registry-enabled).",
+      "forensic_value": "Proves program execution even after the executable is deleted. Run count and timestamps establish frequency and timeline of activity.",
+      "key_fields": [
+        "executable_name",
+        "run_count",
+        "last_run_times",
+        "volume_paths",
+        "referenced_files"
+      ],
+      "caveats": [
+        "Not available on Windows Server by default",
+        "Prefetch hash collision possible (different paths, same hash)",
+        "Last 8 run times only (Win10+), last 1 on Win7",
+        "File creation time \u2248 first execution, modification time \u2248 last execution"
+      ],
+      "tools": [
+        "pyscca",
+        "PECmd"
+      ],
+      "keywords": [
+        "prefetch",
+        "pf",
+        "execution",
+        "run count",
+        "program execution"
+      ]
+    },
+    {
+      "id": "ART-AMCACHE",
+      "category": "artifact_guide",
+      "name": "Amcache.hve Analysis",
+      "description": "The Amcache registry hive (C:\\Windows\\appcompat\\Programs\\Amcache.hve) tracks application execution and installation metadata including SHA1 hashes, file paths, sizes, and timestamps.",
+      "forensic_value": "Records SHA1 hash of executables at first execution \u2014 provides hash-based IOC matching even after file deletion. Links installer metadata to specific program installations.",
+      "key_fields": [
+        "sha1_hash",
+        "full_path",
+        "file_size",
+        "link_date",
+        "product_name",
+        "company_name"
+      ],
+      "caveats": [
+        "Schema changed significantly between Windows versions",
+        "Not all executed programs appear",
+        "SHA1 hash may be for a different version than what ran",
+        "Timestamps may reflect compilation, not execution"
+      ],
+      "tools": [
+        "AmcacheParser",
+        "RECmd"
+      ],
+      "keywords": [
+        "amcache",
+        "sha1",
+        "hash",
+        "application",
+        "installation",
+        "appcompat"
+      ]
+    },
+    {
+      "id": "ART-EVTX",
+      "category": "artifact_guide",
+      "name": "Windows Event Log Analysis",
+      "description": "Windows Event Logs (.evtx) record system, security, and application events. Security.evtx contains authentication, process creation, and privilege use events critical for incident response.",
+      "forensic_value": "Authoritative source for authentication events, service installations, process creation (with command line if auditing enabled), and security policy changes.",
+      "key_fields": [
+        "EventID",
+        "TimeCreated",
+        "Computer",
+        "SubjectUserName",
+        "TargetUserName",
+        "IpAddress",
+        "ProcessName",
+        "CommandLine"
+      ],
+      "key_event_ids": {
+        "4624": "Successful Logon",
+        "4625": "Failed Logon",
+        "4648": "Explicit Credential Logon",
+        "4688": "Process Creation",
+        "4697": "Service Installed (Security)",
+        "7045": "Service Installed (System)",
+        "1102": "Audit Log Cleared",
+        "4698": "Scheduled Task Created",
+        "4720": "User Account Created",
+        "4732": "Member Added to Local Group"
+      },
+      "caveats": [
+        "Event logs can be cleared (EID 1102 records this)",
+        "Log rotation may lose older events",
+        "Process command line logging requires Advanced Audit Policy",
+        "Not all events are security-relevant"
+      ],
+      "tools": [
+        "EvtxECmd",
+        "Hayabusa"
+      ],
+      "keywords": [
+        "event log",
+        "evtx",
+        "security",
+        "system",
+        "4624",
+        "4688",
+        "7045",
+        "logon"
+      ]
+    },
+    {
+      "id": "ART-MFT",
+      "category": "artifact_guide",
+      "name": "NTFS $MFT Analysis",
+      "description": "The Master File Table ($MFT) is the core metadata structure of the NTFS file system. Every file and directory on an NTFS volume has at least one entry in the MFT containing timestamps, file sizes, and data locations.",
+      "forensic_value": "Provides four sets of timestamps per file (Created, Modified, Accessed, Entry Modified for both $STANDARD_INFORMATION and $FILE_NAME attributes). $FILE_NAME timestamps are harder to tamper with, enabling timestomping detection.",
+      "key_fields": [
+        "FileName",
+        "ParentPath",
+        "Created0x10",
+        "LastModified0x10",
+        "Created0x30",
+        "LastModified0x30",
+        "FileSize",
+        "IsDirectory"
+      ],
+      "caveats": [
+        "$STANDARD_INFORMATION timestamps can be modified by user-mode tools (timestomping)",
+        "$FILE_NAME timestamps are updated by the kernel and resist tampering",
+        "Comparing $SI vs $FN timestamps detects timestomping",
+        "Deleted file MFT entries may be overwritten"
+      ],
+      "tools": [
+        "MFTECmd",
+        "icat",
+        "fls"
+      ],
+      "keywords": [
+        "mft",
+        "ntfs",
+        "timestamp",
+        "timestomping",
+        "standard_information",
+        "file_name",
+        "created",
+        "modified"
+      ]
+    },
+    {
+      "id": "ART-REGISTRY",
+      "category": "artifact_guide",
+      "name": "Windows Registry Analysis",
+      "description": "The Windows Registry is a hierarchical database storing system configuration, user preferences, and application settings. Key hives for forensics: SAM, SECURITY, SYSTEM, SOFTWARE, NTUSER.DAT, UsrClass.dat.",
+      "forensic_value": "Records service configurations, startup programs, user activity (recent docs, typed URLs), USB device history, network connections, and installed software with timestamps.",
+      "key_locations": {
+        "services": "HKLM\\SYSTEM\\CurrentControlSet\\Services",
+        "run_keys": "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run",
+        "user_run_keys": "HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run",
+        "sam_users": "HKLM\\SAM\\SAM\\Domains\\Account\\Users",
+        "network_list": "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\NetworkList",
+        "usb_devices": "HKLM\\SYSTEM\\CurrentControlSet\\Enum\\USBSTOR"
+      },
+      "caveats": [
+        "Registry timestamps are per-key, not per-value",
+        "Deleted keys may be recoverable from unallocated hive space",
+        "Last write time updates when any value under the key changes",
+        "CurrentControlSet number determined from SYSTEM\\Select\\Current"
+      ],
+      "tools": [
+        "RECmd",
+        "Registry Explorer"
+      ],
+      "keywords": [
+        "registry",
+        "hive",
+        "sam",
+        "system",
+        "software",
+        "ntuser",
+        "services",
+        "run key",
+        "persistence"
+      ]
+    },
+    {
+      "id": "ART-MEMORY",
+      "category": "artifact_guide",
+      "name": "Memory Forensics with Volatility 3",
+      "description": "Memory forensics analyzes a snapshot of physical RAM to recover running processes, network connections, loaded modules, and other volatile artifacts not present on disk.",
+      "forensic_value": "Provides ground truth about what was running at acquisition time. Can detect hidden/injected processes, recover encryption keys, and find malware that exists only in memory.",
+      "key_plugins": {
+        "pslist": "List processes from EPROCESS linked list",
+        "psscan": "Scan for EPROCESS structures (finds hidden/unlinked processes)",
+        "netscan": "List network connections and listening ports",
+        "handles": "List handles opened by processes",
+        "dlllist": "List loaded DLLs per process",
+        "cmdline": "Show command line arguments for each process"
+      },
+      "caveats": [
+        "pslist only shows linked processes \u2014 use psscan to find hidden ones",
+        "Memory acquisition changes system state slightly",
+        "Volatility truncates ImageFileName to 14 characters",
+        "Memory analysis requires correct OS profile/ISF symbols"
+      ],
+      "tools": [
+        "Volatility3"
+      ],
+      "keywords": [
+        "memory",
+        "volatility",
+        "pslist",
+        "psscan",
+        "netscan",
+        "process",
+        "pid",
+        "running",
+        "live",
+        "ram"
+      ]
+    },
+    {
+      "id": "SIG-SERVICE-INSTALL",
+      "category": "sigma_rule",
+      "name": "Suspicious Service Installation",
+      "description": "Detects installation of services with suspicious characteristics such as execution from temp directories, hex-named services, or services with unusual binary paths.",
+      "detection_logic": "EID 7045 where ServiceName matches hex pattern OR ImagePath contains \\temp\\ OR ImagePath contains \\perfmon\\",
+      "false_positives": [
+        "Legitimate software installers",
+        "IT management tools",
+        "Antivirus updates"
+      ],
+      "severity": "high",
+      "keywords": [
+        "7045",
+        "service",
+        "install",
+        "suspicious",
+        "hex",
+        "temp",
+        "persistence"
+      ]
+    },
+    {
+      "id": "SIG-LATERAL-MOVEMENT",
+      "category": "sigma_rule",
+      "name": "Lateral Movement via Network Logon",
+      "description": "Detects potential lateral movement through network logon events (Type 3) from internal IP addresses, especially when combined with explicit credential use (EID 4648).",
+      "detection_logic": "EID 4624 LogonType=3 from internal RFC1918 source IP, correlated with EID 4648 explicit credential events from same source",
+      "false_positives": [
+        "Legitimate remote administration",
+        "File server access",
+        "Print server access"
+      ],
+      "severity": "medium",
+      "keywords": [
+        "lateral",
+        "4624",
+        "type 3",
+        "network logon",
+        "4648",
+        "explicit credential",
+        "movement"
+      ]
+    },
+    {
+      "id": "SIG-LOG-CLEARING",
+      "category": "sigma_rule",
+      "name": "Event Log Clearing Detected",
+      "description": "Detects clearing of Windows Event Logs, a common anti-forensics technique to hide attacker activity.",
+      "detection_logic": "EID 1102 (Security log cleared) OR EID 104 (System log cleared) OR Prefetch for wevtutil.exe with recent execution",
+      "false_positives": [
+        "Legitimate log maintenance",
+        "System administrators clearing old logs"
+      ],
+      "severity": "high",
+      "keywords": [
+        "1102",
+        "104",
+        "wevtutil",
+        "clear",
+        "log clearing",
+        "anti-forensics"
+      ]
+    },
+    {
+      "id": "SIG-PROCESS-MASQUERADE",
+      "category": "sigma_rule",
+      "name": "Process Name Masquerading",
+      "description": "Detects processes running with names of legitimate Windows binaries (csrss.exe, svchost.exe, lsass.exe) but from non-standard paths.",
+      "detection_logic": "Process name matches known system binary BUT parent path is not \\Windows\\System32\\ or expected location",
+      "false_positives": [
+        "Software using same executable names legitimately (rare)"
+      ],
+      "severity": "critical",
+      "keywords": [
+        "masquerade",
+        "csrss",
+        "svchost",
+        "lsass",
+        "fake",
+        "wrong path",
+        "impersonate"
+      ]
+    },
+    {
+      "id": "REF-TIMELINE",
+      "category": "methodology",
+      "name": "UTC Timeline Construction",
+      "description": "A coherent UTC timeline correlates events across multiple artifact sources (event logs, prefetch, MFT, registry, memory) to establish the sequence of attacker actions. All timestamps must be normalized to UTC before correlation.",
+      "best_practices": [
+        "Normalize all timestamps to UTC before comparison",
+        "Cross-reference at least 2 independent sources for key events",
+        "Account for timezone offsets in artifact-specific formats",
+        "Note clock skew between systems in multi-host investigations",
+        "Timeline events should be ordered chronologically with source attribution"
+      ],
+      "keywords": [
+        "timeline",
+        "utc",
+        "chronological",
+        "correlation",
+        "sequence",
+        "timestamp"
+      ]
+    },
+    {
+      "id": "REF-CROSS-CORRELATION",
+      "category": "methodology",
+      "name": "Cross-Source Evidence Correlation",
+      "description": "Correlating findings across multiple independent artifact sources increases confidence and detects inconsistencies. A process confirmed in both prefetch (execution evidence) and memory (running at acquisition time) is stronger than either alone.",
+      "best_practices": [
+        "CONFIRMED = 2+ independent sources agree",
+        "INFERRED = single source, consistent with other evidence",
+        "Flag contradictions between sources as separate findings",
+        "Process in memory + prefetch + amcache = highest confidence",
+        "Missing from one source is not contradiction \u2014 absence is not evidence of absence"
+      ],
+      "keywords": [
+        "correlation",
+        "cross-reference",
+        "confirmed",
+        "inferred",
+        "multiple sources",
+        "independent"
+      ]
+    }
+  ]
+}

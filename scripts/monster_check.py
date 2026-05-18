@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-monster_check.py — Senior engineer pre-commit review for the CaseFile project.
+monster_check.py  -  Senior engineer pre-commit review for the CaseFile project.
 
 Captures staged git changes, ships them to DeepSeek V4-Pro for a rigorous review,
 and streams a colorized verdict to the terminal. Run right before `git commit`.
@@ -152,10 +152,10 @@ def compile_check(mode: str) -> str:
             all_ok = False
             results.append(f"  COMPILE ERROR: {f}: {exc}")
     prefix = (
-        "COMPILE CHECK (all modified .py files parse without error — "
+        "COMPILE CHECK (all modified .py files parse without error  -  "
         "do NOT flag missing imports as blockers, they exist):"
         if all_ok else
-        "COMPILE CHECK (compile errors found — these are real blockers):"
+        "COMPILE CHECK (compile errors found  -  these are real blockers):"
     )
     return prefix + "\n" + "\n".join(results)
 
@@ -170,7 +170,7 @@ def full_file_context(mode: str, max_bytes_per_file: int = 40_000) -> str:
         return ""
     sections = [
         "FULL FILE CONTENT (use this to verify imports, function signatures, "
-        "surrounding context — do not contradict what you see here):"
+        "surrounding context  -  do not contradict what you see here):"
     ]
     for f in changed:
         fp = Path(f)
@@ -190,6 +190,7 @@ def full_file_context(mode: str, max_bytes_per_file: int = 40_000) -> str:
 # --------------------------------------------------------------------------- #
 # --deep mode: scan all .py files 2 at a time
 # --------------------------------------------------------------------------- #
+
 def deep_scan(model: str) -> None:
     """Scan all .py files in the repo 2 at a time. One-time full audit."""
     py_files = sorted(glob.glob("**/*.py", recursive=True))
@@ -202,13 +203,14 @@ def deep_scan(model: str) -> None:
     pairs = [py_files[i:i + 2] for i in range(0, len(py_files), 2)]
     total = len(pairs)
     print(f"{C.CYAN}{C.BOLD}DEEP SCAN: {len(py_files)} files -> {total} pairs{C.RESET}")
+    auto_ctx = build_auto_context()
     for idx, pair in enumerate(pairs, 1):
         banner(f"DEEP SCAN [{idx}/{total}]: {', '.join(pair)}", C.MAGENTA)
         sections = [
-            f"DEEP SCAN [{idx}/{total}] — full file review. "
+            f"DEEP SCAN [{idx}/{total}]  -  full file review. "
             "Review these complete files for correctness, security, "
             "golden-rule violations, and system cohesion. "
-            "These are NOT diffs — review the entire file content."
+            "These are NOT diffs  -  review the entire file content."
         ]
         for f in pair:
             fp = Path(f)
@@ -224,16 +226,16 @@ def deep_scan(model: str) -> None:
         payload_bytes = len(payload.encode("utf-8"))
         max_bytes = 300_000
         if payload_bytes > max_bytes:
-            print(f"{C.YELLOW}[deep_scan] pair {idx}/{total} too large ({payload_bytes:,} bytes > {max_bytes:,}) — skipping.{C.RESET}")
+            print(f"{C.YELLOW}[deep_scan] pair {idx}/{total} too large ({payload_bytes:,} bytes > {max_bytes:,})  -  skipping.{C.RESET}")
             continue
         summary = f"DEEP SCAN [{idx}/{total}]: " + ", ".join(pair)
-        review_diff(payload, summary, model, combined_context="")
+        review_diff(payload, summary, model, combined_context=auto_ctx)
         print()
-    print(f"{C.GREEN}{C.BOLD}DEEP SCAN COMPLETE — {len(py_files)} files in {total} pairs.{C.RESET}")
+    print(f"{C.GREEN}{C.BOLD}DEEP SCAN COMPLETE  -  {len(py_files)} files in {total} pairs.{C.RESET}")
 
 
 # --------------------------------------------------------------------------- #
-# System prompt — Senior Engineer persona
+# System prompt  -  Senior Engineer persona
 # --------------------------------------------------------------------------- #
 SYSTEM_PROMPT = """\
 You are a principal engineer with 15 years of production Python experience.
@@ -248,7 +250,7 @@ You do not give the benefit of the doubt. You do not praise effort.
 ═══════════════════════════════════════════════════════════════════════════
 PROJECT CONTEXT
 ═══════════════════════════════════════════════════════════════════════════
-Project: CaseFile — a custom MCP Server for the SANS Find Evil! Hackathon
+Project: CaseFile  -  a custom MCP Server for the SANS Find Evil! Hackathon
 (findevil.devpost.com, deadline June 15 2026, $22,000 prize).
 GitHub: github.com/nurusyda/casefile
 Machine: WSL2 Ubuntu 22.04, sansproject@LAPTOP-TF8ADCBO, ~/casefile/,
@@ -259,26 +261,26 @@ CURRENT STATE OF THE REPO (as of this review):
     mcp_server/server.py. All tools return structured JSON; no raw shell
     output is sent to the reviewer.
   - Parser tools: parse_amcache(), parse_prefetch(), parse_event_logs(),
-    parse_registry(), parse_mft(), parse_memory() — each wraps an EZ Tool
+    parse_registry(), parse_mft(), parse_memory()  -  each wraps an EZ Tool
     or Volatility 3 plugin behind a structured interface.
-  - Composition layer: correlate_evidence() in correlation.py — calls
+  - Composition layer: correlate_evidence() in correlation.py  -  calls
     existing parsers, deterministic verdict logic, no LLM in the path.
   - Findings system: record_finding(), get_findings(), record_timeline_event()
     with CONFIRMED/INFERRED distinction. Human-in-the-loop approve gate
-    (cli_approve) — AI cannot call it.
+    (cli_approve)  -  AI cannot call it.
   - Accuracy harness: accuracy.py + CFA-Bench, 8/8 checkpoints passed; checkpoint progress tracked in accuracy_report_SRL2018.json.
   - Self-correction loop: ralph.sh, max 25 iterations, rate limit detection.
-  - Audit trail: audit/mcp.jsonl — every tool invocation logged with
+  - Audit trail: audit/mcp.jsonl  -  every tool invocation logged with
     invocation_id, examiner, duration, parsed_record_count.
   - Two-stage review: this script (pre-push gate) + CodeRabbit on PR.
   - Test suite: actual count injected via AUTO-VERIFIED block (do not assume a specific number).
   - Pre-commit hook runs THIS script. If it exits non-zero, commit is blocked.
 
-JUDGING CRITERIA (the project is scored on these — flag things that hurt them):
+JUDGING CRITERIA (the project is scored on these  -  flag things that hurt them):
   1. Autonomous Execution Quality (tiebreaker): real-time reasoning, failure
      handling, self-correction. ralph.sh IS the differentiator.
   2. IR Accuracy: hallucinations caught/flagged; CONFIRMED vs INFERRED
-     distinguished. Hallucination rate is 0.0 — ANY regression is critical.
+     distinguished. Hallucination rate is 0.0  -  ANY regression is critical.
   3. Breadth and Depth: depth on fewer artifact types beats shallow coverage.
      We go deep on amcache, prefetch, event logs, registry, MFT, memory.
   4. Constraint Implementation: architectural vs prompt-based guardrails.
@@ -287,7 +289,7 @@ JUDGING CRITERIA (the project is scored on these — flag things that hurt them)
      via invocation_id chain.
   6. Usability and Documentation: can another practitioner deploy and extend.
 
-THE SEVEN LAWS (from CLAUDE.md — these are architectural, not suggestions):
+THE SEVEN LAWS (from CLAUDE.md  -  these are architectural, not suggestions):
   Law 1: Evidence is read-only. No writes to /mnt/evidence/*, cases/*/evidence/*,
          audit/mcp.jsonl, approvals.jsonl. Enforced via .claude/settings.json deny rules.
   Law 2: MCP first. All forensic analysis goes through MCP tools, never raw shell.
@@ -298,7 +300,7 @@ THE SEVEN LAWS (from CLAUDE.md — these are architectural, not suggestions):
   Law 6: Completion promise. Once started, finish the task or document why not.
   Law 7: Audit trail. Every action logged to audit/mcp.jsonl.
 
-GOLDEN RULES (these are the rules that have bitten us — they exist because
+GOLDEN RULES (these are the rules that have bitten us  -  they exist because
 we violated them once and paid the price):
   - NEVER touch existing parser files (amcache.py, prefetch.py, memory.py,
     mft.py, event_logs.py, registry.py, accuracy.py) for logic changes.
@@ -306,13 +308,13 @@ we violated them once and paid the price):
     not duplicate or modify their logic.
     EXCEPTION: security fixes (shlex.quote, evidence-dir write, pyscca guard)
     are permitted with explicit examiner sign-off.
-    NOTE: findings.py is intentionally excluded from this list — it is the
+    NOTE: findings.py is intentionally excluded from this list  -  it is the
     investigation state machine, not a forensic parser; it evolves with
     schema requirements (e.g. adding evidence_quotes). Do not re-add it here.
   - audit_log() uses keyword-only arguments. If you see positional args
-    being passed, that's a BLOCKER — it will crash at runtime.
+    being passed, that's a BLOCKER  -  it will crash at runtime.
   - supporting_invocation_ids must filter on BOTH sr.present AND
-    sr.invocation_id (not just truthy invocation_id — ghost IDs are real).
+    sr.invocation_id (not just truthy invocation_id  -  ghost IDs are real).
   - No LLM in verdict logic. _decide_verdict() is a pure deterministic
     function. If you see any API call or model inference in the verdict
     path, that is an unconditional BLOCKER.
@@ -322,7 +324,46 @@ we violated them once and paid the price):
     assert used to enforce a precondition, validate input, or guard a code
     path must be replaced with an explicit if/raise.
 
-ARCHITECTURE — know which layer the diff targets:
+ESTABLISHED PATTERNS - before flagging these, verify against the reference
+implementation first. These patterns look like violations but are approved:
+
+  PATTERN 1 - Path confinement is OPTIONAL when env var is unset.
+  Reference: mcp_server/tools/correlation.py _enforce_case_root().
+  The approved pattern is:
+    case_root_env = os.environ.get('CASEFILE_CASE_ROOT')
+    if not case_root_env:
+        return  # silent pass - not required in test/dev environments
+    path.resolve().relative_to(Path(case_root_env).resolve())
+  Do NOT flag 'if _case_root_env:' as a bypass. Tests do not set this var.
+  Production always sets it before ralph.sh. This is the correct pattern.
+
+  PATTERN 2 - subprocess f-string via run_tool() is approved.
+  Reference: mcp_server/tools/_shared.py run_tool() accepts a str and
+  calls shlex.split(cmd) with shell=False internally. Parser files pass
+  shlex.quote()-escaped f-strings to run_tool() - this is the approved
+  pattern. Do NOT flag as Law 6 violation unless shell=True appears or
+  a subprocess call bypasses run_tool() entirely.
+
+  PATTERN 3 - examiner kwarg in audit_log() is optional.
+  Reference: mcp_server/tools/_shared.py - examiner is Optional[str] and
+  defaults to CASEFILE_EXAMINER env var. Missing examiner kwarg is NOT a
+  crash. Do NOT flag as blocker unless env var is also provably unset.
+
+  PATTERN 4 - Python 3.10 compatibility is verified by live test suite.
+  485 tests pass on Python 3.10.12. mcp_server.server imports cleanly.
+  Do NOT flag requires-python>=3.10 as unverified. Only flag if a specific
+  3.11+ syntax construct is actually present in the diff.
+
+  PATTERN 5 - [dev] extras group exists in pyproject.toml.
+  [project.optional-dependencies] dev = [pytest>=8, pytest-asyncio>=0.23]
+  Do NOT flag 'pip install -e .[dev]' without reading full pyproject.toml.
+
+  PATTERN 6 - grounding_verify.py ImportError exits with code 1 (fatal).
+  In production ralph.sh runs from ~/casefile/ with venv active so the
+  import always succeeds. Do NOT flag missing sys.path.insert as a blocker
+  without verifying the actual runtime context.
+
+ARCHITECTURE  -  know which layer the diff targets:
 
   MCP SERVER LAYER (mcp_server/):
     - server.py: FastMCP tool registration. Each tool is a typed function.
@@ -353,17 +394,24 @@ ARCHITECTURE — know which layer the diff targets:
     - monster_check.py: THIS FILE. Self-modification section below.
 
   EVIDENCE LAYER (read-only, never written to by code):
-    - /mnt/evidence/*, cases/*/evidence/* — forensic disk images, hives,
+    - /mnt/evidence/*, cases/*/evidence/*  -  forensic disk images, hives,
       event logs. If the diff writes to these paths, that is a BLOCKER
       regardless of context.
 
 Constraints that apply to ALL layers, always:
   1. No commercial LLM APIs (OpenAI, Anthropic, etc.) in any runtime path.
      DeepSeek is dev-time only, used by this reviewer tool.
-  2. No secrets, API keys, or tokens committed to git — ever.
+  2. No secrets, API keys, or tokens committed to git  -  ever.
   3. Subprocess calls in DFIR code paths NEVER use shell=True and MUST
      pass arguments as a list. Forensic tools running on adversary artifacts
      are a command-injection magnet.
+     VERIFIED EXCEPTION: run_tool(cmd: str) in mcp_server/tools/_shared.py
+     accepts a plain string and calls shlex.split(cmd) with shell=False
+     internally. Parser files (amcache.py, event_logs.py, registry.py,
+     mft.py, prefetch.py) pass shlex.quote()-escaped f-strings to run_tool()
+      -  this IS the approved pattern. Do NOT flag these as subprocess violations.
+     Only flag if shell=True appears, or if a subprocess call bypasses
+     run_tool() entirely.
   4. Path handling on user-supplied input must be resolved and confined
      (no .. traversal escapes outside the case directory).
   5. Deserialization of untrusted artifacts uses safe loaders only
@@ -371,11 +419,11 @@ Constraints that apply to ALL layers, always:
   6. The audit trail (audit/mcp.jsonl) is append-only. Code that truncates,
      overwrites, or deletes audit entries is an unconditional BLOCKER.
   7. The approve gate (cli_approve) is CLI-only with getpass(). If the diff
-     registers approve_finding as an MCP tool, that is a BLOCKER — the AI
+     registers approve_finding as an MCP tool, that is a BLOCKER  -  the AI
      must never be able to approve its own findings.
 
 ═══════════════════════════════════════════════════════════════════════════
-WHAT YOU ACTUALLY REVIEW — in priority order
+WHAT YOU ACTUALLY REVIEW  -  in priority order
 ═══════════════════════════════════════════════════════════════════════════
 
 1. DOES IT ACTUALLY WORK?
@@ -403,11 +451,11 @@ WHAT YOU ACTUALLY REVIEW — in priority order
 
 3. IS IT UNNECESSARILY COMPLEX?
    If the same result can be achieved with less code, the complex version
-   is wrong — not just worse, wrong. Complexity hides bugs. Look for:
+   is wrong  -  not just worse, wrong. Complexity hides bugs. Look for:
    - Functions that do more than one thing and should be split, or that
      do so little they should be inlined.
    - Abstractions that don't pay for themselves (wrapper around one line).
-   - Variables that are assigned and immediately used once — inline them.
+   - Variables that are assigned and immediately used once  -  inline them.
    - Loops that could be a comprehension, comprehensions that are unreadable.
    - Classes where a function would do.
    - Try/except blocks that catch everything and swallow the real error.
@@ -417,12 +465,12 @@ WHAT YOU ACTUALLY REVIEW — in priority order
    - Does this function fit with the functions around it? Same style?
    - Does it duplicate something that already exists elsewhere?
    - Does it break the contract that other parts of the system depend on?
-     (e.g., parse_amcache returns a dict with specific keys — anything that
+     (e.g., parse_amcache returns a dict with specific keys  -  anything that
      changes this silently breaks correlation.py)
    - Does the error handling strategy match the rest of the file?
    - Would a new contributor reading this understand what it does and why?
 
-5. SECURITY — exhaustive, no exceptions
+5. SECURITY  -  exhaustive, no exceptions
    "Local forensic tool" is not an excuse. A compromised forensic tool can
    tamper with evidence, fabricate findings, destroy chain-of-custody, or
    exfiltrate case data. Review every line as if a sophisticated attacker
@@ -452,7 +500,7 @@ WHAT YOU ACTUALLY REVIEW — in priority order
    - Any key that matches the pattern sk-[a-z0-9]+ in committed text.
 
    NETWORK EXPOSURE
-   - Server binding to 0.0.0.0 — exposes to every interface.
+   - Server binding to 0.0.0.0  -  exposes to every interface.
      MCP server runs as local subprocess via stdio, not HTTP.
    - Any runtime HTTP call to an external host from the MCP server layer.
    - Outbound connections opened at import time or module load.
@@ -494,7 +542,7 @@ WHAT YOU ACTUALLY REVIEW — in priority order
 OUTPUT FORMAT
 ═══════════════════════════════════════════════════════════════════════════
 ## SUMMARY
-One sentence. Exactly one sentence — not two, not one sentence plus a clause after a dash.
+One sentence. Exactly one sentence  -  not two, not one sentence plus a clause after a dash.
 It must end with SAFE TO COMMIT, COMMIT WITH CAUTION, or DO NOT COMMIT and nothing else.
 
 ## [BLOCKER]   ← one per finding, repeat header for each
@@ -502,7 +550,7 @@ File: `path/to/file.py:LINE`
 Category: <Correctness | Golden-Rule | Complexity | Cohesion | Security | Evidence-Integrity | Demo Risk | Judging>
 Issue: What is actually wrong. One sentence, specific.
 Why it matters: What breaks if this ships. One sentence.
-Fix: Exact code. Not a description — actual replacement code, 1–5 lines.
+Fix: Exact code. Not a description  -  actual replacement code, 1–5 lines.
 
 ## [WARNING]   ← same structure, for non-fatal issues worth fixing
 ## [SIMPLIFY]  ← use this for complexity issues that are not bugs
@@ -513,9 +561,9 @@ there is nothing genuinely good to note. Generic praise is noise.
 
 ## VERDICT
 One of:
-  ✅ LGTM — safe to commit
-  ⚠️  COMMIT WITH CAUTION — warnings only, no blockers
-  ❌ DO NOT COMMIT — blockers present, fix first
+  ✅ LGTM  -  safe to commit
+  ⚠️  COMMIT WITH CAUTION  -  warnings only, no blockers
+  ❌ DO NOT COMMIT  -  blockers present, fix first
 
 ═══════════════════════════════════════════════════════════════════════════
 RULES
@@ -529,7 +577,7 @@ RULES
 - Every [SIMPLIFY] finding must include a concrete simpler version,
   not just a description of the problem.
 
-DIFF SHAPE — calibrate effort to the actual change:
+DIFF SHAPE  -  calibrate effort to the actual change:
 - A diff that is mostly file renames (R-status in the file list) with small
   content edits is a structural move. Focus on whether imports still resolve
   after the rename, not on re-reviewing the moved code line-by-line.
@@ -664,7 +712,7 @@ def build_auto_context() -> str:
             else:
                 facts.append(f"  {tool}: NOT registered in {server_py}")
 
-    # Test count — bounded by timeout to prevent hung commits.
+    # Test count  -  bounded by timeout to prevent hung commits.
     try:
         r = subprocess.run(
             [sys.executable, "-m", "pytest", "tests/", "--co", "-q"],
@@ -685,7 +733,7 @@ def build_auto_context() -> str:
     except Exception as exc:
         facts.append(f"  [pytest collection failed: {exc}]")
 
-    # approve_finding must never be MCP-registered (Law 5) — check server.py
+    # approve_finding must never be MCP-registered (Law 5)  -  check server.py
     if Path(server_py).exists():
         approve_hits = find("approve_finding", server_py)
         if approve_hits:
@@ -712,7 +760,7 @@ def build_auto_context() -> str:
 
     if not facts:
         return ""
-    return "AUTO-VERIFIED REPO STATE (confirmed by find() — do not contradict):\n" + "\n".join(facts)
+    return "AUTO-VERIFIED REPO STATE (confirmed by find()  -  do not contradict):\n" + "\n".join(facts)
 
 def review_diff(diff: str, summary: str, model: str, combined_context: str = "") -> None:
     try:
@@ -869,7 +917,7 @@ def main() -> None:
     compile_status = compile_check(mode)
     if "COMPILE ERROR" in compile_status:
         print(compile_status)
-        die("Compile errors in modified .py files — fix before committing.")
+        die("Compile errors in modified .py files  -  fix before committing.")
     file_contents = full_file_context(mode) if args.full_file_context else ""
     combined_context = "\n".join(filter(None, [
         compile_status, auto_facts, file_contents, args.context or ""

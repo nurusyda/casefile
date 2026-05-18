@@ -7,7 +7,7 @@ name = "casefile"
 version = "0.2.0"
 description = "Anti-hallucination MCP server for DFIR — SANS Find Evil! Hackathon 2026"
 license = { text = "MIT" }
-requires-python = ">=3.11"
+requires-python = ">=3.10"
 dependencies = [
     "fastmcp>=0.9",
     "mcp>=1.0",

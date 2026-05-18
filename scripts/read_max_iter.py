@@ -10,5 +10,5 @@ import sys
 try:
     with open(sys.argv[1]) as f:
         print(json.load(f)["max_iterations"])
-except (IndexError, KeyError, OSError, ValueError, json.JSONDecodeError):
+except (IndexError, KeyError, OSError, ValueError, TypeError, json.JSONDecodeError):
     sys.exit(1)

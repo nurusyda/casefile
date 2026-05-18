@@ -48,6 +48,38 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal, Optional
 
+# ---------------------------------------------------------------------------
+# Tool name alias map
+# ---------------------------------------------------------------------------
+# Claude Code uses logical/wrapper names in evidence_quotes (e.g. "parse_prefetch")
+# while the audit log records the actual MCP tool class names (e.g. "pyscca").
+# This map resolves logical names → canonical audit log names so the verifier
+# does not falsely CONTRADICT valid grounded findings.
+_TOOL_NAME_ALIASES: dict[str, str] = {
+    "parse_prefetch":   "pyscca",
+    "parse_memory":     "Volatility3",
+    "parse_event_logs": "EvtxECmd",
+    "parse_registry":   "RECmd",
+    "parse_amcache":    "AmcacheParser",
+    "parse_mft":        "MFTECmd",
+}
+
+
+def _resolve_tool_name(name: str) -> str:
+    """Resolve a logical tool name to its canonical audit log name.
+
+    If the name is already canonical (or unknown), it is returned unchanged.
+    This allows evidence_quotes to use either form without triggering false
+    CONTRADICTED verdicts.
+
+    Examples:
+        _resolve_tool_name("parse_prefetch")  -> "pyscca"
+        _resolve_tool_name("pyscca")          -> "pyscca"   (passthrough)
+        _resolve_tool_name("unknown_tool")    -> "unknown_tool"  (passthrough)
+    """
+    return _TOOL_NAME_ALIASES.get(name, name)
+
+
 
 # ---------------------------------------------------------------------------
 # Exceptions
@@ -614,7 +646,7 @@ def verify_finding_claims(
 
     # --- Main path: verify each quote ---
     for quote in quotes:
-        tool = quote.get("tool")
+        tool = _resolve_tool_name(quote.get("tool") or "")
         claim_text = quote.get("claim", "")
         if not tool or not claim_text:
             claim_results.append(ClaimVerification(
@@ -649,7 +681,7 @@ def verify_finding_claims(
                     ),
                 ))
                 continue
-            if entry.get("tool") != tool:
+            if _resolve_tool_name(entry.get("tool") or "") != tool:
                 claim_results.append(ClaimVerification(
                     claim_text=display,
                     status="CONTRADICTED",
@@ -661,7 +693,7 @@ def verify_finding_claims(
                 ))
                 continue
         else:
-            entries_for_tool = by_tool.get(tool, [])
+            entries_for_tool = by_tool.get(tool) or by_tool.get(quote.get("tool") or "", [])
             if not entries_for_tool:
                 claim_results.append(ClaimVerification(
                     claim_text=display,
@@ -808,8 +840,10 @@ def assert_sources_attested(
     warnings: list[str] = []
     finding_id = finding.get("finding_id") or finding.get("id", "<unknown>")
     for i, quote in enumerate(finding.get("evidence_quotes", [])):
-        tool = quote.get("tool", "")
-        if tool and tool not in attested_sources:
+        raw_tool = quote.get("tool", "")
+        tool = _resolve_tool_name(raw_tool)
+        # Accept either the canonical name OR the original logical name
+        if tool and tool not in attested_sources and raw_tool not in attested_sources:
             warnings.append(
                 f"Finding {finding_id!r} evidence_quotes[{i}] cites "
                 f"tool {tool!r} which has no audit log entry. "

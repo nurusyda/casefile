@@ -1148,3 +1148,42 @@ class TestVerifyFindingClaimsTier2FieldBranch:
         note = result.claims[0].note
         assert "HALLUCINATION DETECTED" in note
         assert "Tier 2" not in note
+
+
+# ---------------------------------------------------------------------------
+# _resolve_tool_name
+# ---------------------------------------------------------------------------
+class TestResolveToolName:
+    def test_parse_prefetch_resolves_to_pyscca(self):
+        from mcp_server.tools.grounding import _resolve_tool_name
+        assert _resolve_tool_name("parse_prefetch") == "pyscca"
+
+    def test_parse_memory_resolves_to_volatility3(self):
+        from mcp_server.tools.grounding import _resolve_tool_name
+        assert _resolve_tool_name("parse_memory") == "Volatility3"
+
+    def test_parse_event_logs_resolves_to_evtxecmd(self):
+        from mcp_server.tools.grounding import _resolve_tool_name
+        assert _resolve_tool_name("parse_event_logs") == "EvtxECmd"
+
+    def test_parse_registry_resolves_to_recmd(self):
+        from mcp_server.tools.grounding import _resolve_tool_name
+        assert _resolve_tool_name("parse_registry") == "RECmd"
+
+    def test_parse_amcache_resolves_to_amcacheparser(self):
+        from mcp_server.tools.grounding import _resolve_tool_name
+        assert _resolve_tool_name("parse_amcache") == "AmcacheParser"
+
+    def test_parse_mft_resolves_to_mftecmd(self):
+        from mcp_server.tools.grounding import _resolve_tool_name
+        assert _resolve_tool_name("parse_mft") == "MFTECmd"
+
+    def test_canonical_name_passthrough(self):
+        from mcp_server.tools.grounding import _resolve_tool_name
+        assert _resolve_tool_name("pyscca") == "pyscca"
+        assert _resolve_tool_name("Volatility3") == "Volatility3"
+        assert _resolve_tool_name("EvtxECmd") == "EvtxECmd"
+
+    def test_unknown_name_passthrough(self):
+        from mcp_server.tools.grounding import _resolve_tool_name
+        assert _resolve_tool_name("some_unknown_tool") == "some_unknown_tool"

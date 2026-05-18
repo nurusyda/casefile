@@ -62,7 +62,15 @@ Read CLAUDE.md and prd.json. Begin the CRIMSON OSPREY investigation. Work throug
 EVIDENCE GROUNDING REQUIREMENT (mandatory — not optional):
 Every call to record_finding() MUST include evidence_quotes as a list of dicts.
 Each dict MUST have exactly these keys:
-  tool         : the MCP tool name (e.g. parse_amcache, parse_memory, correlate_evidence)
+  tool         : the canonical MCP tool name — MUST match the audit log exactly.
+                 Use ONLY these names (not the logical wrapper names):
+                   parse_prefetch   ->  pyscca
+                   parse_memory     ->  Volatility3
+                   parse_event_logs ->  EvtxECmd
+                   parse_registry   ->  RECmd
+                   parse_amcache    ->  AmcacheParser
+                   parse_mft        ->  MFTECmd
+                   correlate_evidence stays as: correlate_evidence
   claim        : short claim text grounded by this tool output
   invocation_id: the invocation_id from the audit log entry for that tool call
 Optional keys:
@@ -91,6 +99,10 @@ PROMPT_EOF
     # Run Claude Code (non-interactive, pipe prompt)
     log "Running Claude Code..."
     CLAUDE_OUTPUT=$(printf '%s' "${PROMPT}" | claude -p 2>&1) || true
+    if [ "${#CLAUDE_OUTPUT}" -lt 100 ]; then
+        log "Output too short (${#CLAUDE_OUTPUT} chars) — likely rate limit. Exiting."
+        exit 1
+    fi
     last_output="${CLAUDE_OUTPUT}"
 
     # Log output summary

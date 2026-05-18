@@ -57,8 +57,21 @@ def generate_accuracy_report(
             extra={"error": stderr},
         )
 
-    # Load ground truth
+    # Load ground truth — confine to case directory before reading
     gt_path = Path(ground_truth_file).resolve()
+    _case_dir = _findings_file().parent.resolve()
+    try:
+        gt_path.relative_to(_case_dir)
+    except ValueError:
+        _audit_error(
+            f"Ground truth file outside case directory: {ground_truth_file!r}"
+        )
+        return {
+            "error": (
+                f"Ground truth file must be inside the case directory "
+                f"({_case_dir}). Got: {ground_truth_file!r}"
+            )
+        }
     if not gt_path.exists():
         _audit_error(f"Ground truth file not found: {ground_truth_file}")
         return {"error": f"Ground truth file not found: {ground_truth_file}"}
