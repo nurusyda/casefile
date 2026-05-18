@@ -254,3 +254,37 @@ otherwise the tool auto-discovers the first sorted sibling
 `*.img`/`*.mem`/`*.vmem`/`*.raw` (case-insensitive) in `{case_dir}/..`.
 
 Verdict levels (strongest → weakest): CONFIRMED_RUNNING → MEMORY_ONLY → CONFIRMED_HISTORICAL → INSTALLED_NEVER_RAN → NOT_FOUND
+
+## Evidence Quotes — exact_value Format (CRITICAL)
+
+When calling `record_finding()`, each `evidence_quote` MUST include an `exact_value` field.
+
+**WRONG** — composite summary string (will fail Tier 2 grounding):
+```json
+"exact_value": "EID=7045 ServiceName=LARIAT executable=C:\\...\\prunsrv.exe StartType=auto start timestamp=2018-05-07T19:29:07Z"
+```
+
+**CORRECT** — single verbatim field value copied from the CSV cell:
+```json
+"exact_value": "Name: LARIAT"
+```
+
+Rules:
+1. `exact_value` MUST be a single field value exactly as it appears in one CSV column.
+2. For EvtxECmd: use `PayloadData1`, `PayloadData2`, `TimeCreated`, or `MapDescription` field values verbatim.
+3. For AmcacheParser: use `Name`, `SHA1`, `FullPath`, or `FileDescription` field values verbatim.
+4. For RECmd: use `ValueName`, `ValueData`, or `LastWriteTimestamp` field values verbatim.
+5. For MFTECmd: use `FileName`, `Created0x10`, or `FullPath` field values verbatim.
+6. Do NOT construct composite strings. Do NOT paraphrase. Copy ONE cell value exactly.
+7. If you cannot find the exact cell value, omit `exact_value` entirely — do not invent it.
+
+Example for an EvtxECmd EID=7045 finding:
+```json
+{
+  "tool": "EvtxECmd",
+  "invocation_id": "<uuid from audit log>",
+  "claim": "LARIAT service installed 2018-05-07",
+  "exact_value": "Name: LARIAT",
+  "confidence": "HIGH"
+}
+```
