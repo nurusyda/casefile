@@ -98,7 +98,7 @@ def _load_kb() -> None:
     try:
         with open(_KB_PATH, encoding="utf-8") as f:
             data = json.load(f)
-        _RECORDS = data.get("records", [])
+        _RECORDS = data if isinstance(data, list) else data.get("records", [])
         _IDF = _build_index(_RECORDS)
     except (json.JSONDecodeError, OSError, KeyError):
         _RECORDS = []
