@@ -146,6 +146,31 @@ else
     echo "[!] Registry config directory not found"
 fi
 
+# User registry hives (NTUSER.DAT, UsrClass.dat) for Shellbags analysis
+USERS_DIR=$(find "${FS_MOUNT}" -maxdepth 1 -iname "Users" -type d -print -quit 2>/dev/null || true)
+if [ -n "${USERS_DIR}" ]; then
+    USER_HIVES_DIR="${ANALYSIS_DIR}/user_hives"
+    mkdir -p "${USER_HIVES_DIR}"
+    # Find all NTUSER.DAT files (one per user profile)
+    while IFS= read -r -d '' ntuser; do
+        username=$(basename "$(dirname "${ntuser}")")
+        # Skip system/default profiles
+        case "${username,,}" in
+            "default"|"default user"|"all users"|"public"|"localservice"|"networkservice") continue ;;
+        esac
+        user_dir="${USER_HIVES_DIR}/${username}"
+        mkdir -p "${user_dir}"
+        cp "${ntuser}" "${user_dir}/NTUSER.DAT" 2>/dev/null &&             echo "[+] NTUSER.DAT (${username})" || true
+        # UsrClass.dat lives in AppData\Local\Microsoft\Windows
+        usrclass=$(find "$(dirname "${ntuser}")" -maxdepth 4             -iname "UsrClass.dat" -print -quit 2>/dev/null || true)
+        if [ -n "${usrclass}" ]; then
+            cp "${usrclass}" "${user_dir}/UsrClass.dat" 2>/dev/null &&                 echo "[+] UsrClass.dat (${username})" || true
+        fi
+    done < <(find "${USERS_DIR}" -maxdepth 2 -iname "NTUSER.DAT" -print0 2>/dev/null || true)
+else
+    echo "[!] Users directory not found -- skipping user hive extraction"
+fi
+
 # Amcache
 APPCOMPAT=$(find "${WIN}" -maxdepth 3 -iname "Programs" -path "*/AppCompat/*" \
     -type d -print -quit 2>/dev/null || true)

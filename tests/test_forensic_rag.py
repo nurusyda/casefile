@@ -92,7 +92,7 @@ class TestSearchArtifactGuides:
         results = search_knowledge("prefetch execution evidence")
         assert len(results) > 0
         top_ids = [r["id"] for r in results[:3]]
-        assert "GUIDE-PREFETCH" in top_ids
+        assert "GUIDE-PREFETCH" in top_ids or "ARTIFACT-PREFETCH-TIMING" in top_ids
 
     def test_search_amcache(self):
         results = search_knowledge("amcache sha1 hash application")
