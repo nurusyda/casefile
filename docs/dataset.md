@@ -1,6 +1,6 @@
 # CaseFile -- Dataset Documentation
 
-*Auto-generated 2026-05-18 05:16 UTC by `scripts/generate_dataset_doc.py`.*
+*Auto-generated 2026-05-19 20:11 UTC by `scripts/generate_dataset_doc.py`.*
 *Do not edit manually -- re-run after each ralph.sh investigation.*
 
 ---
@@ -14,7 +14,7 @@
 | Case | CRIMSON OSPREY (SRL-2018, BASE-RD-01) |
 | File | `base-rd-01-cdrive.E01` |
 | SHA-256 | `12a622aa3f0ac78b73f4d4e29c34e0ddb0d0ab40e4b0de6d12f7e7af3ff5fde1` |
-| Case root | `~/cases/SRL-2018` |
+| Case root | `/home/sansproject/cases/SRL-2018` |
 | Source | SANS FOR508 SRL-2018 (real forensic challenge image) |
 
 ### Evidence Provenance
@@ -50,25 +50,25 @@ Artifacts extracted from the disk image by `scripts/ingest.sh`:
 
 | Metric | Value |
 |---|---|
-| Total findings recorded | 6 |
-| CONFIRMED (multi-source corroboration) | 5 |
-| INFERRED (single-source) | 1 |
+| Total findings recorded | 7 |
+| CONFIRMED (multi-source corroboration) | 4 |
+| INFERRED (single-source) | 3 |
 | SPECULATIVE | 0 |
 
 ---
 
 ## 4. Grounding & Hallucination Metrics
 
-*As of: 2026-05-18*
+*As of: 2026-05-19T20:04:59.796510+00:00*
 
 | Metric | Value |
 |---|---|
-| Total claims analyzed | 25 |
-| Tier 1 grounded (tool-attested) | 25 |
+| Total claims analyzed | 24 |
+| Tier 1 grounded (tool-attested) | 24 |
 | Ungrounded | 0 |
 | Contradicted (value mismatch) | 0 |
 | **Hallucination rate** | **0.0%** |
-| Tier 2 verified (CSV value confirmed) | 0 |
+| Tier 2 verified (CSV value confirmed) | 9 |
 | Tier 2 failed | 0 |
 
 **Tier 1** -- every claim must be traceable to a specific tool invocation
@@ -108,16 +108,17 @@ in the audit entry (Amcache, Registry, Event Logs, MFT).
 
 | Metric | Value |
 |---|---|
-| Total MCP tool invocations | 26 |
-| Total artifact records parsed | 30,933 |
-| Total analysis time (tool execution only) | 76.3s |
+| Total MCP tool invocations | 51 |
+| Total artifact records parsed | 16,637 |
+| Total analysis time | 71.0s |
 
 ### Invocations by Tool
 
 | Tool | Invocations |
 |---|---|
+| `provenance_tag` | 24 |
 | `record_timeline_event` | 9 |
-| `record_finding` | 6 |
+| `record_finding` | 7 |
 | `AmcacheParser` | 2 |
 | `pyscca` | 2 |
 | `MFTECmd` | 2 |
