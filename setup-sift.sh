@@ -167,6 +167,21 @@ EOF
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
+# MCP client configuration
+# ─────────────────────────────────────────────────────────────────────────────
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+if [ ! -f "${SCRIPT_DIR}/.mcp.json" ]; then
+    if sed "s|/home/sansproject/casefile|${SCRIPT_DIR}|g" \
+        "${SCRIPT_DIR}/.mcp.json.template" > "${SCRIPT_DIR}/.mcp.json" 2>/dev/null; then
+        info ".mcp.json created from template (required for Claude Code MCP auto-start)"
+    else
+        error "Failed to create .mcp.json — template missing or not writable"
+    fi
+else
+    info ".mcp.json already exists — skipping"
+fi
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Done
 # ─────────────────────────────────────────────────────────────────────────────
 echo ""
