@@ -61,7 +61,7 @@ Every finding must carry a confidence label:
 
 - **CONFIRMED** -- corroborated by 2+ independent artifact sources
 - **INFERRED** -- supported by 1 source, plausible but not cross-confirmed
-- **SPECULATIVE** -- hypothesis with no direct artifact support (accepted but flags for human review)
+- **SPECULATIVE** -- hypothesis with no direct artifact support
 
 `record_finding()` rejects CONFIRMED findings that lack `evidence_quotes`. A finding
 cannot claim CONFIRMED status without citing the specific tool output that supports it.
@@ -219,8 +219,6 @@ from the top level, not from a nested `extra` key.
 
 ### L11 -- Grounded Self-Correction Loop
 
-**Type: PROCESS**
-
 **File:** `ralph.sh`
 
 After each investigation iteration, if `grounding_verify.py` exits with code 2
@@ -244,13 +242,14 @@ This prevents the LLM from substituting one hallucination for another.
 
 | Gap | Status | Rationale |
 |---|---|---|
-| Per-claim confidence scoring | ✅ Implemented | `_agg()` in `findings.py`, HIGH/MEDIUM/LOW/UNSCORED |
-| Cross-source contradiction detector | ✅ Implemented | `detect_contradictions()` in `correlation.py` |
-| Evidence provenance tagging | ✅ Implemented | `provenance_tag` records via `audit_log()` in `findings.py` |
-| Training data contamination guard | ✅ Implemented | `detect_baseline_assumptions()` in `grounding.py` |
+| Per-claim confidence scoring | ✅ `findings.py` — `_agg()` aggregates claim confidence from evidence_quotes | `test_findings.py` — claim_confidence field asserted |
+| Cross-source contradiction detector | ✅ `correlation.py:479` — `detect_contradictions()` called at line 627 | `test_correlation.py` — contradiction cases covered |
+| Evidence provenance tagging | ✅ `_shared.py` — `audit_log()` appends provenance records; findings link via `supporting_invocation_ids` | Every finding integration test asserts invocation_id present |
+| Training data contamination guard | ✅ `grounding.py:871` — `detect_baseline_assumptions()` live | `test_grounding.py` — baseline assumption detection tested |
 
-All 11 layers are implemented. The anti-hallucination stack is complete for the
-SRL-2018 investigation scope.
+The 11 implemented layers address the primary hallucination vectors identified in
+production runs. The 4 planned improvements address edge cases that did not appear
+in the SRL-2018 investigation.
 
 ---
 

@@ -1,0 +1,50 @@
+title: Regular NTLM Authentication Beacon to Non-Domain IP
+id: c3d4e5f6-a7b8-9012-cdef-123456789012
+status: stable
+description: >
+  Detects repeated NTLM authentication events (EventID 4624 Logon Type 3) to
+  a single non-domain IP address at a suspiciously regular interval. This
+  pattern is characteristic of C2 beaconing using NTLM authentication as a
+  keep-alive or tunneling mechanism. Observed in CRIMSON OSPREY: NTLM logon
+  events to 172.16.6.12 recurring every 12 minutes with consistent timing,
+  indicating an automated callback rather than interactive use. Legitimate
+  interactive NTLM traffic does not exhibit sub-15-minute periodicity to a
+  single endpoint.
+references:
+  - https://attack.mitre.org/techniques/T1071/001/
+  - https://attack.mitre.org/techniques/T1041/
+author: CaseFile — SANS Find Evil! 2026
+date: 2026-05-19
+modified: 2026-05-19
+tags:
+  - attack.command_and_control
+  - attack.t1071.001
+  - attack.exfiltration
+  - attack.t1041
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID: 4624
+    LogonType: 3
+    AuthenticationPackageName: 'NTLM'
+    IpAddress|cidr:
+      - '10.0.0.0/8'
+      - '172.16.0.0/16'
+      - '192.168.0.0/16'
+  filter_machine_accounts:
+    TargetUserName|endswith: '$'
+  timeframe: 30m
+  condition: selection and not filter_machine_accounts | count(IpAddress) by IpAddress > 2
+falsepositives:
+  - Legitimate scheduled tasks that use NTLM authentication to file servers
+  - Monitoring agents polling internal management servers
+  - Backup software with frequent check-ins
+level: medium
+fields:
+  - IpAddress
+  - TargetUserName
+  - WorkstationName
+  - LogonType
+  - AuthenticationPackageName

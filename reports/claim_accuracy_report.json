@@ -1,0 +1,268 @@
+{
+  "total_claims": 23,
+  "grounded": 23,
+  "ungrounded": 0,
+  "contradicted": 0,
+  "inferred_labeled": 0,
+  "grounding_rate": 1.0,
+  "hallucination_rate": 0.0,
+  "all_passed": true,
+  "tier2_verified": 10,
+  "findings": [
+    {
+      "finding_id": "F-sansproject-001",
+      "total_claims": 3,
+      "grounded": 3,
+      "ungrounded": 0,
+      "contradicted": 0,
+      "inferred_labeled": 0,
+      "grounding_rate": 1.0,
+      "hallucination_rate": 0.0,
+      "passed": true,
+      "claims": [
+        {
+          "claim_text": "tool='correlate_evidence' claim='subject_srv.exe verdict CONFIRMED_RUNNING \u2014 present in memory AND prefetch' inv_id='correlation_b34bc1dcc5a8'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "correlation_b34bc1dcc5a8",
+          "note": "Tool 'correlate_evidence' attested in audit log (invocation_id='correlation_b34bc1dcc5a8', parsed_record_count=2). exact_value supplied but no valid csv_files in audit entry \u2014 Tier 2 skipped, Tier 1 attestation only."
+        },
+        {
+          "claim_text": "tool='pyscca' claim='subject_srv.exe prefetch confirms execution 2018-09-06T18:28:30Z run_count=1' inv_id='290d4628-d106-483d-8b07-a87b87c8e07b'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "290d4628-d106-483d-8b07-a87b87c8e07b",
+          "note": "Tool 'pyscca' attested in audit log (invocation_id='290d4628-d106-483d-8b07-a87b87c8e07b', parsed_record_count=218). exact_value supplied but no valid csv_files in audit entry \u2014 Tier 2 skipped, Tier 1 attestation only."
+        },
+        {
+          "claim_text": "tool='Volatility3' claim='subject_srv.ex running at memory acquisition PID 1096 PPID 740' inv_id='mem-1e582abf'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "mem-1e582abf",
+          "note": "Tool 'Volatility3' attested in audit log (invocation_id='mem-1e582abf', parsed_record_count=129). exact_value supplied but no valid csv_files in audit entry \u2014 Tier 2 skipped, Tier 1 attestation only."
+        }
+      ]
+    },
+    {
+      "finding_id": "F-sansproject-002",
+      "total_claims": 3,
+      "grounded": 3,
+      "ungrounded": 0,
+      "contradicted": 0,
+      "inferred_labeled": 0,
+      "grounding_rate": 1.0,
+      "hallucination_rate": 0.0,
+      "passed": true,
+      "claims": [
+        {
+          "claim_text": "tool='Volatility3' claim='WmiPrvSE.exe (PID 2876) spawned powershell.exe (PID 8712) via WMI' inv_id='mem-1e582abf'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "mem-1e582abf",
+          "note": "Tool 'Volatility3' attested in audit log (invocation_id='mem-1e582abf', parsed_record_count=129). exact_value supplied but no valid csv_files in audit entry \u2014 Tier 2 skipped, Tier 1 attestation only."
+        },
+        {
+          "claim_text": "tool='Volatility3' claim='p.exe (PID 8260) spawned from cmd.exe (PID 5948) attacker chain' inv_id='mem-1e582abf'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "mem-1e582abf",
+          "note": "Tool 'Volatility3' attested in audit log (invocation_id='mem-1e582abf', parsed_record_count=129). exact_value supplied but no valid csv_files in audit entry \u2014 Tier 2 skipped, Tier 1 attestation only."
+        },
+        {
+          "claim_text": "tool='Volatility3' claim='powershell.exe PID 8712 PPID 2876 created 2018-08-30T16:43:36Z' inv_id='mem-1e582abf'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "mem-1e582abf",
+          "note": "Tool 'Volatility3' attested in audit log (invocation_id='mem-1e582abf', parsed_record_count=129). exact_value supplied but no valid csv_files in audit entry \u2014 Tier 2 skipped, Tier 1 attestation only."
+        }
+      ]
+    },
+    {
+      "finding_id": "F-sansproject-003",
+      "total_claims": 3,
+      "grounded": 3,
+      "ungrounded": 0,
+      "contradicted": 0,
+      "inferred_labeled": 0,
+      "grounding_rate": 1.0,
+      "hallucination_rate": 0.0,
+      "passed": true,
+      "claims": [
+        {
+          "claim_text": "tool='EvtxECmd' claim=\"Fake 'Microsoft Advanced API 64' service installed auto-start 2018-05-08T21:07:39Z\" inv_id='1bc50564-412a-42ae-9a9b-58619d16d1c2'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "1bc50564-412a-42ae-9a9b-58619d16d1c2",
+          "note": "Tool 'EvtxECmd' attested and Tier 2 CSV check passed: exact_value 'Name: Microsoft Advanced API 64' found in CSV output (2 of 3 file(s) read)"
+        },
+        {
+          "claim_text": "tool='EvtxECmd' claim='Executable path for fake service: C:\\\\Program Files (x86)\\\\Microsoft Advanced API 64\\\\msadvapi2_64.exe' inv_id='1bc50564-412a-42ae-9a9b-58619d16d1c2'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "1bc50564-412a-42ae-9a9b-58619d16d1c2",
+          "note": "Tool 'EvtxECmd' attested and Tier 2 CSV check passed: exact_value 'C:\\\\Program Files (x86)\\\\Microsoft Advanced API 64\\\\msadvapi2_64.exe' found in CSV output (2 of 3 file(s) read)"
+        },
+        {
+          "claim_text": "tool='EvtxECmd' claim=\"Fake 'Microsoft Advanced API 32' service installed auto-start 2018-05-08T21:07:57Z\" inv_id='1bc50564-412a-42ae-9a9b-58619d16d1c2'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "1bc50564-412a-42ae-9a9b-58619d16d1c2",
+          "note": "Tool 'EvtxECmd' attested and Tier 2 CSV check passed: exact_value 'Name: Microsoft Advanced API 32' found in CSV output (2 of 3 file(s) read)"
+        }
+      ]
+    },
+    {
+      "finding_id": "F-sansproject-004",
+      "total_claims": 3,
+      "grounded": 3,
+      "ungrounded": 0,
+      "contradicted": 0,
+      "inferred_labeled": 0,
+      "grounding_rate": 1.0,
+      "hallucination_rate": 0.0,
+      "passed": true,
+      "claims": [
+        {
+          "claim_text": "tool='EvtxECmd' claim='PsExec-style service a03d616 installed from \\\\\\\\127.0.0.1\\\\C$ 2018-08-27T23:57:45Z' inv_id='1bc50564-412a-42ae-9a9b-58619d16d1c2'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "1bc50564-412a-42ae-9a9b-58619d16d1c2",
+          "note": "Tool 'EvtxECmd' attested and Tier 2 CSV check passed: exact_value 'Name: a03d616' found in CSV output (2 of 3 file(s) read)"
+        },
+        {
+          "claim_text": "tool='EvtxECmd' claim='Executable on admin share \\\\\\\\127.0.0.1\\\\C$\\\\a34e015.exe' inv_id='1bc50564-412a-42ae-9a9b-58619d16d1c2'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "1bc50564-412a-42ae-9a9b-58619d16d1c2",
+          "note": "Tool 'EvtxECmd' attested and Tier 2 CSV check passed: exact_value '\\\\\\\\127.0.0.1\\\\C$\\\\a34e015.exe' found in CSV output (2 of 3 file(s) read)"
+        },
+        {
+          "claim_text": "tool='EvtxECmd' claim='PsExec-style service fb9f33e installed from ADMIN$ 2018-08-30T16:42:44Z' inv_id='1bc50564-412a-42ae-9a9b-58619d16d1c2'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "1bc50564-412a-42ae-9a9b-58619d16d1c2",
+          "note": "Tool 'EvtxECmd' attested and Tier 2 CSV check passed: exact_value 'Name: fb9f33e' found in CSV output (2 of 3 file(s) read)"
+        }
+      ]
+    },
+    {
+      "finding_id": "F-sansproject-005",
+      "total_claims": 2,
+      "grounded": 2,
+      "ungrounded": 0,
+      "contradicted": 0,
+      "inferred_labeled": 0,
+      "grounding_rate": 1.0,
+      "hallucination_rate": 0.0,
+      "passed": true,
+      "claims": [
+        {
+          "claim_text": "tool='MFTECmd' claim='subject_srv.exe $SI LastModified=2018-04-10 predates $FN LastModified=2018-09-06 (timestomping indicator)' inv_id='1c7a2cac-37bd-4dba-a3a6-6821828aad22'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "1c7a2cac-37bd-4dba-a3a6-6821828aad22",
+          "note": "Tool 'MFTECmd' attested in audit log (invocation_id='1c7a2cac-37bd-4dba-a3a6-6821828aad22', parsed_record_count=0). exact_value supplied but no valid csv_files in audit entry \u2014 Tier 2 skipped, Tier 1 attestation only."
+        },
+        {
+          "claim_text": "tool='MFTECmd' claim='$SI LastModified timestamp backdated to 2018-04-10 19:29:48' inv_id='1c7a2cac-37bd-4dba-a3a6-6821828aad22'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "1c7a2cac-37bd-4dba-a3a6-6821828aad22",
+          "note": "Tool 'MFTECmd' attested in audit log (invocation_id='1c7a2cac-37bd-4dba-a3a6-6821828aad22', parsed_record_count=0). exact_value supplied but no valid csv_files in audit entry \u2014 Tier 2 skipped, Tier 1 attestation only."
+        }
+      ]
+    },
+    {
+      "finding_id": "F-sansproject-006",
+      "total_claims": 2,
+      "grounded": 2,
+      "ungrounded": 0,
+      "contradicted": 0,
+      "inferred_labeled": 0,
+      "grounding_rate": 1.0,
+      "hallucination_rate": 0.0,
+      "passed": true,
+      "claims": [
+        {
+          "claim_text": "tool='EvtxECmd' claim='Mnemosyne service installed 2018-09-06T18:28:31Z' inv_id='1bc50564-412a-42ae-9a9b-58619d16d1c2'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "1bc50564-412a-42ae-9a9b-58619d16d1c2",
+          "note": "Tool 'EvtxECmd' attested and Tier 2 CSV check passed: exact_value 'Name: mnemosyne' found in CSV output (2 of 3 file(s) read)"
+        },
+        {
+          "claim_text": "tool='EvtxECmd' claim='Mnemosyne driver path C:\\\\windows/Mnemosyne.sys' inv_id='1bc50564-412a-42ae-9a9b-58619d16d1c2'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "1bc50564-412a-42ae-9a9b-58619d16d1c2",
+          "note": "Tool 'EvtxECmd' attested and Tier 2 CSV check passed: exact_value 'C:\\\\windows/Mnemosyne.sys' found in CSV output (2 of 3 file(s) read)"
+        }
+      ]
+    },
+    {
+      "finding_id": "F-sansproject-007",
+      "total_claims": 3,
+      "grounded": 3,
+      "ungrounded": 0,
+      "contradicted": 0,
+      "inferred_labeled": 0,
+      "grounding_rate": 1.0,
+      "hallucination_rate": 0.0,
+      "passed": true,
+      "claims": [
+        {
+          "claim_text": "tool='AmcacheParser' claim='STUN.exe not present in Amcache (223 entries searched)' inv_id='eb6b0b1c-dfec-4cc2-84e7-5037005e6693'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "eb6b0b1c-dfec-4cc2-84e7-5037005e6693",
+          "note": "Tool 'AmcacheParser' attested in audit log (invocation_id='eb6b0b1c-dfec-4cc2-84e7-5037005e6693', parsed_record_count=223). No exact_value supplied \u2014 Tier 1 attestation only."
+        },
+        {
+          "claim_text": "tool='pyscca' claim='STUN.exe not present in Prefetch (218 files searched)' inv_id='290d4628-d106-483d-8b07-a87b87c8e07b'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "290d4628-d106-483d-8b07-a87b87c8e07b",
+          "note": "Tool 'pyscca' attested in audit log (invocation_id='290d4628-d106-483d-8b07-a87b87c8e07b', parsed_record_count=218). No exact_value supplied \u2014 Tier 1 attestation only."
+        },
+        {
+          "claim_text": "tool='EvtxECmd' claim='STUN.exe not present in 468 EID 4688 process creation events' inv_id='6229e4f2-d791-4c5b-a0c2-6aa9c8bb39cc'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "6229e4f2-d791-4c5b-a0c2-6aa9c8bb39cc",
+          "note": "Tool 'EvtxECmd' attested in audit log (invocation_id='6229e4f2-d791-4c5b-a0c2-6aa9c8bb39cc', parsed_record_count=468). No exact_value supplied \u2014 Tier 1 attestation only."
+        }
+      ]
+    },
+    {
+      "finding_id": "F-sansproject-008",
+      "total_claims": 2,
+      "grounded": 2,
+      "ungrounded": 0,
+      "contradicted": 0,
+      "inferred_labeled": 0,
+      "grounding_rate": 1.0,
+      "hallucination_rate": 0.0,
+      "passed": true,
+      "claims": [
+        {
+          "claim_text": "tool='pyscca' claim='WSMPROVHOST.EXE run_count=58 last_run 2018-09-06T21:20:18Z confirming extensive WinRM activity' inv_id='290d4628-d106-483d-8b07-a87b87c8e07b'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "290d4628-d106-483d-8b07-a87b87c8e07b",
+          "note": "Tool 'pyscca' attested in audit log (invocation_id='290d4628-d106-483d-8b07-a87b87c8e07b', parsed_record_count=218). exact_value supplied but no valid csv_files in audit entry \u2014 Tier 2 skipped, Tier 1 attestation only."
+        },
+        {
+          "claim_text": "tool='pyscca' claim='PS1 policy test scripts loaded from RSYDOW-A temp during WSMPROVHOST execution' inv_id='290d4628-d106-483d-8b07-a87b87c8e07b'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "290d4628-d106-483d-8b07-a87b87c8e07b",
+          "note": "Tool 'pyscca' attested in audit log (invocation_id='290d4628-d106-483d-8b07-a87b87c8e07b', parsed_record_count=218). exact_value supplied but no valid csv_files in audit entry \u2014 Tier 2 skipped, Tier 1 attestation only."
+        }
+      ]
+    },
+    {
+      "finding_id": "F-sansproject-009",
+      "total_claims": 2,
+      "grounded": 2,
+      "ungrounded": 0,
+      "contradicted": 0,
+      "inferred_labeled": 0,
+      "grounding_rate": 1.0,
+      "hallucination_rate": 0.0,
+      "passed": true,
+      "claims": [
+        {
+          "claim_text": "tool='EvtxECmd' claim='LARIAT service installed auto-start LocalSystem 2018-05-07T19:29:07Z' inv_id='1bc50564-412a-42ae-9a9b-58619d16d1c2'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "1bc50564-412a-42ae-9a9b-58619d16d1c2",
+          "note": "Tool 'EvtxECmd' attested and Tier 2 CSV check passed: exact_value 'Name: LARIAT' found in CSV output (2 of 3 file(s) read)"
+        },
+        {
+          "claim_text": "tool='EvtxECmd' claim='LARIAT executable prunsrv.exe path' inv_id='1bc50564-412a-42ae-9a9b-58619d16d1c2'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "1bc50564-412a-42ae-9a9b-58619d16d1c2",
+          "note": "Tool 'EvtxECmd' attested and Tier 2 CSV check passed: exact_value '\"C:\\\\Program Files (x86)\\\\Lincoln\\\\LARIAT\\\\tools\\\\prunsrv.exe\" //RS//LARIAT' found in CSV output (2 of 3 file(s) read)"
+        }
+      ]
+    }
+  ]
+}

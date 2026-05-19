@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "casefile": {
+      "type": "stdio",
+      "command": "/home/sansproject/casefile/venv/bin/python3",
+      "args": ["-m", "mcp_server.server"],
+      "cwd": "/home/sansproject/casefile"
+    }
+  }
+}

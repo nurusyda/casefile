@@ -25,6 +25,30 @@ CASE_DIR="${1:-${CASEFILE_CASE_ROOT:-.}}"
 CASEFILE_CASE_DIR="${CASEFILE_CASE_DIR:-${CASE_DIR}}"
 CASEFILE_CASE_DIR="$(realpath "${CASEFILE_CASE_DIR}")"
 [ -d "${CASEFILE_CASE_DIR}" ] || { log "ERROR: CASEFILE_CASE_DIR is not a directory: ${CASEFILE_CASE_DIR}"; exit 1; }
+cd "${SCRIPT_DIR}" || { log "ERROR: Cannot cd to ${SCRIPT_DIR}"; exit 1; }
+
+# ── Dependency check ──
+command -v jq >/dev/null 2>&1 || { log "ERROR: jq is required but not installed. Run: sudo apt-get install jq"; exit 1; }
+
+# ── Generate .mcp.json with correct CASEFILE_CASE_DIR (jq avoids shell injection) ──
+generate_mcp_json() {
+    jq -n         --arg case_dir "${CASEFILE_CASE_DIR}"         --arg examiner "${CASEFILE_EXAMINER:-casefile}"         --arg script_dir "${SCRIPT_DIR}"         '{
+            mcpServers: {
+                casefile: {
+                    type: "stdio",
+                    command: "\($script_dir)/venv/bin/python3",
+                    args: ["-m", "mcp_server.server"],
+                    cwd: $script_dir,
+                    env: {
+                        CASEFILE_CASE_DIR: $case_dir,
+                        CASEFILE_EXAMINER: $examiner,
+                        PYTHONPATH: $script_dir
+                    }
+                }
+            }
+        }' > "${SCRIPT_DIR}/.mcp.json" \
+    || { log "ERROR: Failed to write .mcp.json — check permissions on ${SCRIPT_DIR}"; exit 1; }
+}
 PRD_FILE="${CASE_DIR}/prd.json"
 PROGRESS_FILE="${CASE_DIR}/analysis/progress.txt"
 LOG_FILE="${CASE_DIR}/analysis/ralph.log"
@@ -97,8 +121,10 @@ PROMPT_EOF
     fi
 
     # Run Claude Code (non-interactive, pipe prompt)
+    # Regenerate .mcp.json with current CASEFILE_CASE_DIR so MCP server inherits it
+    generate_mcp_json
     log "Running Claude Code..."
-    CLAUDE_OUTPUT=$(printf '%s' "${PROMPT}" | claude -p 2>&1) || true
+    CLAUDE_OUTPUT=$(printf '%s' "${PROMPT}" | claude -p --mcp-config "${SCRIPT_DIR}/.mcp.json" 2>&1) || true
     if [ "${#CLAUDE_OUTPUT}" -lt 100 ]; then
         log "Output too short (${#CLAUDE_OUTPUT} chars) — likely rate limit. Exiting."
         exit 1
@@ -180,7 +206,9 @@ PYEOF
                     log "ERROR: grounding_correction_prompt.py failed"
                     exit 1
                 fi
-                CLAUDE_OUTPUT=$(printf '%s' "${CORRECTION_PROMPT}" | claude -p 2>&1) || true
+                # Regenerate .mcp.json with current CASEFILE_CASE_DIR for correction run
+                generate_mcp_json
+                CLAUDE_OUTPUT=$(printf '%s' "${CORRECTION_PROMPT}" | claude -p --mcp-config "${SCRIPT_DIR}/.mcp.json" 2>&1) || true
                 log "Correction ${CORRECTION_ITER} output length: ${#CLAUDE_OUTPUT} chars"
 
                 set +e
