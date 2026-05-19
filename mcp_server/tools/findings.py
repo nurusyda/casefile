@@ -42,6 +42,8 @@ def _next_finding_id(case_dir: Path) -> str:
     if findings_file.exists():
         try:
             data = json.loads(findings_file.read_text(encoding="utf-8"))
+            if isinstance(data, dict):
+                data = data.get("findings", [])
             n = len(data) + 1
         except (json.JSONDecodeError, ValueError, TypeError):
             n = 1
@@ -55,6 +57,8 @@ def _next_timeline_id(case_dir: Path) -> str:
     if tl_file.exists():
         try:
             data = json.loads(tl_file.read_text(encoding="utf-8"))
+            if isinstance(data, dict):
+                data = data.get("timeline", data.get("events", []))
             n = len(data) + 1
         except (json.JSONDecodeError, ValueError, TypeError):
             n = 1
@@ -183,6 +187,8 @@ def record_finding(
     if findings_file.exists():
         try:
             findings = json.loads(findings_file.read_text(encoding="utf-8"))
+            if isinstance(findings, dict):
+                findings = findings.get("findings", [])
         except Exception:
             findings = []
 
@@ -272,6 +278,8 @@ def get_findings(
     if findings_file.exists():
         try:
             findings = json.loads(findings_file.read_text(encoding="utf-8"))
+            if isinstance(findings, dict):
+                findings = findings.get("findings", [])
         except Exception:
             findings = []
 
@@ -310,6 +318,8 @@ def record_timeline_event(
     if tl_file.exists():
         try:
             events = json.loads(tl_file.read_text(encoding="utf-8"))
+            if isinstance(events, dict):
+                events = events.get("timeline", events.get("events", []))
         except Exception:
             events = []
 
