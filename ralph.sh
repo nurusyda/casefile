@@ -124,7 +124,7 @@ PROMPT_EOF
     # Regenerate .mcp.json with current CASEFILE_CASE_DIR so MCP server inherits it
     generate_mcp_json
     log "Running Claude Code..."
-    CLAUDE_OUTPUT=$(printf '%s' "${PROMPT}" | claude -p 2>&1) || true
+    CLAUDE_OUTPUT=$(printf '%s' "${PROMPT}" | claude -p --mcp-config "${SCRIPT_DIR}/.mcp.json" 2>&1) || true
     if [ "${#CLAUDE_OUTPUT}" -lt 100 ]; then
         log "Output too short (${#CLAUDE_OUTPUT} chars) — likely rate limit. Exiting."
         exit 1
@@ -208,7 +208,7 @@ PYEOF
                 fi
                 # Regenerate .mcp.json with current CASEFILE_CASE_DIR for correction run
                 generate_mcp_json
-                CLAUDE_OUTPUT=$(printf '%s' "${CORRECTION_PROMPT}" | claude -p 2>&1) || true
+                CLAUDE_OUTPUT=$(printf '%s' "${CORRECTION_PROMPT}" | claude -p --mcp-config "${SCRIPT_DIR}/.mcp.json" 2>&1) || true
                 log "Correction ${CORRECTION_ITER} output length: ${#CLAUDE_OUTPUT} chars"
 
                 set +e
