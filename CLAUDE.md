@@ -149,11 +149,11 @@ Follow this order for every new investigation:
 
 ```
 OBSERVE:
-  1. parse_amcache(amcache_path=<amcache_path>, output_dir="./analysis/")
-  2. parse_prefetch(prefetch_dir=<prefetch_dir>, output_dir="./analysis/")
-  3. parse_event_logs(evtx_path=<evtx_path>, output_dir="./analysis/", event_ids=[4624,4625,4648,4688,4720,4732,7045,1102])
-  4. parse_registry(hive_path=<hive_path>, output_dir="./analysis/")
-  5. parse_mft(mft_path=<mft_path>, output_dir="./analysis/")
+  1. parse_amcache(amcache_path=<amcache_path>)
+  2. parse_prefetch(prefetch_dir=<prefetch_dir>)
+  3. parse_event_logs(evtx_path=<evtx_path>, event_ids=[4624,4625,4648,4688,4720,4732,7045,1102])
+  4. parse_registry(hive_path=<hive_path>)
+  5. parse_mft(mft_path=<mft_path>)
 
 ORIENT:
   6. Cross-reference Amcache SHA1 hashes against IOCs
