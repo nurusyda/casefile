@@ -104,6 +104,55 @@ Never write a finding without this label. Never upgrade INFERRED to CONFIRMED wi
 
 ---
 
+## CONFIDENCE MAPPING — correlate_evidence VERDICT → record_finding CONFIDENCE
+
+**This is a hard rule. Do not default to INFERRED.**
+
+When calling `record_finding()`, set `confidence=` based on the following:
+
+### Set confidence="CONFIRMED" when ANY of these is true:
+- `correlate_evidence()` returned verdict `CONFIRMED_RUNNING`, `CONFIRMED_HISTORICAL`, or `MEMORY_ONLY`
+- Two or more independent parsers (amcache, prefetch, event_logs, registry, mft) each independently
+  returned the same artifact name, path, or value
+- The artifact value is directly present in raw tool CSV output with no interpretation step required
+
+### Set confidence="INFERRED" when ALL of these apply:
+- Only one parser found the artifact (single-source only)
+- OR the finding involves behavioral interpretation ("likely", "appears to", "suggests", "may have")
+- OR `correlate_evidence()` returned verdict `INSTALLED_NEVER_RAN` or `NOT_FOUND`
+
+### Workflow — read the verdict before deciding:
+```
+result = correlate_evidence(process_name, case_dir)
+verdict = result["verdict"]   # e.g. "CONFIRMED_RUNNING"
+
+if verdict in ("CONFIRMED_RUNNING", "CONFIRMED_HISTORICAL", "MEMORY_ONLY"):
+    confidence = "CONFIRMED"
+elif verdict in ("INSTALLED_NEVER_RAN", "NOT_FOUND"):
+    confidence = "INFERRED"
+else:
+    confidence = "INFERRED"   # fallback — always document why
+```
+
+**Example:**
+```
+correlate_evidence("subject_srv.exe", ...) → verdict: "CONFIRMED_RUNNING"
+→ record_finding(..., confidence="CONFIRMED")   ✅
+
+correlate_evidence("svchost.exe", ...)    → verdict: "INSTALLED_NEVER_RAN"
+→ record_finding(..., confidence="INFERRED")    ✅
+
+parse_registry(...) found a Run key alone  → no correlate_evidence call yet
+→ record_finding(..., confidence="INFERRED")    ✅  (single source)
+```
+
+Never write `confidence="INFERRED"` on a finding whose supporting
+`correlate_evidence()` call returned CONFIRMED_RUNNING or CONFIRMED_HISTORICAL.
+That is a labeling error — it understates certainty and misleads the examiner.
+
+
+---
+
 ## LAW 5 — AUTONOMOUS EXECUTION
 
 You do NOT ask questions during an investigation. Run fully autonomously.
