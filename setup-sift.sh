@@ -175,7 +175,7 @@ if [ ! -f "${SCRIPT_DIR}/.mcp.json" ]; then
         "${SCRIPT_DIR}/.mcp.json.template" > "${SCRIPT_DIR}/.mcp.json" 2>/dev/null; then
         info ".mcp.json created from template (required for Claude Code MCP auto-start)"
     else
-        error "Failed to create .mcp.json — template missing or not writable"
+        die "Failed to create .mcp.json — template missing or not writable"
     fi
 else
     info ".mcp.json already exists — skipping"
