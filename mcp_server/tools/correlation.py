@@ -362,8 +362,9 @@ def _call_parse_memory(
             # Fallback: glob parent directory (SRL-2018 layout)
             img_search_dir = case_path.parent
             _require_within_case_root(img_search_dir)
+            _img_exts = ("img", "mem", "vmem", "raw", "dmp", "001")
             images: list[Path] = []
-            for _ext in ("img", "mem", "vmem", "raw"):
+            for _ext in _img_exts:
                 images = sorted(
                     p for p in img_search_dir.iterdir()
                     if p.is_file() and p.suffix.lower() == f".{_ext}"
@@ -739,7 +740,7 @@ def detect_host_type(case_dir: str) -> dict:
         )
 
         # Memory signal — only inside case_dir (no parent traversal)
-        _mem_exts = {"vmem", "img", "mem", "raw"}
+        _mem_exts = {"vmem", "img", "mem", "raw", "dmp", "001"}
         memory_images: list[Path] = [
             f for f in _dir_entries.values()
             if f.is_file() and f.suffix.lstrip(".").lower() in _mem_exts
