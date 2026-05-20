@@ -19,6 +19,12 @@
 
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LOG_FILE="${SCRIPT_DIR}/ralph.log"
+log() {
+    local ts
+    ts=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+    echo "[${ts}] $*" | tee -a "${LOG_FILE}"
+}
 
 # ─── CONFIG ────────────────────────────────────────────────────────────────────
 CASE_DIR="${1:-${CASEFILE_CASE_ROOT:-.}}"
