@@ -16,6 +16,7 @@ Verdict logic is deterministic (no LLM):
 from __future__ import annotations
 
 import os
+import sys
 import time
 import uuid
 from dataclasses import dataclass, field
@@ -660,3 +661,173 @@ def correlate_evidence(
             examiner=examiner,
             extra=_extra,
         )
+
+
+# ---------------------------------------------------------------------------
+# Host-type detection — Phase 1 discovery before correlate_evidence()
+# ---------------------------------------------------------------------------
+
+#: Recognised host types returned by detect_host_type()
+HOST_TYPES = frozenset({"WORKSTATION", "DOMAIN_CONTROLLER", "MEMORY_ONLY", "UNKNOWN"})
+
+
+def detect_host_type(case_dir: str) -> dict:
+    """Inspect artifact layout under *case_dir* and return the host type.
+
+    The agent MUST call this before correlate_evidence() on any image it has
+    not previously analysed.  The verdict determines which tools and verdict
+    logic are appropriate:
+
+    * WORKSTATION       — Amcache.hve or Prefetch/ present → full
+                          correlate_evidence() pipeline applicable.
+    * DOMAIN_CONTROLLER — Security.evtx >= 50 MB and no Amcache →
+                          event-log correlation is the primary evidence source;
+                          correlate_evidence() will have limited value.
+    * MEMORY_ONLY       — memory image present but no disk artifacts →
+                          use parse_memory() only.
+    * UNKNOWN           — insufficient artifacts to classify; proceed with
+                          caution and document the gap.
+
+    Args:
+        case_dir: Path to the case directory (same value passed to
+                  correlate_evidence).
+
+    Returns:
+        dict with keys:
+            host_type       — one of HOST_TYPES
+            indicators      — list of detected artifact paths/sizes
+            recommendation  — short string advising which tools to use
+            invocation_id   — UUID for audit traceability
+    """
+    invocation_id = str(uuid.uuid4())
+    t_start = time.monotonic()
+    _returncode = 1
+    host_type = "UNKNOWN"
+    indicators: list[str] = []
+    recommendation = ""
+
+    try:
+        if not case_dir or not str(case_dir).strip():
+            raise ValueError("case_dir must be a non-empty string")
+
+        case_path = _resolve_case_dir(case_dir)  # enforces CASEFILE_CASE_ROOT confinement
+        if not case_path.is_dir():
+            raise ValueError(f"case_dir is not a directory: {case_dir!r}")
+
+        # ── artifact probes (case-insensitive on Linux) ─────────────────────
+        # Build a lowercase name → Path map for all entries in case_dir
+        try:
+            _dir_entries = {f.name.lower(): f for f in case_path.iterdir()}
+        except PermissionError:
+            _dir_entries = {}
+
+        # Workstation signals
+        amcache_present = "amcache.hve" in _dir_entries
+        prefetch_present = (
+            ("prefetch" in _dir_entries and _dir_entries["prefetch"].is_dir())
+            or bool(list(case_path.glob("*.[Pp][Ff]")))
+        )
+
+        # Domain controller signal — Security.evtx >= 50 MB
+        sec_evtx_path: Path | None = None
+        for candidate_name in ("security.evtx",):
+            if candidate_name in _dir_entries:
+                sec_evtx_path = _dir_entries[candidate_name]
+                break
+        # also check evtx/ subdirectory
+        if sec_evtx_path is None and "evtx" in _dir_entries:
+            evtx_sub = _dir_entries["evtx"]
+            if evtx_sub.is_dir():
+                try:
+                    sub_entries = {f.name.lower(): f for f in evtx_sub.iterdir()}
+                    if "security.evtx" in sub_entries:
+                        sec_evtx_path = sub_entries["security.evtx"]
+                except PermissionError:
+                    pass
+        dc_evtx_large = (
+            sec_evtx_path is not None
+            and sec_evtx_path.stat().st_size >= 50 * 1024 * 1024  # 50 MB
+        )
+
+        # Memory signal — only inside case_dir (no parent traversal)
+        _mem_exts = {"vmem", "img", "mem", "raw"}
+        memory_images: list[Path] = [
+            f for f in _dir_entries.values()
+            if f.is_file() and f.suffix.lstrip(".").lower() in _mem_exts
+        ]
+
+        # ── classification logic ────────────────────────────────────────────
+        if amcache_present or prefetch_present:
+            host_type = "WORKSTATION"
+            if amcache_present:
+                indicators.append(f"Amcache.hve found at {case_path / 'Amcache.hve'}")
+            if prefetch_present:
+                indicators.append(f"Prefetch artifacts found under {case_path}")
+            recommendation = (
+                "Use full correlate_evidence() pipeline. "
+                "parse_amcache(), parse_prefetch(), parse_mft(), parse_memory() all applicable."
+            )
+
+        elif dc_evtx_large and not amcache_present:
+            host_type = "DOMAIN_CONTROLLER"
+            size_mb = round(sec_evtx_path.stat().st_size / (1024 * 1024), 1)
+            indicators.append(
+                f"Security.evtx at {sec_evtx_path} ({size_mb} MB >= 50 MB threshold)"
+            )
+            indicators.append("No Amcache.hve — consistent with domain controller role")
+            recommendation = (
+                "Primary evidence: parse_event_logs() on Security.evtx with "
+                "EIDs [4624, 4625, 4648, 4768, 4769, 4771, 7045, 4720, 4728, 1102]. "
+                "correlate_evidence() has limited value — DC rarely has Prefetch/Amcache. "
+                "Use parse_registry() on SYSTEM/SECURITY hives for service installs."
+            )
+
+        elif memory_images and not amcache_present and not prefetch_present:
+            host_type = "MEMORY_ONLY"
+            for img in memory_images[:3]:
+                indicators.append(f"Memory image: {img}")
+            recommendation = (
+                "Use parse_memory() only. "
+                "No disk artifacts detected — confine claims to memory evidence."
+            )
+
+        else:
+            host_type = "UNKNOWN"
+            indicators.append(f"No definitive artifacts found under {case_path}")
+            if sec_evtx_path:
+                size_mb = round(sec_evtx_path.stat().st_size / (1024 * 1024), 1)
+                indicators.append(
+                    f"Security.evtx present but small ({size_mb} MB < 50 MB threshold)"
+                )
+            recommendation = (
+                "Proceed with caution. Run parse_event_logs() if evtx files exist, "
+                "parse_registry() if hives exist. Document artifact gaps explicitly."
+            )
+
+        _returncode = 0
+        return {
+            "host_type": host_type,
+            "indicators": indicators,
+            "recommendation": recommendation,
+            "invocation_id": invocation_id,
+        }
+
+    finally:
+        elapsed_ms = (time.monotonic() - t_start) * 1000
+        examiner = os.environ.get("CASEFILE_EXAMINER", "unknown")
+        try:
+            audit_log(
+                tool="detect_host_type",
+                invocation_id=invocation_id,
+                cmd=f"detect_host_type(case_dir={case_dir!r})",
+                returncode=_returncode,
+                stdout_lines=0,
+                stderr_excerpt="",
+                parsed_record_count=len(indicators),
+                duration_ms=round(elapsed_ms),
+                examiner=examiner,
+                extra={"case_dir": str(case_dir), "host_type": host_type},
+            )
+        except Exception as _audit_exc:
+            print(f"[detect_host_type] audit_log failed (ignored): {_audit_exc}",
+                  file=sys.stderr)
