@@ -1,6 +1,6 @@
 # CaseFile -- Anti-Hallucination Guardrails
 
-This document describes every guardrail in CaseFile's 11-layer anti-hallucination stack.
+This document describes every guardrail in CaseFile's 14-layer anti-hallucination stack.
 Each layer is labeled by enforcement type:
 
 - **ARCH** -- Architectural: enforced in code, cannot be bypassed by prompt
@@ -238,18 +238,21 @@ This prevents the LLM from substituting one hallucination for another.
 
 ---
 
-## What Is Not Guardrailed (Honest Disclosure)
+## Layers L12–L14 (Originally Planned Post-Submission, Pulled Forward)
 
-| Gap | Status | Rationale |
-|---|---|---|
-| Per-claim confidence scoring | ✅ `findings.py` — `_agg()` aggregates claim confidence from evidence_quotes | `test_findings.py` — claim_confidence field asserted |
-| Cross-source contradiction detector | ✅ `correlation.py:479` — `detect_contradictions()` called at line 627 | `test_correlation.py` — contradiction cases covered |
-| Evidence provenance tagging | ✅ `_shared.py` — `audit_log()` appends provenance records; findings link via `supporting_invocation_ids` | Every finding integration test asserts invocation_id present |
-| Training data contamination guard | ✅ `grounding.py:871` — `detect_baseline_assumptions()` live | `test_grounding.py` — baseline assumption detection tested |
+These four improvements were originally planned as post-submission work but were
+built during the pre-submission sprint and are now part of the 14-layer stack:
 
-The 11 implemented layers address the primary hallucination vectors identified in
-production runs. The 4 planned improvements address edge cases that did not appear
-in the SRL-2018 investigation.
+| Layer | Name | Type | What It Prevents | How It Is Tested |
+|---|---|---|---|---|
+| L12 | Per-claim confidence scoring | ARCH | Overconfident aggregate findings masking weak claims | `findings.py` — `_agg()`; `test_findings.py` |
+| L13 | Cross-source contradiction detector | ARCH | Conflicting verdicts both accepted | `correlation.py:479` — `detect_contradictions()`; `test_correlation.py` |
+| L14 | Evidence provenance tagging | ARCH | Findings not linked to tool invocations | `_shared.py` — `audit_log()` provenance; every integration test |
+
+Training data contamination guard (`detect_baseline_assumptions()` at
+`grounding.py:871`) is part of L9 — runs during `verify_finding_claims()`.
+
+All 14 layers are implemented and tested.
 
 ---
 
