@@ -110,16 +110,24 @@ Never write a finding without this label. Never upgrade INFERRED to CONFIRMED wi
 
 When calling `record_finding()`, set `confidence=` based on the following:
 
-### Set confidence="CONFIRMED" when ANY of these is true:
-- `correlate_evidence()` returned verdict `CONFIRMED_RUNNING`, `CONFIRMED_HISTORICAL`, or `MEMORY_ONLY`
-- Two or more independent parsers (amcache, prefetch, event_logs, registry, mft) each independently
-  returned the same artifact name, path, or value
-- The artifact value is directly present in raw tool CSV output with no interpretation step required
+### Primary rule — when you called correlate_evidence():
+| Verdict | confidence |
+|---|---|
+| `CONFIRMED_RUNNING` | `"CONFIRMED"` |
+| `CONFIRMED_HISTORICAL` | `"CONFIRMED"` |
+| `MEMORY_ONLY` | `"CONFIRMED"` |
+| `INSTALLED_NEVER_RAN` | `"INFERRED"` |
+| `NOT_FOUND` | `"INFERRED"` |
 
-### Set confidence="INFERRED" when ALL of these apply:
-- Only one parser found the artifact (single-source only)
-- OR the finding involves behavioral interpretation ("likely", "appears to", "suggests", "may have")
-- OR `correlate_evidence()` returned verdict `INSTALLED_NEVER_RAN` or `NOT_FOUND`
+The verdict is deterministic. Do not override it with other reasoning.
+
+### Fallback rule — when correlate_evidence() was NOT called (e.g. a Run key, a log event):
+- The finding involves behavioral interpretation ("likely", "appears to", "suggests") → `"INFERRED"`
+- The finding has direct CSV evidence but no correlate_evidence() verdict → `"INFERRED"`
+- No artifact evidence at all → `"INFERRED"` (note absence explicitly in observation text)
+
+Note: You may NOT declare `"CONFIRMED"` without a `correlate_evidence()` verdict.
+If you have multi-parser agreement but have not called `correlate_evidence()`, call it first.
 
 ### Workflow — read the verdict before deciding:
 ```
@@ -128,8 +136,10 @@ verdict = result["verdict"]   # e.g. "CONFIRMED_RUNNING"
 
 if verdict in ("CONFIRMED_RUNNING", "CONFIRMED_HISTORICAL", "MEMORY_ONLY"):
     confidence = "CONFIRMED"
-elif verdict in ("INSTALLED_NEVER_RAN", "NOT_FOUND"):
-    confidence = "INFERRED"
+elif verdict == "INSTALLED_NEVER_RAN":
+    confidence = "INFERRED"   # one source (MFT only) — single-source inference
+elif verdict == "NOT_FOUND":
+    confidence = "INFERRED"   # no artifact found — note absence in observation text
 else:
     confidence = "INFERRED"   # fallback — always document why
 ```
@@ -147,7 +157,8 @@ parse_registry(...) found a Run key alone  → no correlate_evidence call yet
 ```
 
 Never write `confidence="INFERRED"` on a finding whose supporting
-`correlate_evidence()` call returned CONFIRMED_RUNNING or CONFIRMED_HISTORICAL.
+`correlate_evidence()` call returned CONFIRMED_RUNNING, CONFIRMED_HISTORICAL,
+or MEMORY_ONLY.
 That is a labeling error — it understates certainty and misleads the examiner.
 
 
@@ -263,6 +274,24 @@ Do NOT use IOCs from memory or from a previous case. Always read the file.
 If no IOC file exists, proceed without IOC cross-referencing and note the absence.
 
 ---
+## SESSION HYGIENE — INVOCATION IDs
+
+**CRITICAL: Never reference an invocation_id from a previous session.**
+
+Every ralph.sh run generates fresh invocation_ids. An ID from a prior run
+does NOT exist in this session's audit log — referencing it will cause an
+UNGROUNDED claim and lower the grounding rate.
+
+Rules:
+1. If a tool was called in a prior run and you need its evidence, call it again now.
+2. Never copy an invocation_id from memory, from findings.json, or from a report.
+3. The only valid invocation_ids are ones returned by MCP tool calls in THIS session.
+4. If you cannot re-run a tool (e.g. path confinement), do not record a finding
+   based on that tool's output. Record the gap as a HYPOTHESIS with a note that
+   evidence could not be reproduced this session.
+
+---
+
 ## BLOCKED COMMANDS (ARCHITECTURAL DENYLIST)
 
 The following commands are in `BLOCKED_COMMANDS` frozenset in `findings.py`.
