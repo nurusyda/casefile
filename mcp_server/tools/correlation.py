@@ -74,6 +74,7 @@ VERDICTS = frozenset({
     "INSTALLED_NEVER_RAN",
     "MEMORY_ONLY",
     "NOT_FOUND",
+    "ERROR",
 })
 
 _VERDICT_CONFIDENCE: dict[str, str] = {
@@ -82,6 +83,7 @@ _VERDICT_CONFIDENCE: dict[str, str] = {
     "MEMORY_ONLY":          "CONFIRMED",
     "INSTALLED_NEVER_RAN":  "INFERRED",
     "NOT_FOUND":            "HYPOTHESIS",
+    "ERROR":                "INFERRED",
 }
 
 
@@ -138,6 +140,19 @@ def _decide_verdict(
     Returns:
         Tuple of (verdict_string, human-readable reasoning).
     """
+    # If any parser crashed, return ERROR so callers know the verdict is unreliable.
+    # A tool crash must not silently degrade to NOT_FOUND or INSTALLED_NEVER_RAN.
+    errored = [s for s in (amcache, prefetch, memory, mft) if s.error]
+    if errored:
+        error_summary = "; ".join(
+            f"{s.source}: {s.error}" for s in errored
+        )
+        return (
+            "ERROR",
+            f"One or more parsers failed — verdict unreliable. "
+            f"Errors: {error_summary}",
+        )
+
     in_memory = memory.present
     has_execution = amcache.present or prefetch.present
     on_disk = mft.present
