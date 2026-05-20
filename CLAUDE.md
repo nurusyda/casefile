@@ -209,6 +209,13 @@ Follow this order for every new investigation:
 
 ```
 OBSERVE:
+  - FIRST: call detect_host_type(case_dir) to classify the image before any parser calls.
+    The returned `host_type` and `recommendation` fields constrain which tools to run:
+    WORKSTATION → run full correlate_evidence() pipeline (Amcache + Prefetch + MFT + memory)
+    DOMAIN_CONTROLLER → pivot to event log correlation as primary evidence source (Security.evtx, System.evtx)
+    MEMORY_ONLY → use parse_memory() / Volatility3 exclusively
+    UNKNOWN → run parse_event_logs() first to discover what artifact profile exists
+  - Then proceed:
   1. parse_amcache(amcache_path=<amcache_path>)
   2. parse_prefetch(prefetch_dir=<prefetch_dir>)
   3. parse_event_logs(evtx_path=<evtx_path>, event_ids=[4624,4625,4648,4688,4720,4732,7045,1102])
