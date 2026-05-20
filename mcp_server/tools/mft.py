@@ -60,7 +60,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
-from mcp_server.tools._shared import audit_log, run_tool, PathConfinementError, _enforce_case_root
+from mcp_server.tools._shared import audit_log, run_tool, PathConfinementError, _enforce_case_root, _load_case_iocs
 
 # Verified path on Protocol SIFT, April 28 2026
 MFTECMD_BIN = "dotnet /opt/zimmermantools/MFTECmd.dll"
@@ -80,15 +80,6 @@ _SUSPICIOUS_PATHS = [
     "\\downloads\\",
     "\\windows\\fonts\\",
     "\\windows\\tasks\\",
-]
-
-# CRIMSON OSPREY known IOC filenames
-_KNOWN_IOCS = [
-    "stun.exe",
-    "msedge.exe",
-    "pssdnsvc.exe",
-    "pssdnsvc",
-    "atmfd.dll",
 ]
 
 
@@ -211,7 +202,7 @@ def _check_timestomping(
     return False, None
 
 
-def _flag_suspicious(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _flag_suspicious(entries: list[dict[str, Any]], known_iocs: list[str] | None = None) -> list[dict[str, Any]]:
     """
     Pre-filter MFT entries warranting analyst review.
     Returns subset with 'suspicion_reasons' list.
@@ -240,11 +231,11 @@ def _flag_suspicious(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 f"(entry {e['mft_entry']})"
             )
 
-        # Known IOC filenames
-        for ioc in _KNOWN_IOCS:
-            if ioc in name_lower:
+        # Case-specific IOC filenames (loaded from prd.json at runtime)
+        for ioc in (known_iocs or []):
+            if ioc.lower() in name_lower:
                 reasons.append(
-                    f"Known CRIMSON OSPREY IOC filename: '{e['filename']}' "
+                    f"IOC match: '{e['filename']}' matches '{ioc}' "
                     f"at {e['full_path']}"
                 )
                 break
@@ -536,7 +527,8 @@ def parse_mft(
     timestomped = [e for e in all_entries if e.get("timestomped")]
 
     # ── Flag suspicious entries ───────────────────────────────────────────────
-    suspicious = _flag_suspicious(working_set if filename_filter else all_entries)
+    _known_iocs, _ = _load_case_iocs()
+    suspicious = _flag_suspicious(working_set if filename_filter else all_entries, known_iocs=_known_iocs)
 
     # ── Build final entries list ──────────────────────────────────────────────
     if filename_filter:

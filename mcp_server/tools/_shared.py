@@ -116,6 +116,32 @@ def audit_log(
         record.update(extra)
     with _af.open("a", encoding="utf-8") as fh:
         fh.write(json.dumps(record) + "\n")
+def _load_case_iocs() -> tuple[list[str], list[str]]:
+    """Load case-specific IOC lists from prd.json in CASEFILE_CASE_DIR.
+
+    Returns (known_iocs, suspicious_patterns). Both lists are empty when
+    prd.json is absent or the keys are missing — parsers degrade gracefully
+    to generic suspicious-path detection only.
+
+    Keys expected in prd.json:
+      "known_iocs"          — filenames / short strings for MFT IOC matching
+      "suspicious_patterns" — substring patterns for registry value matching
+    """
+    case_dir = os.environ.get("CASEFILE_CASE_DIR", "")
+    if not case_dir:
+        return [], []
+    prd = Path(case_dir) / "prd.json"
+    if not prd.exists():
+        return [], []
+    try:
+        data = json.loads(prd.read_text(encoding="utf-8"))
+        known_iocs = [str(s) for s in data.get("known_iocs", [])]
+        suspicious_patterns = [str(s) for s in data.get("suspicious_patterns", [])]
+        return known_iocs, suspicious_patterns
+    except (json.JSONDecodeError, OSError):
+        return [], []
+
+
 def run_tool(cmd: str, timeout: int = 300) -> subprocess.CompletedProcess:
     """
     Run cmd as a subprocess. Capture stdout and stderr.

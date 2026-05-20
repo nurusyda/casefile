@@ -227,9 +227,9 @@ class TestFlagSuspicious:
 
     def test_ioc_filename_flagged(self):
         ioc = next(e for e in self.entries if "msedge" in e["filename"].lower())
-        flagged = _flag_suspicious([ioc])
+        flagged = _flag_suspicious([ioc], known_iocs=["msedge.exe"])
         assert len(flagged) == 1
-        assert any("ioc" in r.lower() or "crimson" in r.lower()
+        assert any("ioc" in r.lower() or "match" in r.lower()
                    for r in flagged[0]["suspicion_reasons"])
 
     def test_zone_id_flagged(self):

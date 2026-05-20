@@ -73,7 +73,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
-from mcp_server.tools._shared import audit_log, run_tool, PathConfinementError, _enforce_case_root
+from mcp_server.tools._shared import audit_log, run_tool, PathConfinementError, _enforce_case_root, _load_case_iocs
 
 # Verified paths on Protocol SIFT, April 28 2026
 # NOTE: RECmd is in a subdirectory — unlike other EZ Tools at /opt/zimmermantools/
@@ -93,7 +93,8 @@ _PERSISTENCE_CATEGORIES = {
     "scheduledtasks",
 }
 
-# Suspicious value data patterns — flag these regardless of category
+# Generic suspicious value data patterns — case-independent LOLBins and staging paths.
+# Case-specific IOCs (malware names, C2 IPs) are loaded from prd.json at runtime.
 _SUSPICIOUS_DATA_PATTERNS = [
     "powershell",
     "cmd.exe",
@@ -111,10 +112,6 @@ _SUSPICIOUS_DATA_PATTERNS = [
     "\\temp\\",
     "\\appdata\\",
     "\\users\\public\\",
-    "stun.exe",
-    "pssdnsvc",
-    "172.15.1.20",
-    "172.16.6.12",
 ]
 
 # Known clean Run key entries — reduces noise in suspicious output
@@ -172,7 +169,7 @@ def _parse_recmd_csv(csv_text: str) -> list[dict[str, Any]]:
     return entries
 
 
-def _flag_suspicious(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _flag_suspicious(entries: list[dict[str, Any]], case_iocs: list[str] | None = None) -> list[dict[str, Any]]:
     """
     Pre-filter registry entries warranting analyst review.
     Returns subset with 'suspicion_reasons' list.
@@ -212,13 +209,14 @@ def _flag_suspicious(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 f"{e['key_path']}"
             )
 
-        # Known IOC strings in key path or value name
-        iocs = ["stun", "pssdnsvc", "172.15.1.20", "172.16.6.12"]
-        for ioc in iocs:
-            if ioc in key_lower or ioc in e.get("value_name", "").lower():
+        # Case-specific IOC strings in key path, value name, or value data (loaded from prd.json)
+        for ioc in (case_iocs or []):
+            ioc_lower = ioc.lower()
+            if (ioc_lower in key_lower
+                    or ioc_lower in e.get("value_name", "").lower()
+                    or ioc_lower in data_lower):
                 reasons.append(
-                    f"Known CRIMSON OSPREY IOC in registry key: '{ioc}' — "
-                    f"{e['key_path']}"
+                    f"IOC match: '{ioc}' in registry entry: {e['key_path']}"
                 )
                 break
 
@@ -484,7 +482,8 @@ def parse_registry(
     category_summary = _build_category_summary(all_entries)
 
     # ── Flag suspicious entries ───────────────────────────────────────────────
-    suspicious = _flag_suspicious(all_entries)
+    _known_iocs, _susp_patterns = _load_case_iocs()
+    suspicious = _flag_suspicious(all_entries, case_iocs=_known_iocs + _susp_patterns)
 
     # ── Cap for context window ────────────────────────────────────────────────
     total = len(all_entries)
