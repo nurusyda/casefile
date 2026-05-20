@@ -2,9 +2,9 @@
   "mcpServers": {
     "casefile": {
       "type": "stdio",
-      "command": "/home/sansproject/casefile/venv/bin/python3",
+      "command": "__CASEFILE_DIR__/venv/bin/python3",
       "args": ["-m", "mcp_server.server"],
-      "cwd": "/home/sansproject/casefile"
+      "cwd": "__CASEFILE_DIR__"
     }
   }
 }

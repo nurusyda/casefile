@@ -129,7 +129,6 @@ def record_finding(
             extra={
                 "finding_id": None,
                 "confidence": confidence,
-                "examiner": _examiner(),
                 "evidence_quotes_count": 0,
                 "validation_error": "GroundingSchemaError",
             },
@@ -156,7 +155,6 @@ def record_finding(
                 extra={
                     "finding_id": None,
                     "confidence": confidence,
-                    "examiner": _examiner(),
                     "evidence_quotes_count": len(_eq),
                     "validation_error": "GroundingSchemaError",
                 },
@@ -251,7 +249,6 @@ def record_finding(
             "finding_id": finding_id,
             "status": "DRAFT",
             "confidence": confidence,
-            "examiner": _examiner(),
             "evidence_quotes_count": len(_eq),
             "grounding_warning": _grounding_warning,
         },
@@ -356,7 +353,6 @@ def record_timeline_event(
             "finding_id": event_id,
             "event_type": event_type,
             "timestamp": timestamp,
-            "examiner": _examiner(),
         },
     )
 
@@ -395,7 +391,7 @@ def approve_finding(finding_id: str) -> dict:
             stderr_excerpt=error[:500],
             parsed_record_count=0 if returncode != 0 else 1,
             duration_ms=0,
-            extra={"finding_id": finding_id, "examiner": examiner},
+            extra={"finding_id": finding_id},
         )
 
     case_dir = _case_dir()

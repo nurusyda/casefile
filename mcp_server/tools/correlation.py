@@ -24,7 +24,7 @@ from typing import Any
 
 from pathlib import Path
 
-from mcp_server.tools._shared import audit_log
+from mcp_server.tools._shared import audit_log, PathConfinementError, _enforce_case_root
 from mcp_server.tools.amcache import parse_amcache
 from mcp_server.tools.prefetch import parse_prefetch
 from mcp_server.tools.memory import parse_memory
@@ -37,32 +37,6 @@ from mcp_server.tools.mft import parse_mft
 
 class CorrelationToolError(Exception):
     """Typed error for the correlation tool."""
-
-# --------------------------------------------------------------------------- #
-# Path confinement helper
-# --------------------------------------------------------------------------- #
-
-def _enforce_case_root(path: Path) -> None:
-    """Raise CorrelationToolError if path escapes CASEFILE_CASE_ROOT (when set).
-
-    Single implementation of the confinement check — both _resolve_case_dir
-    and _require_within_case_root delegate here to prevent divergence.
-    Security-sensitive: any change to confinement logic must happen here only.
-    """
-    case_root_env = os.environ.get("CASEFILE_CASE_ROOT")
-    if not case_root_env:
-        if "CASEFILE_CASE_ROOT" in os.environ:
-            raise CorrelationToolError(
-                "CASEFILE_CASE_ROOT is set but empty — path confinement cannot be applied"
-            )
-        return
-    root = Path(case_root_env).resolve()
-    try:
-        path.resolve().relative_to(root)
-    except ValueError as exc:
-        raise CorrelationToolError(
-            f"path escapes case root: {path}"
-        ) from exc
 
 
 def _resolve_case_dir(case_dir: str) -> Path:
@@ -80,7 +54,7 @@ def _resolve_case_dir(case_dir: str) -> Path:
         resolved = (case_root / case_dir).resolve()
         try:
             _enforce_case_root(resolved)
-        except CorrelationToolError as exc:
+        except PathConfinementError as exc:
             raise CorrelationToolError(
                 f"case_dir escapes case root: {case_dir!r} resolves to {resolved}"
             ) from exc

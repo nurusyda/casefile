@@ -171,7 +171,7 @@ fi
 # ─────────────────────────────────────────────────────────────────────────────
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 if [ ! -f "${SCRIPT_DIR}/.mcp.json" ]; then
-    if sed "s|/home/sansproject/casefile|${SCRIPT_DIR}|g" \
+    if sed "s|__CASEFILE_DIR__|${SCRIPT_DIR}|g" \
         "${SCRIPT_DIR}/.mcp.json.template" > "${SCRIPT_DIR}/.mcp.json" 2>/dev/null; then
         info ".mcp.json created from template (required for Claude Code MCP auto-start)"
     else

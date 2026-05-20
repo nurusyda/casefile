@@ -36,12 +36,6 @@ _SUSPICIOUS_PATHS = [
     "\\downloads\\",
 ]
 
-# High-confidence staging paths — almost never legitimate
-_HIGH_CONFIDENCE_PATHS = [
-    "\\windows\\temp\\perfmon\\",
-    "\\windows\\temp\\perfmon\\",
-]
-
 _LOLBAS = {
     "certutil.exe", "mshta.exe", "regsvr32.exe", "rundll32.exe",
     "msiexec.exe", "wscript.exe", "cscript.exe", "powershell.exe",

@@ -15,6 +15,30 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
+
+class PathConfinementError(ValueError):
+    """Raised when a path escapes CASEFILE_CASE_ROOT."""
+
+
+def _enforce_case_root(path: Path) -> None:
+    """Raise PathConfinementError if path escapes CASEFILE_CASE_ROOT (when set).
+
+    When CASEFILE_CASE_ROOT is unset the function is a no-op (dev/test mode).
+    Security-sensitive: all parser tools delegate path confinement here.
+    """
+    case_root_env = os.environ.get("CASEFILE_CASE_ROOT")
+    if not case_root_env:
+        if "CASEFILE_CASE_ROOT" in os.environ:
+            raise PathConfinementError(
+                "CASEFILE_CASE_ROOT is set but empty — path confinement cannot be applied"
+            )
+        return
+    root = Path(case_root_env).resolve()
+    try:
+        path.resolve().relative_to(root)
+    except ValueError as exc:
+        raise PathConfinementError(f"path escapes case root: {path}") from exc
+
 # Audit log location — follows CASEFILE_CASE_DIR if set, else repo root.
 # This allows ralph.sh to direct audit output to the active case directory.
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -84,6 +108,11 @@ def audit_log(
         "duration_ms": duration_ms,
     }
     if extra:
+        collisions = set(record) & set(extra)
+        if collisions:
+            raise ValueError(
+                f"audit_log extra dict collides with standard fields: {sorted(collisions)}"
+            )
         record.update(extra)
     with _af.open("a", encoding="utf-8") as fh:
         fh.write(json.dumps(record) + "\n")

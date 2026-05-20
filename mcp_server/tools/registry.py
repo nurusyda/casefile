@@ -73,7 +73,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
-from mcp_server.tools._shared import audit_log, run_tool
+from mcp_server.tools._shared import audit_log, run_tool, PathConfinementError, _enforce_case_root
 
 # Verified paths on Protocol SIFT, April 28 2026
 # NOTE: RECmd is in a subdirectory — unlike other EZ Tools at /opt/zimmermantools/
@@ -349,6 +349,10 @@ def parse_registry(
 
     # ── Validate input ────────────────────────────────────────────────────────
     hive_path = Path(hive_dir)
+    try:
+        _enforce_case_root(hive_path)
+    except PathConfinementError as exc:
+        return _error_result(invocation_id, hive_dir, str(exc))
     if not hive_path.exists():
         return _error_result(
             invocation_id, hive_dir,

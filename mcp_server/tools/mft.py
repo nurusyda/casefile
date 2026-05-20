@@ -60,7 +60,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
-from mcp_server.tools._shared import audit_log, run_tool
+from mcp_server.tools._shared import audit_log, run_tool, PathConfinementError, _enforce_case_root
 
 # Verified path on Protocol SIFT, April 28 2026
 MFTECMD_BIN = "dotnet /opt/zimmermantools/MFTECmd.dll"
@@ -403,6 +403,10 @@ def parse_mft(
 
     # ── Validate input ────────────────────────────────────────────────────────
     mft = Path(mft_path)
+    try:
+        _enforce_case_root(mft)
+    except PathConfinementError as exc:
+        return _error_result(invocation_id, mft_path, str(exc))
     if not mft.exists():
         return _error_result(
             invocation_id, mft_path,
