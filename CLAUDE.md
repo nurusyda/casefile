@@ -211,16 +211,19 @@ Follow this order for every new investigation:
 OBSERVE:
   - FIRST: call detect_host_type(case_dir) to classify the image before any parser calls.
     The returned `host_type` and `recommendation` fields constrain which tools to run:
-    WORKSTATION → run full correlate_evidence() pipeline (Amcache + Prefetch + MFT + memory)
-    DOMAIN_CONTROLLER → pivot to event log correlation as primary evidence source (Security.evtx, System.evtx)
-    MEMORY_ONLY → use parse_memory() / Volatility3 exclusively
-    UNKNOWN → run parse_event_logs() first to discover what artifact profile exists
-  - Then proceed:
-  1. parse_amcache(amcache_path=<amcache_path>)
-  2. parse_prefetch(prefetch_dir=<prefetch_dir>)
+    WORKSTATION → parse_amcache(), parse_prefetch(), parse_mft(), parse_memory(), then correlate_evidence()
+    DOMAIN_CONTROLLER → primary: parse_event_logs() (Security.evtx, System.evtx), then parse_registry()
+    MEMORY_ONLY → parse_memory() exclusively
+    UNKNOWN → parse_event_logs() first to discover what artifact profile exists
+  - Then call ONLY the tools indicated by host_type above. Do not call all parsers unconditionally.
+    For WORKSTATION: steps 1-5 below apply.
+    For DOMAIN_CONTROLLER: skip steps 1-2 (no Amcache/Prefetch), run steps 3-4 only.
+    For MEMORY_ONLY: skip steps 1-5, use parse_memory() only.
+  1. parse_amcache(amcache_path=<amcache_path>)          [WORKSTATION only]
+  2. parse_prefetch(prefetch_dir=<prefetch_dir>)          [WORKSTATION only]
   3. parse_event_logs(evtx_path=<evtx_path>, event_ids=[4624,4625,4648,4688,4720,4732,7045,1102])
   4. parse_registry(hive_path=<hive_path>)
-  5. parse_mft(mft_path=<mft_path>)
+  5. parse_mft(mft_path=<mft_path>)                      [WORKSTATION only]
 
 ORIENT:
   6. Cross-reference Amcache SHA1 hashes against IOCs
