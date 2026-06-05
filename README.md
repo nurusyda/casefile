@@ -253,14 +253,30 @@ quality, not exhaustiveness.*
 
 ---
 
+## Runs on SIFT Workstation OR Plain Ubuntu 22.04
+
+Most Find Evil! submissions assume the SANS SIFT Workstation as the
+runtime environment. CaseFile supports two installation paths:
+
+- **On SIFT Workstation:** `bash setup-sift.sh` detects existing EZ Tools,
+  Volatility 3, and .NET installations and configures CaseFile on top.
+- **On plain Ubuntu 22.04:** The same script installs everything from
+  scratch — .NET 9 SDK, EZ Tools, Volatility 3, and CaseFile itself.
+
+This means a judge can reproduce our results without downloading the
+3GB SIFT OVA, and CaseFile can run in any cloud or container environment
+that supports Ubuntu 22.04.
+
+---
+
 ## Quick Start
 
 ### Prerequisites
 
 | Dependency | Version | Notes |
 |---|---|---|
-| SIFT Workstation | Ubuntu 22.04 | [SIFT Workstation](https://www.sans.org/tools/sift-workstation/) |
-| Python | 3.10+ | Pre-installed on SIFT |
+| SIFT Workstation | Ubuntu 22.04 | Works on SIFT Workstation OR plain Ubuntu 22.04 |
+| Python | 3.10+ | Pre-installed on Ubuntu 22.04 |
 | EZ Tools | latest | `/opt/zimmermantools/` — installed by `bash setup-sift.sh` |
 | Volatility 3 | latest | `pip install volatility3 --break-system-packages` |
 | Hayabusa | v3.9.0+ | Binary at `/usr/local/bin/hayabusa`, rules at `/opt/hayabusa-rules` |
