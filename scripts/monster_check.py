@@ -268,11 +268,11 @@ CURRENT STATE OF THE REPO (as of this review):
   - Findings system: record_finding(), get_findings(), record_timeline_event()
     with CONFIRMED/INFERRED distinction. Human-in-the-loop approve gate
     (cli_approve)  -  AI cannot call it.
-  - Accuracy harness: accuracy.py + CFA-Bench, 8/8 checkpoints passed; checkpoint progress tracked in accuracy_report_SRL2018.json.
+  - Accuracy harness: accuracy.py + CFA-Bench, 8/8 checkpoints passed; checkpoint progress tracked in accuracy_report_<CASE_NAME>.json.
   - Self-correction loop: ralph.sh, max 25 iterations, rate limit detection.
   - Audit trail: audit/mcp.jsonl  -  every tool invocation logged with
     invocation_id, examiner, duration, parsed_record_count.
-  - Two-stage review: this script (pre-push gate) + CodeRabbit on PR.
+  - Two-stage review: this script (pre-push gate) + manual PR review via .claude/reviews/pr-review.md for cross-file blast-radius analysis.
   - Test suite: actual count injected via AUTO-VERIFIED block (do not assume a specific number).
   - Pre-commit hook runs THIS script. If it exits non-zero, commit is blocked.
 
@@ -701,8 +701,9 @@ def build_auto_context() -> str:
             registered_at = [
                 i + 1
                 for i, line in enumerate(server_lines)
-                if re.match(rf"\s*def\s+{re.escape(tool)}\s*\(", line)
-                and i > 0 and "@mcp.tool" in server_lines[i - 1]
+                if (re.match(rf"\s*def\s+{re.escape(tool)}\s*\(", line)
+                    and i > 0 and "@mcp.tool" in server_lines[i - 1])
+                or re.match(rf"\s*mcp\.tool\(\)\({re.escape(tool)}\)\s*", line)
             ]
             if registered_at:
                 facts.append(
