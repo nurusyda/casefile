@@ -150,7 +150,7 @@ class TestFlagSuspicious:
 
     def test_service_pssdnsvc_flagged(self):
         svc = next(e for e in self.entries if e["value_name"] == "ImagePath")
-        flagged = _flag_suspicious([svc])
+        flagged = _flag_suspicious([svc], case_iocs=["pssdnsvc"])
         assert len(flagged) == 1
         reasons = flagged[0]["suspicion_reasons"]
         assert any("pssdnsvc" in r.lower() or "ioc" in r.lower()

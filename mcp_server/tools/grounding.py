@@ -912,5 +912,10 @@ def build_claim_accuracy_report(results: list[VerificationResult]) -> dict:
         "grounding_rate": round(grounded / total, 4) if total else 1.0,
         "hallucination_rate": round(contradicted / total, 4) if total else 0.0,
         "all_passed": all_passed,
+        "tier2_verified": sum(
+            1 for r in results
+            for c in r.claims
+            if "Tier 2 CSV check passed" in (c.note or "")
+        ),
         "findings": [r.to_dict() for r in results],
     }

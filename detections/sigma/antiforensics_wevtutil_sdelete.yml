@@ -1,0 +1,50 @@
+title: Anti-Forensics Pair — Event Log Clearing and Secure File Deletion
+id: e5f6a7b8-c9d0-1234-efab-345678901234
+status: stable
+description: >
+  Detects the combined use of wevtutil to clear Windows event logs and sdelete
+  to securely overwrite files within a short time window. This specific
+  combination indicates a deliberate anti-forensics operation: the attacker is
+  removing both the event log record of their activity and the files used
+  during the intrusion. Observed in CRIMSON OSPREY: wevtutil cl (clear-log)
+  executed on Security, System, and Application logs, followed by sdelete
+  targeting the tooling directory. Both actions occurred in the same session
+  within minutes of each other, strongly indicating coordinated cleanup.
+references:
+  - https://attack.mitre.org/techniques/T1070/001/
+  - https://attack.mitre.org/techniques/T1070/004/
+  - https://docs.microsoft.com/en-us/windows-server/administration/windows-commands/wevtutil
+  - https://docs.microsoft.com/en-us/sysinternals/downloads/sdelete
+author: CaseFile — SANS Find Evil! 2026
+date: 2026-05-19
+modified: 2026-05-19
+tags:
+  - attack.defense_evasion
+  - attack.t1070.001
+  - attack.t1070.004
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection_wevtutil:
+    Image|endswith: '\wevtutil.exe'
+    CommandLine|contains:
+      - ' cl'
+      - ' clear-log'
+  selection_sdelete:
+    Image|endswith:
+      - '\sdelete.exe'
+      - '\sdelete64.exe'
+    CommandLine|contains: '-p'
+  timeframe: 30m
+  condition: selection_wevtutil | near selection_sdelete
+falsepositives:
+  - Authorized security testing or system cleanup procedures under change management
+  - Disk hygiene scripts that combine log rotation with file removal
+level: high
+fields:
+  - Image
+  - CommandLine
+  - ParentImage
+  - User
+  - UtcTime

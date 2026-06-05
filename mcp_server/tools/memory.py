@@ -25,7 +25,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from mcp_server.tools._shared import audit_log
+from mcp_server.tools._shared import audit_log, PathConfinementError, _enforce_case_root
 
 
 # ── Allowed plugins ─────────────────────────────────────────────────────────────
@@ -67,6 +67,10 @@ def _validate_image_path(image_path: str) -> Path:
     if p.is_symlink():
         raise MemoryToolError(f"Image path is a symlink (not allowed): {image_path}")
     p = p.resolve(strict=False)
+    try:
+        _enforce_case_root(p)
+    except PathConfinementError as exc:
+        raise MemoryToolError(str(exc)) from exc
     if not p.exists():
         raise MemoryToolError(f"Memory image not found: {image_path}")
     if not p.is_file():

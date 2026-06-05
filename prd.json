@@ -4,6 +4,8 @@
   "description": "Acceptance criteria for the Ralph Wiggum self-correction loop. Each task has pass criteria. The loop runs until all tasks pass or max_iterations is reached. Blocks 1-8 complete. Block 9: T08+T09 added to exercise correlate_evidence() and memory forensics.",
   "max_iterations": 25,
   "completion_signal": "TASK_COMPLETE",
+  "known_iocs": ["stun.exe", "msedge.exe", "pssdnsvc.exe", "pssdnsvc", "atmfd.dll"],
+  "suspicious_patterns": ["stun", "pssdnsvc", "172.15.1.20", "172.16.6.12"],
   "tasks": [
     {
       "id": "T01",
@@ -96,11 +98,11 @@
       "description": "correlate_evidence() confirms subject_srv.exe is CONFIRMED_RUNNING",
       "required_label": "CONFIRMED",
       "pass_criteria": [
-        "correlate_evidence('subject_srv.exe', '/home/sansproject/cases/SRL-2018/analysis') returns verdict CONFIRMED_RUNNING",
+        "correlate_evidence('subject_srv.exe', '$CASEFILE_CASE_DIR/analysis') returns verdict CONFIRMED_RUNNING",
         "At least 2 sources report present=True (memory + at least one of amcache/prefetch/mft)",
         "Result invocation_id recorded in audit/mcp.jsonl"
       ],
-      "failure_action": "Call correlate_evidence('subject_srv.exe', '/home/sansproject/cases/SRL-2018/analysis') — note: case_dir must point to the analysis/ subdirectory where Amcache.hve, Prefetch/, and MFT live, NOT the parent case dir. CASEFILE_MEMORY_IMAGE env var must be set to the .img path."
+      "failure_action": "Call correlate_evidence('subject_srv.exe', '$CASEFILE_CASE_DIR/analysis') — note: case_dir must point to the analysis/ subdirectory where Amcache.hve, Prefetch/, and MFT live, NOT the parent case dir. CASEFILE_MEMORY_IMAGE env var must be set to the .img path."
     },
     {
       "id": "T09",

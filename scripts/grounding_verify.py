@@ -19,6 +19,7 @@ Environment variables (all required):
   CLAIM_REPORT    — path to write claim_accuracy_report.json
 """
 import json
+from datetime import datetime, timezone
 import os
 import sys
 from pathlib import Path
@@ -118,6 +119,7 @@ if any(r is None for r in results):
     sys.exit(2)
 if results:
     report = build_claim_accuracy_report(results)
+    report["generated_at"] = datetime.now(timezone.utc).isoformat()
     Path(claim_report_path).parent.mkdir(parents=True, exist_ok=True)
     with open(claim_report_path, "w", encoding="utf-8") as fh:
         json.dump(report, fh, indent=2)

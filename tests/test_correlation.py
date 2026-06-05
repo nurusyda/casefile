@@ -19,6 +19,8 @@ from unittest.mock import patch
 import pytest
 
 from mcp_server.tools.correlation import (
+    detect_host_type,
+    HOST_TYPES,
     CorrelationToolError,
     SourceResult,
     _decide_verdict,
@@ -1022,3 +1024,94 @@ class TestResolveCaseDir:
         monkeypatch.delenv("CASEFILE_CASE_ROOT", raising=False)
         result = _resolve_case_dir(str(tmp_path))
         assert result == tmp_path.resolve()
+
+
+# ---------------------------------------------------------------------------
+# TestDetectHostType — 12 tests
+# ---------------------------------------------------------------------------
+
+@patch("mcp_server.tools.correlation.audit_log")
+class TestDetectHostType:
+    """Tests for detect_host_type(). audit_log is mocked — no real writes."""
+
+    def test_workstation_amcache(self, mock_audit, tmp_path):
+        (tmp_path / "Amcache.hve").touch()
+        result = detect_host_type(str(tmp_path))
+        assert result["host_type"] == "WORKSTATION"
+        assert any("Amcache" in i for i in result["indicators"])
+        mock_audit.assert_called_once()
+
+    def test_workstation_prefetch_dir(self, mock_audit, tmp_path):
+        (tmp_path / "Prefetch").mkdir()
+        result = detect_host_type(str(tmp_path))
+        assert result["host_type"] == "WORKSTATION"
+
+    def test_workstation_prefetch_files(self, mock_audit, tmp_path):
+        (tmp_path / "NOTEPAD.EXE-ABC123.pf").touch()
+        result = detect_host_type(str(tmp_path))
+        assert result["host_type"] == "WORKSTATION"
+
+    def test_domain_controller_large_evtx(self, mock_audit, tmp_path):
+        evtx = tmp_path / "Security.evtx"
+        evtx.write_bytes(b"x" * (51 * 1024 * 1024))  # 51 MB
+        result = detect_host_type(str(tmp_path))
+        assert result["host_type"] == "DOMAIN_CONTROLLER"
+        assert any("Security.evtx" in i for i in result["indicators"])
+
+    def test_domain_controller_evtx_subdir(self, mock_audit, tmp_path):
+        evtx_dir = tmp_path / "evtx"
+        evtx_dir.mkdir()
+        evtx = evtx_dir / "Security.evtx"
+        evtx.write_bytes(b"x" * (51 * 1024 * 1024))
+        result = detect_host_type(str(tmp_path))
+        assert result["host_type"] == "DOMAIN_CONTROLLER"
+
+    def test_small_evtx_not_dc(self, mock_audit, tmp_path):
+        evtx = tmp_path / "Security.evtx"
+        evtx.write_bytes(b"x" * (10 * 1024 * 1024))  # 10 MB — too small
+        result = detect_host_type(str(tmp_path))
+        assert result["host_type"] == "UNKNOWN"
+
+    def test_memory_only_sibling(self, mock_audit, tmp_path):
+        """Memory image in parent dir is ignored — must be inside case_dir."""
+        mem = tmp_path.parent / "capture.vmem"
+        mem.touch()
+        result = detect_host_type(str(tmp_path))
+        assert result["host_type"] == "UNKNOWN"  # parent not scanned by design
+        mem.unlink()
+
+    def test_memory_only_inside_case_dir(self, mock_audit, tmp_path):
+        """Memory image directly inside case_dir."""
+        mem = tmp_path / "capture.vmem"
+        mem.touch()
+        result = detect_host_type(str(tmp_path))
+        assert result["host_type"] == "MEMORY_ONLY"
+
+    def test_unknown_empty_dir(self, mock_audit, tmp_path):
+        result = detect_host_type(str(tmp_path))
+        assert result["host_type"] == "UNKNOWN"
+        assert result["recommendation"] != ""
+
+    def test_return_schema(self, mock_audit, tmp_path):
+        result = detect_host_type(str(tmp_path))
+        for key in ("host_type", "indicators", "recommendation", "invocation_id"):
+            assert key in result
+        assert result["host_type"] in HOST_TYPES
+        assert isinstance(result["indicators"], list)
+        assert isinstance(result["invocation_id"], str)
+
+    def test_invalid_empty_case_dir(self, mock_audit):
+        with pytest.raises(ValueError):
+            detect_host_type("")
+
+    def test_invalid_nonexistent_dir(self, mock_audit):
+        with pytest.raises(ValueError):
+            detect_host_type("/nonexistent/path/xyz")
+
+    def test_workstation_takes_priority_over_dc(self, mock_audit, tmp_path):
+        """Amcache present + large Security.evtx -> WORKSTATION wins."""
+        (tmp_path / "Amcache.hve").touch()
+        evtx = tmp_path / "Security.evtx"
+        evtx.write_bytes(b"x" * (51 * 1024 * 1024))
+        result = detect_host_type(str(tmp_path))
+        assert result["host_type"] == "WORKSTATION"

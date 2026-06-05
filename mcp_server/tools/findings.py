@@ -42,6 +42,8 @@ def _next_finding_id(case_dir: Path) -> str:
     if findings_file.exists():
         try:
             data = json.loads(findings_file.read_text(encoding="utf-8"))
+            if isinstance(data, dict):
+                data = data.get("findings", [])
             n = len(data) + 1
         except (json.JSONDecodeError, ValueError, TypeError):
             n = 1
@@ -55,6 +57,8 @@ def _next_timeline_id(case_dir: Path) -> str:
     if tl_file.exists():
         try:
             data = json.loads(tl_file.read_text(encoding="utf-8"))
+            if isinstance(data, dict):
+                data = data.get("timeline", data.get("events", []))
             n = len(data) + 1
         except (json.JSONDecodeError, ValueError, TypeError):
             n = 1
@@ -85,6 +89,28 @@ def record_finding(
     if confidence not in ("CONFIRMED", "INFERRED"):
         confidence = "INFERRED"
 
+    # ATT&CK technique validation — warn but do not block the finding
+    _mitre_warning: str | None = None
+    if mitre_technique is not None:
+        import json as _json
+        from pathlib import Path as _Path
+        _attack_path = _Path(__file__).parent.parent.parent / "data" / "attack_v15.json"
+        if _attack_path.exists():
+            try:
+                _known = _json.loads(_attack_path.read_text())
+            except (ValueError, OSError):
+                _known = {}
+                _mitre_warning = (
+                    f"ATT&CK data file unreadable — technique {mitre_technique!r} "
+                    f"not validated. Finding recorded."
+                )
+            else:
+                if mitre_technique not in _known:
+                    _mitre_warning = (
+                        f"Unknown ATT&CK technique ID {mitre_technique!r} — "
+                        f"not in data/attack_v15.json. Finding recorded with warning."
+                    )
+
     # Validate evidence_quotes before touching disk.
     _eq = evidence_quotes if evidence_quotes is not None else []
     if not isinstance(_eq, list):
@@ -103,7 +129,6 @@ def record_finding(
             extra={
                 "finding_id": None,
                 "confidence": confidence,
-                "examiner": _examiner(),
                 "evidence_quotes_count": 0,
                 "validation_error": "GroundingSchemaError",
             },
@@ -130,7 +155,6 @@ def record_finding(
                 extra={
                     "finding_id": None,
                     "confidence": confidence,
-                    "examiner": _examiner(),
                     "evidence_quotes_count": len(_eq),
                     "validation_error": "GroundingSchemaError",
                 },
@@ -161,6 +185,8 @@ def record_finding(
     if findings_file.exists():
         try:
             findings = json.loads(findings_file.read_text(encoding="utf-8"))
+            if isinstance(findings, dict):
+                findings = findings.get("findings", [])
         except Exception:
             findings = []
 
@@ -178,6 +204,7 @@ def record_finding(
         "artifact_source": artifact_source,
         "supporting_tool": supporting_tool,
         "mitre_technique": mitre_technique,
+        "mitre_warning": _mitre_warning,
         "examiner": _examiner(),
         "created_at": now,
         "approved_at": None,
@@ -222,7 +249,6 @@ def record_finding(
             "finding_id": finding_id,
             "status": "DRAFT",
             "confidence": confidence,
-            "examiner": _examiner(),
             "evidence_quotes_count": len(_eq),
             "grounding_warning": _grounding_warning,
         },
@@ -249,6 +275,8 @@ def get_findings(
     if findings_file.exists():
         try:
             findings = json.loads(findings_file.read_text(encoding="utf-8"))
+            if isinstance(findings, dict):
+                findings = findings.get("findings", [])
         except Exception:
             findings = []
 
@@ -287,6 +315,8 @@ def record_timeline_event(
     if tl_file.exists():
         try:
             events = json.loads(tl_file.read_text(encoding="utf-8"))
+            if isinstance(events, dict):
+                events = events.get("timeline", events.get("events", []))
         except Exception:
             events = []
 
@@ -323,7 +353,6 @@ def record_timeline_event(
             "finding_id": event_id,
             "event_type": event_type,
             "timestamp": timestamp,
-            "examiner": _examiner(),
         },
     )
 
@@ -362,7 +391,7 @@ def approve_finding(finding_id: str) -> dict:
             stderr_excerpt=error[:500],
             parsed_record_count=0 if returncode != 0 else 1,
             duration_ms=0,
-            extra={"finding_id": finding_id, "examiner": examiner},
+            extra={"finding_id": finding_id},
         )
 
     case_dir = _case_dir()

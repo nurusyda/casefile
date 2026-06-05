@@ -18,10 +18,11 @@ from mcp_server.tools.registry import parse_registry
 from mcp_server.tools.mft import parse_mft
 from mcp_server.tools.accuracy import generate_accuracy_report
 from mcp_server.tools.memory import parse_memory
-from mcp_server.tools.correlation import correlate_evidence
+from mcp_server.tools.correlation import correlate_evidence, detect_host_type
 from mcp_server.tools.forensic_rag import search_knowledge, get_knowledge_stats
 from mcp_server.tools.shellbags import parse_shellbags
 from mcp_server.tools.hayabusa import parse_hayabusa
+from mcp_server.tools.export_findings import export_findings
 from mcp_server.tools.findings import (
     record_finding,
     get_findings,
@@ -65,10 +66,12 @@ mcp.tool()(record_timeline_event)
 mcp.tool()(generate_accuracy_report)
 mcp.tool()(parse_memory)
 mcp.tool()(correlate_evidence)
+mcp.tool()(detect_host_type)
 mcp.tool()(search_knowledge)
 mcp.tool()(get_knowledge_stats)
 mcp.tool()(parse_shellbags)
 mcp.tool()(parse_hayabusa)
+mcp.tool()(export_findings)
 
 if __name__ == "__main__":
     mcp.run()

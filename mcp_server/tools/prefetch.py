@@ -13,6 +13,9 @@ Inference Constraint Level: HIGH
 Return schema is identical to PECmd version — all callers unchanged.
 """
 
+import csv
+import io
+import os
 import time
 import uuid
 from datetime import datetime, timezone
@@ -34,12 +37,6 @@ _SUSPICIOUS_PATHS = [
     "\\recycle",
     "\\$recycle",
     "\\downloads\\",
-]
-
-# High-confidence staging paths — almost never legitimate
-_HIGH_CONFIDENCE_PATHS = [
-    "\\windows\\temp\\perfmon\\",
-    "\\windows\\temp\\perfmon\\",
 ]
 
 _LOLBAS = {
@@ -387,6 +384,35 @@ def parse_prefetch(
     else:
         entries_out = all_entries
 
+    # ── Write summary CSV for Tier 2 grounding ───────────────────────────────
+    # csv_files must appear in the audit entry so _verify_exact_value_in_csv()
+    # can verify exact_value claims (executable_name, run_count, last_run_utc).
+    csv_out_file: Optional[Path] = None
+    try:
+        _case = os.environ.get("CASEFILE_CASE_DIR", str(Path.home() / "cases" / "active"))
+        csv_out_dir = Path(_case) / "analysis" / "prefetch_csv" / invocation_id
+        csv_out_dir.mkdir(parents=True, exist_ok=True)
+        csv_out_file = csv_out_dir / "prefetch_summary.csv"
+        buf = io.StringIO()
+        writer = csv.DictWriter(
+            buf,
+            fieldnames=["executable_name", "last_run_utc", "run_count", "source_file"],
+            extrasaction="ignore",
+        )
+        writer.writeheader()
+        for e in all_entries:
+            writer.writerow({
+                "executable_name": e.get("executable_name", ""),
+                "last_run_utc":    e.get("last_run_utc", ""),
+                "run_count":       e.get("run_count", ""),
+                "source_file":     e.get("source_file", ""),
+            })
+        csv_out_file.write_text(buf.getvalue(), encoding="utf-8")
+    except OSError:
+        csv_out_file = None
+
+    csv_files = [str(csv_out_file)] if csv_out_file and csv_out_file.exists() else []
+
     duration_ms = int((time.monotonic() - t_start) * 1000)
 
     audit_log(
@@ -401,6 +427,7 @@ def parse_prefetch(
             "parse_errors":     parse_errors,
             "suspicious_count": len(suspicious),
             "capped":           (not include_all and total > 500),
+            "csv_files":        csv_files,
         },
     )
 
@@ -414,7 +441,7 @@ def parse_prefetch(
         "entries_capped":   (not include_all and total > 500),
         "entries":          entries_out,
         "suspicious":       suspicious,
-        "output_dir":       None,
+        "output_dir":       str(csv_out_file.parent) if csv_out_file else None,
         "duration_ms":      duration_ms,
         "error":            None,
         "analyst_note": (

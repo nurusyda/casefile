@@ -1,6 +1,6 @@
 # CaseFile -- Anti-Hallucination Guardrails
 
-This document describes every guardrail in CaseFile's 11-layer anti-hallucination stack.
+This document describes every guardrail in CaseFile's 14-layer anti-hallucination stack.
 Each layer is labeled by enforcement type:
 
 - **ARCH** -- Architectural: enforced in code, cannot be bypassed by prompt
@@ -61,7 +61,7 @@ Every finding must carry a confidence label:
 
 - **CONFIRMED** -- corroborated by 2+ independent artifact sources
 - **INFERRED** -- supported by 1 source, plausible but not cross-confirmed
-- **SPECULATIVE** -- hypothesis with no direct artifact support (accepted but flags for human review)
+- **SPECULATIVE** -- hypothesis with no direct artifact support
 
 `record_finding()` rejects CONFIRMED findings that lack `evidence_quotes`. A finding
 cannot claim CONFIRMED status without citing the specific tool output that supports it.
@@ -219,8 +219,6 @@ from the top level, not from a nested `extra` key.
 
 ### L11 -- Grounded Self-Correction Loop
 
-**Type: PROCESS**
-
 **File:** `ralph.sh`
 
 After each investigation iteration, if `grounding_verify.py` exits with code 2
@@ -240,17 +238,21 @@ This prevents the LLM from substituting one hallucination for another.
 
 ---
 
-## What Is Not Guardrailed (Honest Disclosure)
+## Layers L12–L14 (Originally Planned Post-Submission, Pulled Forward)
 
-| Gap | Status | Rationale |
-|---|---|---|
-| Per-claim confidence scoring | ✅ Implemented | `_agg()` in `findings.py`, HIGH/MEDIUM/LOW/UNSCORED |
-| Cross-source contradiction detector | ✅ Implemented | `detect_contradictions()` in `correlation.py` |
-| Evidence provenance tagging | ✅ Implemented | `provenance_tag` records via `audit_log()` in `findings.py` |
-| Training data contamination guard | ✅ Implemented | `detect_baseline_assumptions()` in `grounding.py` |
+These four improvements were originally planned as post-submission work but were
+built during the pre-submission sprint and are now part of the 14-layer stack:
 
-All 11 layers are implemented. The anti-hallucination stack is complete for the
-SRL-2018 investigation scope.
+| Layer | Name | Type | What It Prevents | How It Is Tested |
+|---|---|---|---|---|
+| L12 | Per-claim confidence scoring | ARCH | Overconfident aggregate findings masking weak claims | `findings.py` — `_agg()`; `test_findings.py` |
+| L13 | Cross-source contradiction detector | ARCH | Conflicting verdicts both accepted | `correlation.py:479` — `detect_contradictions()`; `test_correlation.py` |
+| L14 | Evidence provenance tagging | ARCH | Findings not linked to tool invocations | `_shared.py` — `audit_log()` provenance; every integration test |
+
+Training data contamination guard (`detect_baseline_assumptions()` at
+`grounding.py:871`) is part of L9 — runs during `verify_finding_claims()`.
+
+All 14 layers are implemented and tested.
 
 ---
 

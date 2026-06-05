@@ -104,6 +104,66 @@ Never write a finding without this label. Never upgrade INFERRED to CONFIRMED wi
 
 ---
 
+## CONFIDENCE MAPPING — correlate_evidence VERDICT → record_finding CONFIDENCE
+
+**This is a hard rule. Do not default to INFERRED.**
+
+When calling `record_finding()`, set `confidence=` based on the following:
+
+### Primary rule — when you called correlate_evidence():
+| Verdict | confidence |
+|---|---|
+| `CONFIRMED_RUNNING` | `"CONFIRMED"` |
+| `CONFIRMED_HISTORICAL` | `"CONFIRMED"` |
+| `MEMORY_ONLY` | `"CONFIRMED"` |
+| `INSTALLED_NEVER_RAN` | `"INFERRED"` |
+| `NOT_FOUND` | `"INFERRED"` |
+
+The verdict is deterministic. Do not override it with other reasoning.
+
+### Fallback rule — when correlate_evidence() was NOT called (e.g. a Run key, a log event):
+- The finding involves behavioral interpretation ("likely", "appears to", "suggests") → `"INFERRED"`
+- The finding has direct CSV evidence but no correlate_evidence() verdict → `"INFERRED"`
+- No artifact evidence at all → `"INFERRED"` (note absence explicitly in observation text)
+
+Note: You may NOT declare `"CONFIRMED"` without a `correlate_evidence()` verdict.
+If you have multi-parser agreement but have not called `correlate_evidence()`, call it first.
+
+### Workflow — read the verdict before deciding:
+```
+result = correlate_evidence(process_name, case_dir)
+verdict = result["verdict"]   # e.g. "CONFIRMED_RUNNING"
+
+if verdict in ("CONFIRMED_RUNNING", "CONFIRMED_HISTORICAL", "MEMORY_ONLY"):
+    confidence = "CONFIRMED"
+elif verdict == "INSTALLED_NEVER_RAN":
+    confidence = "INFERRED"   # one source (MFT only) — single-source inference
+elif verdict == "NOT_FOUND":
+    confidence = "INFERRED"   # no artifact found — note absence in observation text
+else:
+    confidence = "INFERRED"   # fallback — always document why
+```
+
+**Example:**
+```
+correlate_evidence("subject_srv.exe", ...) → verdict: "CONFIRMED_RUNNING"
+→ record_finding(..., confidence="CONFIRMED")   ✅
+
+correlate_evidence("svchost.exe", ...)    → verdict: "INSTALLED_NEVER_RAN"
+→ record_finding(..., confidence="INFERRED")    ✅
+
+parse_registry(...) found a Run key alone  → no correlate_evidence call yet
+→ record_finding(..., confidence="INFERRED")    ✅  (single source)
+```
+
+Never write `confidence="INFERRED"` on a finding whose supporting
+`correlate_evidence()` call returned CONFIRMED_RUNNING, CONFIRMED_HISTORICAL,
+or MEMORY_ONLY.
+That is a labeling error — it understates certainty and misleads the examiner.
+
+
+---
+
 ## LAW 5 — AUTONOMOUS EXECUTION
 
 You do NOT ask questions during an investigation. Run fully autonomously.
@@ -149,11 +209,21 @@ Follow this order for every new investigation:
 
 ```
 OBSERVE:
-  1. parse_amcache(amcache_path=<amcache_path>, output_dir="./analysis/")
-  2. parse_prefetch(prefetch_dir=<prefetch_dir>, output_dir="./analysis/")
-  3. parse_event_logs(evtx_path=<evtx_path>, output_dir="./analysis/", event_ids=[4624,4625,4648,4688,4720,4732,7045,1102])
-  4. parse_registry(hive_path=<hive_path>, output_dir="./analysis/")
-  5. parse_mft(mft_path=<mft_path>, output_dir="./analysis/")
+  - FIRST: call detect_host_type(case_dir) to classify the image before any parser calls.
+    The returned `host_type` and `recommendation` fields constrain which tools to run:
+    WORKSTATION → parse_amcache(), parse_prefetch(), parse_mft(), parse_memory(), then correlate_evidence()
+    DOMAIN_CONTROLLER → primary: parse_event_logs() (Security.evtx, System.evtx), then parse_registry()
+    MEMORY_ONLY → parse_memory() exclusively
+    UNKNOWN → parse_event_logs() first to discover what artifact profile exists
+  - Then call ONLY the tools indicated by host_type above. Do not call all parsers unconditionally.
+    For WORKSTATION: steps 1-5 below apply.
+    For DOMAIN_CONTROLLER: skip steps 1-2 (no Amcache/Prefetch), run steps 3-4 only.
+    For MEMORY_ONLY: skip steps 1-5, use parse_memory() only.
+  1. parse_amcache(amcache_path=<amcache_path>)          [WORKSTATION only]
+  2. parse_prefetch(prefetch_dir=<prefetch_dir>)          [WORKSTATION only]
+  3. parse_event_logs(evtx_path=<evtx_path>, event_ids=[4624,4625,4648,4688,4720,4732,7045,1102])
+  4. parse_registry(hive_path=<hive_path>)
+  5. parse_mft(mft_path=<mft_path>)                      [WORKSTATION only]
 
 ORIENT:
   6. Cross-reference Amcache SHA1 hashes against IOCs
@@ -214,6 +284,24 @@ Do NOT use IOCs from memory or from a previous case. Always read the file.
 If no IOC file exists, proceed without IOC cross-referencing and note the absence.
 
 ---
+## SESSION HYGIENE — INVOCATION IDs
+
+**CRITICAL: Never reference an invocation_id from a previous session.**
+
+Every ralph.sh run generates fresh invocation_ids. An ID from a prior run
+does NOT exist in this session's audit log — referencing it will cause an
+UNGROUNDED claim and lower the grounding rate.
+
+Rules:
+1. If a tool was called in a prior run and you need its evidence, call it again now.
+2. Never copy an invocation_id from memory, from findings.json, or from a report.
+3. The only valid invocation_ids are ones returned by MCP tool calls in THIS session.
+4. If you cannot re-run a tool (e.g. path confinement), do not record a finding
+   based on that tool's output. Record the gap as a HYPOTHESIS with a note that
+   evidence could not be reproduced this session.
+
+---
+
 ## BLOCKED COMMANDS (ARCHITECTURAL DENYLIST)
 
 The following commands are in `BLOCKED_COMMANDS` frozenset in `findings.py`.

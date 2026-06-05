@@ -1,0 +1,585 @@
+{
+  "T1543": {
+    "name": "Create or Modify System Process",
+    "tactics": [
+      "persistence",
+      "privilege-escalation"
+    ],
+    "is_subtechnique": false,
+    "parent": null
+  },
+  "T1543.003": {
+    "name": "Windows Service",
+    "tactics": [
+      "persistence",
+      "privilege-escalation"
+    ],
+    "is_subtechnique": true,
+    "parent": "T1543"
+  },
+  "T1036": {
+    "name": "Masquerading",
+    "tactics": [
+      "defense-evasion"
+    ],
+    "is_subtechnique": false,
+    "parent": null
+  },
+  "T1036.005": {
+    "name": "Match Legitimate Name or Location",
+    "tactics": [
+      "defense-evasion"
+    ],
+    "is_subtechnique": true,
+    "parent": "T1036"
+  },
+  "T1071": {
+    "name": "Application Layer Protocol",
+    "tactics": [
+      "command-and-control"
+    ],
+    "is_subtechnique": false,
+    "parent": null
+  },
+  "T1071.001": {
+    "name": "Web Protocols",
+    "tactics": [
+      "command-and-control"
+    ],
+    "is_subtechnique": true,
+    "parent": "T1071"
+  },
+  "T1041": {
+    "name": "Exfiltration Over C2 Channel",
+    "tactics": [
+      "exfiltration"
+    ],
+    "is_subtechnique": false,
+    "parent": null
+  },
+  "T1021": {
+    "name": "Remote Services",
+    "tactics": [
+      "lateral-movement"
+    ],
+    "is_subtechnique": false,
+    "parent": null
+  },
+  "T1021.002": {
+    "name": "SMB/Windows Admin Shares",
+    "tactics": [
+      "lateral-movement"
+    ],
+    "is_subtechnique": true,
+    "parent": "T1021"
+  },
+  "T1021.001": {
+    "name": "Remote Desktop Protocol",
+    "tactics": [
+      "lateral-movement"
+    ],
+    "is_subtechnique": true,
+    "parent": "T1021"
+  },
+  "T1003": {
+    "name": "OS Credential Dumping",
+    "tactics": [
+      "credential-access"
+    ],
+    "is_subtechnique": false,
+    "parent": null
+  },
+  "T1003.001": {
+    "name": "LSASS Memory",
+    "tactics": [
+      "credential-access"
+    ],
+    "is_subtechnique": true,
+    "parent": "T1003"
+  },
+  "T1070": {
+    "name": "Indicator Removal",
+    "tactics": [
+      "defense-evasion"
+    ],
+    "is_subtechnique": false,
+    "parent": null
+  },
+  "T1070.001": {
+    "name": "Clear Windows Event Logs",
+    "tactics": [
+      "defense-evasion"
+    ],
+    "is_subtechnique": true,
+    "parent": "T1070"
+  },
+  "T1070.004": {
+    "name": "File Deletion",
+    "tactics": [
+      "defense-evasion"
+    ],
+    "is_subtechnique": true,
+    "parent": "T1070"
+  },
+  "T1565": {
+    "name": "Data Manipulation",
+    "tactics": [
+      "impact"
+    ],
+    "is_subtechnique": false,
+    "parent": null
+  },
+  "T1565.001": {
+    "name": "Stored Data Manipulation",
+    "tactics": [
+      "impact"
+    ],
+    "is_subtechnique": true,
+    "parent": "T1565"
+  },
+  "T1027": {
+    "name": "Obfuscated Files or Information",
+    "tactics": [
+      "defense-evasion"
+    ],
+    "is_subtechnique": false,
+    "parent": null
+  },
+  "T1053": {
+    "name": "Scheduled Task/Job",
+    "tactics": [
+      "execution",
+      "persistence",
+      "privilege-escalation"
+    ],
+    "is_subtechnique": false,
+    "parent": null
+  },
+  "T1053.005": {
+    "name": "Scheduled Task",
+    "tactics": [
+      "execution",
+      "persistence",
+      "privilege-escalation"
+    ],
+    "is_subtechnique": true,
+    "parent": "T1053"
+  },
+  "T1569": {
+    "name": "System Services",
+    "tactics": [
+      "execution"
+    ],
+    "is_subtechnique": false,
+    "parent": null
+  },
+  "T1569.002": {
+    "name": "Service Execution",
+    "tactics": [
+      "execution"
+    ],
+    "is_subtechnique": true,
+    "parent": "T1569"
+  },
+  "T1134": {
+    "name": "Access Token Manipulation",
+    "tactics": [
+      "defense-evasion",
+      "privilege-escalation"
+    ],
+    "is_subtechnique": false,
+    "parent": null
+  },
+  "T1055": {
+    "name": "Process Injection",
+    "tactics": [
+      "defense-evasion",
+      "privilege-escalation"
+    ],
+    "is_subtechnique": false,
+    "parent": null
+  },
+  "T1112": {
+    "name": "Modify Registry",
+    "tactics": [
+      "defense-evasion"
+    ],
+    "is_subtechnique": false,
+    "parent": null
+  },
+  "T1562": {
+    "name": "Impair Defenses",
+    "tactics": [
+      "defense-evasion"
+    ],
+    "is_subtechnique": false,
+    "parent": null
+  },
+  "T1562.001": {
+    "name": "Disable or Modify Tools",
+    "tactics": [
+      "defense-evasion"
+    ],
+    "is_subtechnique": true,
+    "parent": "T1562"
+  },
+  "T1078": {
+    "name": "Valid Accounts",
+    "tactics": [
+      "defense-evasion",
+      "persistence",
+      "privilege-escalation",
+      "initial-access"
+    ],
+    "is_subtechnique": false,
+    "parent": null
+  },
+  "T1078.003": {
+    "name": "Local Accounts",
+    "tactics": [
+      "defense-evasion",
+      "persistence",
+      "privilege-escalation",
+      "initial-access"
+    ],
+    "is_subtechnique": true,
+    "parent": "T1078"
+  },
+  "T1059": {
+    "name": "Command and Scripting Interpreter",
+    "tactics": [
+      "execution"
+    ],
+    "is_subtechnique": false,
+    "parent": null
+  },
+  "T1059.001": {
+    "name": "PowerShell",
+    "tactics": [
+      "execution"
+    ],
+    "is_subtechnique": true,
+    "parent": "T1059"
+  },
+  "T1059.003": {
+    "name": "Windows Command Shell",
+    "tactics": [
+      "execution"
+    ],
+    "is_subtechnique": true,
+    "parent": "T1059"
+  },
+  "T1047": {
+    "name": "Windows Management Instrumentation",
+    "tactics": [
+      "execution"
+    ],
+    "is_subtechnique": false,
+    "parent": null
+  },
+  "T1572": {
+    "name": "Protocol Tunneling",
+    "tactics": [
+      "command-and-control"
+    ],
+    "is_subtechnique": false,
+    "parent": null
+  },
+  "T1105": {
+    "name": "Ingress Tool Transfer",
+    "tactics": [
+      "command-and-control"
+    ],
+    "is_subtechnique": false,
+    "parent": null
+  },
+  "T1190": {
+    "name": "Exploit Public-Facing Application",
+    "tactics": [
+      "initial-access"
+    ],
+    "is_subtechnique": false,
+    "parent": null
+  },
+  "T1133": {
+    "name": "External Remote Services",
+    "tactics": [
+      "initial-access",
+      "persistence"
+    ],
+    "is_subtechnique": false,
+    "parent": null
+  },
+  "T1486": {
+    "name": "Data Encrypted for Impact",
+    "tactics": [
+      "impact"
+    ],
+    "is_subtechnique": false,
+    "parent": null
+  },
+  "T1490": {
+    "name": "Inhibit System Recovery",
+    "tactics": [
+      "impact"
+    ],
+    "is_subtechnique": false,
+    "parent": null
+  },
+  "T1098": {
+    "name": "Account Manipulation",
+    "tactics": [
+      "persistence",
+      "privilege-escalation"
+    ],
+    "is_subtechnique": false,
+    "parent": null
+  },
+  "T1136": {
+    "name": "Create Account",
+    "tactics": [
+      "persistence"
+    ],
+    "is_subtechnique": false,
+    "parent": null
+  },
+  "T1136.001": {
+    "name": "Local Account",
+    "tactics": [
+      "persistence"
+    ],
+    "is_subtechnique": true,
+    "parent": "T1136"
+  },
+  "T1574": {
+    "name": "Hijack Execution Flow",
+    "tactics": [
+      "defense-evasion",
+      "persistence",
+      "privilege-escalation"
+    ],
+    "is_subtechnique": false,
+    "parent": null
+  },
+  "T1574.002": {
+    "name": "DLL Side-Loading",
+    "tactics": [
+      "defense-evasion",
+      "persistence",
+      "privilege-escalation"
+    ],
+    "is_subtechnique": true,
+    "parent": "T1574"
+  },
+  "T1218": {
+    "name": "System Binary Proxy Execution",
+    "tactics": [
+      "defense-evasion"
+    ],
+    "is_subtechnique": false,
+    "parent": null
+  },
+  "T1218.011": {
+    "name": "Rundll32",
+    "tactics": [
+      "defense-evasion"
+    ],
+    "is_subtechnique": true,
+    "parent": "T1218"
+  },
+  "T1140": {
+    "name": "Deobfuscate/Decode Files or Information",
+    "tactics": [
+      "defense-evasion"
+    ],
+    "is_subtechnique": false,
+    "parent": null
+  },
+  "T1083": {
+    "name": "File and Directory Discovery",
+    "tactics": [
+      "discovery"
+    ],
+    "is_subtechnique": false,
+    "parent": null
+  },
+  "T1057": {
+    "name": "Process Discovery",
+    "tactics": [
+      "discovery"
+    ],
+    "is_subtechnique": false,
+    "parent": null
+  },
+  "T1049": {
+    "name": "System Network Connections Discovery",
+    "tactics": [
+      "discovery"
+    ],
+    "is_subtechnique": false,
+    "parent": null
+  },
+  "T1016": {
+    "name": "System Network Configuration Discovery",
+    "tactics": [
+      "discovery"
+    ],
+    "is_subtechnique": false,
+    "parent": null
+  },
+  "T1036.001": {
+    "name": "Invalid Code Signature",
+    "tactics": [
+      "defense-evasion"
+    ],
+    "is_subtechnique": true,
+    "parent": "T1036"
+  },
+  "T1036.002": {
+    "name": "Right-to-Left Override",
+    "tactics": [
+      "defense-evasion"
+    ],
+    "is_subtechnique": true,
+    "parent": "T1036"
+  },
+  "T1036.003": {
+    "name": "Rename System Utilities",
+    "tactics": [
+      "defense-evasion"
+    ],
+    "is_subtechnique": true,
+    "parent": "T1036"
+  },
+  "T1036.004": {
+    "name": "Masquerade Task or Service",
+    "tactics": [
+      "defense-evasion"
+    ],
+    "is_subtechnique": true,
+    "parent": "T1036"
+  },
+  "T1036.006": {
+    "name": "Space after Filename",
+    "tactics": [
+      "defense-evasion"
+    ],
+    "is_subtechnique": true,
+    "parent": "T1036"
+  },
+  "T1036.007": {
+    "name": "Double File Extension",
+    "tactics": [
+      "defense-evasion"
+    ],
+    "is_subtechnique": true,
+    "parent": "T1036"
+  },
+  "T1003.002": {
+    "name": "Security Account Manager",
+    "tactics": [
+      "credential-access"
+    ],
+    "is_subtechnique": true,
+    "parent": "T1003"
+  },
+  "T1003.003": {
+    "name": "NTDS",
+    "tactics": [
+      "credential-access"
+    ],
+    "is_subtechnique": true,
+    "parent": "T1003"
+  },
+  "T1003.004": {
+    "name": "LSA Secrets",
+    "tactics": [
+      "credential-access"
+    ],
+    "is_subtechnique": true,
+    "parent": "T1003"
+  },
+  "T1070.002": {
+    "name": "Clear Linux or Mac System Logs",
+    "tactics": [
+      "defense-evasion"
+    ],
+    "is_subtechnique": true,
+    "parent": "T1070"
+  },
+  "T1070.003": {
+    "name": "Clear Command History",
+    "tactics": [
+      "defense-evasion"
+    ],
+    "is_subtechnique": true,
+    "parent": "T1070"
+  },
+  "T1070.006": {
+    "name": "Timestomp",
+    "tactics": [
+      "defense-evasion"
+    ],
+    "is_subtechnique": true,
+    "parent": "T1070"
+  },
+  "T1021.003": {
+    "name": "Distributed Component Object Model",
+    "tactics": [
+      "lateral-movement"
+    ],
+    "is_subtechnique": true,
+    "parent": "T1021"
+  },
+  "T1021.004": {
+    "name": "SSH",
+    "tactics": [
+      "lateral-movement"
+    ],
+    "is_subtechnique": true,
+    "parent": "T1021"
+  },
+  "T1021.006": {
+    "name": "Windows Remote Management",
+    "tactics": [
+      "lateral-movement"
+    ],
+    "is_subtechnique": true,
+    "parent": "T1021"
+  },
+  "T1543.001": {
+    "name": "Launch Agent",
+    "tactics": [
+      "persistence",
+      "privilege-escalation"
+    ],
+    "is_subtechnique": true,
+    "parent": "T1543"
+  },
+  "T1543.002": {
+    "name": "Systemd Service",
+    "tactics": [
+      "persistence",
+      "privilege-escalation"
+    ],
+    "is_subtechnique": true,
+    "parent": "T1543"
+  },
+  "T1543.004": {
+    "name": "Launch Daemon",
+    "tactics": [
+      "persistence",
+      "privilege-escalation"
+    ],
+    "is_subtechnique": true,
+    "parent": "T1543"
+  },
+  "T1070.005": {
+    "name": "Network Share Connection Removal",
+    "tactics": [
+      "defense-evasion"
+    ],
+    "is_subtechnique": true,
+    "parent": "T1070"
+  }
+}

@@ -36,7 +36,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
-from mcp_server.tools._shared import audit_log, run_tool
+from mcp_server.tools._shared import audit_log, run_tool, PathConfinementError, _enforce_case_root
 
 # Verified path on Protocol SIFT, April 28 2026
 AMCACHE_BIN = "dotnet /opt/zimmermantools/AmcacheParser.dll"
@@ -215,6 +215,10 @@ def parse_amcache(
 
     # ── Validate input ────────────────────────────────────────────────────────
     hive = Path(amcache_path)
+    try:
+        _enforce_case_root(hive)
+    except PathConfinementError as exc:
+        return _error_result(invocation_id, amcache_path, str(exc))
     if not hive.exists():
         return _error_result(
             invocation_id, amcache_path,
