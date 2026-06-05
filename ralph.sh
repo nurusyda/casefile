@@ -163,6 +163,25 @@ import json, os, re
 prd = json.load(open('${PRD_FILE}'))
 output = """${CLAUDE_OUTPUT}"""
 
+UNIVERSAL_CHECKPOINTS = [
+    {"id": "CP1", "tactic": "TA0001",
+     "question": "Initial access vector identified and attributed to artifact?"},
+    {"id": "CP2", "tactic": "TA0003",
+     "question": "Persistence mechanism identified (service/task/registry run key)?"},
+    {"id": "CP3", "tactic": "TA0004/TA0006",
+     "question": "Privilege escalation or credential access identified?"},
+    {"id": "CP4", "tactic": "TA0008",
+     "question": "Lateral movement path traced with source and destination hosts?"},
+    {"id": "CP5", "tactic": "TA0005",
+     "question": "Defense evasion or anti-forensics activity detected?"},
+    {"id": "CP6", "tactic": "TA0011/TA0010",
+     "question": "Command & control or exfiltration activity identified?"},
+    {"id": "CP7", "tactic": "meta",
+     "question": "Timeline complete with CONFIRMED/INFERRED labels on every finding?"},
+    {"id": "CP8", "tactic": "meta",
+     "question": "All findings traceable to invocation_id in audit/mcp.jsonl?"},
+]
+
 confirmed = re.search(r'confirmed_findings:\s*\[?(\d+)\]?', output)
 inferred  = re.search(r'inferred_findings:\s*\[?(\d+)\]?',  output)
 hypo      = re.search(r'hypothesis:\s*\[?(\d+)\]?',         output)
@@ -175,8 +194,10 @@ print(f"  Self-corrections   : {self_corr.group(1) if self_corr else '?'}")
 print(f"  Iterations used    : ${iteration}")
 print()
 print("Checkpoint scoring:")
-for cp in prd['scoring']['checkpoints']:
-    print(f"  {cp['id']}: {cp['question']}")
+checkpoints = prd.get('scoring', {}).get('checkpoints', UNIVERSAL_CHECKPOINTS)
+for cp in checkpoints:
+    tactic = f" [{cp.get('tactic', '')}]" if cp.get('tactic') else ""
+    print(f"  {cp['id']}{tactic}: {cp['question']}")
 PYEOF
 
         log "=== RALPH LOOP COMPLETE after ${iteration} iterations ==="
