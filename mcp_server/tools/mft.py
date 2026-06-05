@@ -42,7 +42,7 @@ Inference Constraint Level: HIGH
 Usage by Claude:
   result = parse_mft(
       mft_path="/cases/cr01/evidence/MFT",
-      filename_filter=["STUN.exe", "msedge.exe", "pssdnsvc.exe"],
+      filename_filter=["malicious.exe"],
   )
   # result.entries — filtered file records
   # result.timestomped — files with $SI/$FN timestamp inconsistencies
@@ -352,7 +352,7 @@ def parse_mft(
         filename_filter:
             Optional list of filenames or fragments to filter results.
             Without this, $MFT can have millions of records — too large for context.
-            Example: ["STUN.exe", "msedge.exe", "pssdnsvc"]
+            Example: ["malicious.exe"]
             If None and include_all=False, only suspicious/timestomped entries
             are returned (recommended for initial triage).
 

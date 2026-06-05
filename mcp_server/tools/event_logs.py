@@ -77,7 +77,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
-from mcp_server.tools._shared import audit_log, run_tool
+from mcp_server.tools._shared import audit_log, run_tool, _load_case_iocs
 
 # Verified path on Protocol SIFT, April 28 2026
 # NOTE: EvtxECmd is in a subdirectory unlike the other EZ Tools
@@ -146,8 +146,6 @@ _SUSPICIOUS_CMDLINE = [
     "schtasks /create",
     "sc create",
     "reg add",
-    "172.15.1.20",      # CRIMSON OSPREY attacker IP
-    "172.16.6.12",      # lateral movement target
 ]
 
 # Logon types and their human-readable meaning
@@ -218,7 +216,7 @@ def _parse_evtx_csv(csv_text: str) -> list[dict[str, Any]]:
     return entries
 
 
-def _flag_suspicious(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _flag_suspicious(entries: list[dict[str, Any]], case_iocs: list[str] | None = None) -> list[dict[str, Any]]:
     """
     Pre-filter events that warrant immediate analyst review.
     Returns subset with 'suspicion_reasons' list added.
@@ -266,17 +264,18 @@ def _flag_suspicious(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
                     f"Remote logon (type {lt}: {e.get('logon_type_desc', '')}) "
                     f"from {e.get('remote_host')} — verify if expected"
                 )
-            # Flag logons from known attacker IP
-            if "172.15.1.20" in remote or "172.16.6.12" in remote:
-                reasons.append(
-                    f"Logon from known IOC IP: {e.get('remote_host')} — CONFIRMED IOC"
-                )
+            # Flag logons from case-specific IOC IPs
+            for ioc in (case_iocs or []):
+                if ioc.lower() in remote:
+                    reasons.append(
+                        f"Logon from case IOC: {e.get('remote_host')}"
+                    )
+                    break
 
-        # Any event mentioning known IOC IPs or filenames
-        crimson_iocs = ["172.15.1.20", "172.16.6.12", "stun.exe", "pssdnsvc"]
-        for ioc in crimson_iocs:
-            if ioc in payload_str or ioc in exe:
-                reasons.append(f"Known CRIMSON OSPREY IOC referenced: '{ioc}'")
+        # Any event mentioning case-specific IOC IPs or filenames
+        for ioc in (case_iocs or []):
+            if ioc.lower() in payload_str or ioc.lower() in exe:
+                reasons.append(f"Case IOC referenced: '{ioc}'")
                 break
 
         if reasons:
@@ -549,7 +548,8 @@ def parse_event_logs(
         event_id_counts[key] = event_id_counts.get(key, 0) + 1
 
     # ── Flag suspicious entries ───────────────────────────────────────────────
-    suspicious = _flag_suspicious(all_entries)
+    _known_iocs, _susp_patterns = _load_case_iocs()
+    suspicious = _flag_suspicious(all_entries, case_iocs=_known_iocs + _susp_patterns)
 
     # ── Cap for context window safety ─────────────────────────────────────────
     # Event logs can have tens of thousands of events — 1000 cap for safety

@@ -154,7 +154,7 @@ class TestFlagSuspicious:
         # Manually set remote_host to simulate real EvtxECmd output
         logon_with_ip = dict(logon)
         logon_with_ip["remote_host"] = "172.15.1.20"
-        flagged = _flag_suspicious([logon_with_ip])
+        flagged = _flag_suspicious([logon_with_ip], case_iocs=["172.15.1.20"])
         assert len(flagged) == 1
         reasons = flagged[0]["suspicion_reasons"]
         assert any("172.15.1.20" in r or "ioc" in r.lower() or "attacker" in r.lower()
