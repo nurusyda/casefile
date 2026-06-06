@@ -1,0 +1,164 @@
+{
+  "total_claims": 12,
+  "grounded": 12,
+  "ungrounded": 0,
+  "contradicted": 0,
+  "inferred_labeled": 0,
+  "grounding_rate": 1.0,
+  "hallucination_rate": 0.0,
+  "all_passed": true,
+  "tier2_verified": 3,
+  "findings": [
+    {
+      "finding_id": "F-sansproject-001",
+      "total_claims": 1,
+      "grounded": 1,
+      "ungrounded": 0,
+      "contradicted": 0,
+      "inferred_labeled": 0,
+      "grounding_rate": 1.0,
+      "hallucination_rate": 0.0,
+      "passed": true,
+      "claims": [
+        {
+          "claim_text": "tool='EvtxECmd' claim='1025 LogonType 3 events from 172.16.6.12 starting 2018-09-04T13:02:24Z' inv_id='6cad926d-0929-4bfd-9832-cb4efb8701dc'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "6cad926d-0929-4bfd-9832-cb4efb8701dc",
+          "note": "Tool 'EvtxECmd' attested \u2014 Tier 2 CSV check skipped (no file readable): exact_value 'BASE-RD-02 (172.16.6.12)' NOT found in any CSV (0 file(s) read, 1 total considered). Tier 1 attestation only."
+        }
+      ]
+    },
+    {
+      "finding_id": "F-sansproject-002",
+      "total_claims": 3,
+      "grounded": 3,
+      "ungrounded": 0,
+      "contradicted": 0,
+      "inferred_labeled": 0,
+      "grounding_rate": 1.0,
+      "hallucination_rate": 0.0,
+      "passed": true,
+      "claims": [
+        {
+          "claim_text": "tool='EvtxECmd' claim='975 TGS requests for spservices targeting spfarm from 172.16.4.7 starting 2018-09-04T12:58:47Z' inv_id='5a3c5dea-c316-4097-ae1f-28cea845d4bc'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "5a3c5dea-c316-4097-ae1f-28cea845d4bc",
+          "note": "Tool 'EvtxECmd' attested \u2014 Tier 2 CSV check skipped (no file readable): exact_value 'ServiceName: spservices' NOT found in any CSV (0 file(s) read, 1 total considered). Tier 1 attestation only."
+        },
+        {
+          "claim_text": "tool='EvtxECmd' claim='AES256 ticket encryption type used' inv_id='5a3c5dea-c316-4097-ae1f-28cea845d4bc'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "5a3c5dea-c316-4097-ae1f-28cea845d4bc",
+          "note": "Tool 'EvtxECmd' attested \u2014 Tier 2 CSV check skipped (no file readable): exact_value 'TicketEncryptionType: AES256-CTS-HMAC-SHA1-96' NOT found in any CSV (0 file(s) read, 1 total considered). Tier 1 attestation only."
+        },
+        {
+          "claim_text": "tool='EvtxECmd' claim='Target account is spfarm SharePoint farm credential' inv_id='5a3c5dea-c316-4097-ae1f-28cea845d4bc'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "5a3c5dea-c316-4097-ae1f-28cea845d4bc",
+          "note": "Tool 'EvtxECmd' attested \u2014 Tier 2 CSV check skipped (no file readable): exact_value 'Target: SHIELDBASE.LAN\\\\spfarm@SHIELDBASE.LAN' NOT found in any CSV (0 file(s) read, 1 total considered). Tier 1 attestation only."
+        }
+      ]
+    },
+    {
+      "finding_id": "F-sansproject-003",
+      "total_claims": 2,
+      "grounded": 2,
+      "ungrounded": 0,
+      "contradicted": 0,
+      "inferred_labeled": 0,
+      "grounding_rate": 1.0,
+      "hallucination_rate": 0.0,
+      "passed": true,
+      "claims": [
+        {
+          "claim_text": "tool='EvtxECmd' claim='shieldbase\\\\nfury targeted with explicit credentials from PID 0x50 starting 2018-09-04T21:42:07Z' inv_id='6cad926d-0929-4bfd-9832-cb4efb8701dc'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "6cad926d-0929-4bfd-9832-cb4efb8701dc",
+          "note": "Tool 'EvtxECmd' attested \u2014 Tier 2 CSV check skipped (no file readable): exact_value 'Target: shieldbase\\\\nfury' NOT found in any CSV (0 file(s) read, 1 total considered). Tier 1 attestation only."
+        },
+        {
+          "claim_text": "tool='EvtxECmd' claim='Multiple domain accounts targeted: cbarton, mhill, rsydow also in explicit credential events' inv_id='6cad926d-0929-4bfd-9832-cb4efb8701dc'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "6cad926d-0929-4bfd-9832-cb4efb8701dc",
+          "note": "Tool 'EvtxECmd' attested \u2014 Tier 2 CSV check skipped (no file readable): exact_value 'Target: shieldbase\\\\cbarton' NOT found in any CSV (0 file(s) read, 1 total considered). Tier 1 attestation only."
+        }
+      ]
+    },
+    {
+      "finding_id": "F-sansproject-004",
+      "total_claims": 3,
+      "grounded": 3,
+      "ungrounded": 0,
+      "contradicted": 0,
+      "inferred_labeled": 0,
+      "grounding_rate": 1.0,
+      "hallucination_rate": 0.0,
+      "passed": true,
+      "claims": [
+        {
+          "claim_text": "tool='EvtxECmd' claim='subject_srv.exe executing at C:\\\\Windows (anomalous, not System32) via services.exe at 2018-09-06T22:11:15Z' inv_id='6cad926d-0929-4bfd-9832-cb4efb8701dc'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "6cad926d-0929-4bfd-9832-cb4efb8701dc",
+          "note": "Tool 'EvtxECmd' attested \u2014 Tier 2 CSV check skipped (no file readable): exact_value 'C:\\\\Windows\\\\subject_srv.exe C:\\\\windows\\\\subject_srv.exe -s \"base-hunt.shieldbase.lan:5682\" -l 3262 -v \"F-Response Subject\" -k \"155522845\"' NOT found in any CSV (0 file(s) read, 1 total considered). Tier 1 attestation only."
+        },
+        {
+          "claim_text": "tool='EvtxECmd' claim='Parent process is services.exe confirming service-based execution' inv_id='6cad926d-0929-4bfd-9832-cb4efb8701dc'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "6cad926d-0929-4bfd-9832-cb4efb8701dc",
+          "note": "Tool 'EvtxECmd' attested \u2014 Tier 2 CSV check skipped (no file readable): exact_value 'Parent process: C:\\\\Windows\\\\System32\\\\services.exe' NOT found in any CSV (0 file(s) read, 1 total considered). Tier 1 attestation only."
+        },
+        {
+          "claim_text": "tool='correlate_evidence' claim='correlate_evidence returned NOT_FOUND \u2014 no Amcache/Prefetch/MFT source available on DC' inv_id='correlation_4ddb81378703'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "correlation_4ddb81378703",
+          "note": "Tool 'correlate_evidence' attested in audit log (invocation_id='correlation_4ddb81378703', parsed_record_count=0). exact_value supplied but no valid csv_files in audit entry \u2014 Tier 2 skipped, Tier 1 attestation only."
+        }
+      ]
+    },
+    {
+      "finding_id": "F-sansproject-005",
+      "total_claims": 2,
+      "grounded": 2,
+      "ungrounded": 0,
+      "contradicted": 0,
+      "inferred_labeled": 0,
+      "grounding_rate": 1.0,
+      "hallucination_rate": 0.0,
+      "passed": true,
+      "claims": [
+        {
+          "claim_text": "tool='EvtxECmd' claim='F-Response Subject service installed auto start at 2018-09-06T22:11:15Z' inv_id='7ace1275-7b42-41e5-a0b6-075f8dfb1033'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "7ace1275-7b42-41e5-a0b6-075f8dfb1033",
+          "note": "Tool 'EvtxECmd' attested and Tier 2 CSV check passed: exact_value 'Name: F-Response Subject' found in CSV output (1 of 1 file(s) read)"
+        },
+        {
+          "claim_text": "tool='EvtxECmd' claim='mnemosyne kernel driver service installed demand start same timestamp' inv_id='7ace1275-7b42-41e5-a0b6-075f8dfb1033'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "7ace1275-7b42-41e5-a0b6-075f8dfb1033",
+          "note": "Tool 'EvtxECmd' attested and Tier 2 CSV check passed: exact_value 'Name: mnemosyne' found in CSV output (1 of 1 file(s) read)"
+        }
+      ]
+    },
+    {
+      "finding_id": "F-sansproject-006",
+      "total_claims": 1,
+      "grounded": 1,
+      "ungrounded": 0,
+      "contradicted": 0,
+      "inferred_labeled": 0,
+      "grounding_rate": 1.0,
+      "hallucination_rate": 0.0,
+      "passed": true,
+      "claims": [
+        {
+          "claim_text": "tool='EvtxECmd' claim='All 83 EID 4662 events have username shieldbase\\\\BASE-DC$ \u2014 no user account DCSync' inv_id='71c9135f-9529-4070-bb64-e854427fd286'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "71c9135f-9529-4070-bb64-e854427fd286",
+          "note": "Tool 'EvtxECmd' attested and Tier 2 CSV check passed: exact_value 'shieldbase\\\\BASE-DC$' found in CSV output (1 of 1 file(s) read)"
+        }
+      ]
+    }
+  ],
+  "generated_at": "2026-06-06T06:02:34.747320+00:00"
+}

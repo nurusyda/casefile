@@ -36,9 +36,9 @@ Post-correction grounding verification across three datasets from the CRIMSON OS
 - **Ungrounded claims** (SRL-2018-FILE only): audit field missing from audit entry — not a fabrication, but a traceability gap
 
 Source files:
-- `~/cases/SRL-2018/analysis/claim_accuracy_report_session20_REFERENCE.json`
-- `~/cases/SRL-2018-DC/analysis/claim_accuracy_report_session19_REFERENCE.json`
-- `~/cases/SRL-2018-FILE/analysis/claim_accuracy_report_session01_REFERENCE.json`
+- `results/SRL-2018_workstation_session20.json`
+- `results/SRL-2018-DC_session19.json`
+- `results/SRL-2018-FILE_session01.json`
 
 ---
 

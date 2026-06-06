@@ -1,0 +1,173 @@
+[
+  {
+    "id": "F-sansproject-001",
+    "status": "DRAFT",
+    "title": "subject_srv.exe Installed as Persistent Auto-Start Service (F-Response Subject)",
+    "observation": "EID 7045 at 2018-09-06T19:25:36Z on base-file.shieldbase.lan: service \"F-Response Subject\" installed with StartType=auto start, AccountName=LocalSystem, executable C:\\windows\\subject_srv.exe, installed by SID S-1-5-21-3445421715-2530590580-3149308974-1185 (non-SYSTEM domain account). EID 4688 at same second confirms process creation at PID 0x1810 (parent PID 0x218). Path is anomalous \u2014 C:\\windows\\ not C:\\Windows\\System32\\.",
+    "interpretation": "A domain user (SID -1185) installed subject_srv.exe as a LocalSystem auto-start service. The non-standard path (C:\\windows\\ vs System32) and the use of a domain account (not SYSTEM) to register a LocalSystem service are red flags. F-Response is a legitimate DFIR tool for live forensic acquisition; its presence here is consistent with attacker or unauthorised responder lateral tool deployment.",
+    "confidence": "INFERRED",
+    "artifact_source": "System.evtx EID 7045 record_number 103475; Security.evtx EID 4688 record_number 35738",
+    "supporting_tool": "EvtxECmd",
+    "mitre_technique": "T1543.003 \u2014 Create or Modify System Process: Windows Service",
+    "mitre_warning": "Unknown ATT&CK technique ID 'T1543.003 \u2014 Create or Modify System Process: Windows Service' \u2014 not in data/attack_v15.json. Finding recorded with warning.",
+    "examiner": "sansproject",
+    "created_at": "2026-06-06T13:57:49.665164+00:00",
+    "approved_at": null,
+    "approved_by": null,
+    "evidence_quotes": [
+      {
+        "tool": "EvtxECmd",
+        "invocation_id": "33c87d3b-75db-486c-b9c4-09567dcc2003",
+        "claim": "Service F-Response Subject installed with subject_srv.exe auto-start",
+        "exact_value": "Name: F-Response Subject"
+      },
+      {
+        "tool": "EvtxECmd",
+        "invocation_id": "33c87d3b-75db-486c-b9c4-09567dcc2003",
+        "claim": "subject_srv.exe process spawned at 2018-09-06T19:25:36Z",
+        "exact_value": "C:\\Windows\\subject_srv.exe C:\\windows\\subject_srv.exe -s \"base-hunt.shieldbase.lan:5682\" -l 3262 -v \"F-Response Subject\" -k \"155522845\""
+      }
+    ],
+    "claim_confidence": "MEDIUM"
+  },
+  {
+    "id": "F-sansproject-002",
+    "status": "DRAFT",
+    "title": "Lateral Movement Recon \u2014 cmd.exe probing 172.16.6.12 R&D Subnet",
+    "observation": "EID 4688 at 2018-09-06T17:07:19Z on base-file.shieldbase.lan: cmd.exe executed with command line `dir \\\\172.16.6.12\\c$\\windows\\temp\\perfmon\\`. Process PID 0x1808, parent PID 0xC5C, user shieldbase\\BASE-FILE$ (machine account). Target IP 172.16.6.12 matches IOC in prd.json (R&D subnet). The directory probed (C:\\windows\\temp\\perfmon\\) is a staging path used in prior CRIMSON OSPREY lateral movement.",
+    "interpretation": "The attacker enumerated a specific staging directory on the R&D host (172.16.6.12) from the FILE server using the machine account. This is consistent with lateral movement or tool staging preparation. The use of the machine account (BASE-FILE$) suggests the command ran under a service or SYSTEM-level process \u2014 the caller did not use interactive credentials.",
+    "confidence": "INFERRED",
+    "artifact_source": "Security.evtx EID 4688 record_number 35551",
+    "supporting_tool": "EvtxECmd",
+    "mitre_technique": "T1021.002 \u2014 Remote Services: SMB/Windows Admin Shares",
+    "mitre_warning": "Unknown ATT&CK technique ID 'T1021.002 \u2014 Remote Services: SMB/Windows Admin Shares' \u2014 not in data/attack_v15.json. Finding recorded with warning.",
+    "examiner": "sansproject",
+    "created_at": "2026-06-06T13:57:58.134236+00:00",
+    "approved_at": null,
+    "approved_by": null,
+    "evidence_quotes": [
+      {
+        "tool": "EvtxECmd",
+        "invocation_id": "33c87d3b-75db-486c-b9c4-09567dcc2003",
+        "claim": "cmd.exe accessed UNC path \\\\172.16.6.12\\c$\\windows\\temp\\perfmon\\ from FILE server",
+        "exact_value": "C:\\Windows\\System32\\cmd.exe C:\\windows\\system32\\cmd.exe /C dir \\\\172.16.6.12\\c$\\windows\\temp\\perfmon\\"
+      }
+    ],
+    "claim_confidence": "MEDIUM"
+  },
+  {
+    "id": "F-sansproject-003",
+    "status": "DRAFT",
+    "title": "Security Event Log Cleared by Domain Account spsql \u2014 Anti-Forensic Activity",
+    "observation": "EID 1102 at 2018-09-06T16:37:25Z on base-file.shieldbase.lan: Security audit log cleared by shieldbase\\spsql (SID S-1-5-21-3445421715-2530590580-3149308974-1193). This occurred approximately 30 minutes before the lateral movement recon event (17:07:19) and approximately 2h48m before subject_srv.exe service installation (19:25:36).",
+    "interpretation": "Log clearing by a domain account (spsql \u2014 likely a SQL service account) immediately prior to attacker activity is consistent with anti-forensic tradecraft. The clearing eliminated earlier activity evidence; only post-clear events (17:07 onward) are visible. The use of a SQL service account for log clearing suggests credential theft/abuse rather than an interactive administrator action.",
+    "confidence": "INFERRED",
+    "artifact_source": "Security.evtx EID 1102 record_number 35525",
+    "supporting_tool": "EvtxECmd",
+    "mitre_technique": "T1070.001 \u2014 Indicator Removal: Clear Windows Event Logs",
+    "mitre_warning": "Unknown ATT&CK technique ID 'T1070.001 \u2014 Indicator Removal: Clear Windows Event Logs' \u2014 not in data/attack_v15.json. Finding recorded with warning.",
+    "examiner": "sansproject",
+    "created_at": "2026-06-06T13:58:05.082606+00:00",
+    "approved_at": null,
+    "approved_by": null,
+    "evidence_quotes": [
+      {
+        "tool": "EvtxECmd",
+        "invocation_id": "33c87d3b-75db-486c-b9c4-09567dcc2003",
+        "claim": "Security event log cleared by shieldbase\\spsql at 2018-09-06T16:37:25Z",
+        "exact_value": "SID: (S-1-5-21-3445421715-2530590580-3149308974-1193)"
+      }
+    ],
+    "claim_confidence": "MEDIUM"
+  },
+  {
+    "id": "F-sansproject-004",
+    "status": "DRAFT",
+    "title": "subject_srv.exe Timestomped \u2014 $SI Modified Backdated with Zero Microseconds",
+    "observation": "MFT pre-existing CSV (entry 123285, .\\Windows\\subject_srv.exe): $SI Modified (LastModified0x10) = 2018-04-10 19:29:48.0000000 (zero microseconds, rounded to second) while $FN Modified (LastModified0x30) = 2018-09-06 19:25:36.5115342. The uSecZeros flag is True. Copied flag is True. $SI Created and $FN Created both show 2018-09-06, so only the Modified timestamp was backdated approximately 5 months. SHA1 in Amcache pre-existing CSV: 6935db820d990060446e836c2027fc2adfd9099e.",
+    "interpretation": "The $SI Modified timestamp was deliberately altered to appear as if the file was last modified in April 2018 \u2014 approximately 5 months before actual placement (September 2018). The .000 microsecond precision and $SI/$FN mismatch are classic timestomping signatures. This is anti-forensic tradecraft to evade timeline-based detection. The Copied=True flag indicates the file was transferred cross-volume (consistent with lateral tool deployment).",
+    "confidence": "INFERRED",
+    "artifact_source": "MFT pre-existing CSV (analysis/mft_out/mft) entry 123285; Amcache pre-existing CSV (analysis/amcache_out/Amcache_UnassociatedFileEntries)",
+    "supporting_tool": "MFTECmd",
+    "mitre_technique": "T1070.006 \u2014 Indicator Removal: Timestomp",
+    "mitre_warning": "Unknown ATT&CK technique ID 'T1070.006 \u2014 Indicator Removal: Timestomp' \u2014 not in data/attack_v15.json. Finding recorded with warning.",
+    "examiner": "sansproject",
+    "created_at": "2026-06-06T13:58:16.621155+00:00",
+    "approved_at": null,
+    "approved_by": null,
+    "evidence_quotes": [
+      {
+        "tool": "MFTECmd",
+        "invocation_id": "1ed2bbb6-1100-4306-b7c2-d59e355adf26",
+        "claim": "MFT parser produced 0 live entries; pre-existing CSV shows subject_srv.exe with $SI/$FN Modified mismatch",
+        "audit_field": "total_entries",
+        "audit_expected": "0"
+      },
+      {
+        "tool": "AmcacheParser",
+        "invocation_id": "066cce07-2e10-4b40-a86f-661afb0eb0b7",
+        "claim": "Live Amcache parser produced 0 entries; pre-existing CSV shows subject_srv.exe SHA1=6935db820d990060446e836c2027fc2adfd9099e",
+        "audit_field": "total_entries",
+        "audit_expected": "0"
+      }
+    ],
+    "claim_confidence": "MEDIUM"
+  },
+  {
+    "id": "F-sansproject-005",
+    "status": "DRAFT",
+    "title": "correlate_evidence \u2014 subject_srv.exe NOT_FOUND via Live Parsers (Hive Incompatibility)",
+    "observation": "correlate_evidence('subject_srv.exe', '/home/sansproject/cases/SRL-2018-FILE/analysis') returned verdict NOT_FOUND. Amcache live parse returned 0 entries (invocation_id bbd4a5de); MFT live parse returned 0 entries (invocation_id 15e0786c). No memory image present for this host (CASEFILE_MEMORY_IMAGE unset; only base-rd01-memory.img exists, which is a different machine). Pre-existing CSVs from prior session confirm subject_srv.exe presence in both Amcache and MFT, but these cannot be cited with current-session invocation_ids per session hygiene rules.",
+    "interpretation": "The NOT_FOUND verdict reflects live parser failures due to Amcache hive schema incompatibility and MFT parser issues, not actual absence. Event log evidence (EID 7045, EID 4688) independently confirms subject_srv.exe was installed and executed. T08 (CONFIRMED_RUNNING via correlate_evidence) cannot be satisfied in this session due to tool limitations \u2014 this is a documented gap, not a finding retraction.",
+    "confidence": "INFERRED",
+    "artifact_source": "correlate_evidence output invocation_id correlation_74cb725309d9",
+    "supporting_tool": "correlate_evidence",
+    "mitre_technique": null,
+    "mitre_warning": null,
+    "examiner": "sansproject",
+    "created_at": "2026-06-06T13:58:33.323367+00:00",
+    "approved_at": null,
+    "approved_by": null,
+    "evidence_quotes": [
+      {
+        "tool": "correlate_evidence",
+        "invocation_id": "correlation_74cb725309d9",
+        "claim": "correlate_evidence returned NOT_FOUND for subject_srv.exe \u2014 live parsers produced 0 entries",
+        "audit_field": "verdict",
+        "audit_expected": "NOT_FOUND"
+      }
+    ],
+    "claim_confidence": "MEDIUM"
+  },
+  {
+    "id": "F-sansproject-006",
+    "status": "DRAFT",
+    "title": "Suspicious Auto-Start Services \u2014 \"Microsoft Advanced API 64/32\" \u2014 Possible Malware Phase 1",
+    "observation": "EID 7045 at 2018-04-26T01:13:12Z: service \"Microsoft Advanced API 64\" installed auto-start, LocalSystem, executable C:\\Program Files (x86)\\Microsoft Advanced API 64\\msadvapi2_64.exe. EID 7045 at 2018-04-26T01:13:36Z: service \"Microsoft Advanced API 32\" installed auto-start, LocalSystem, executable C:\\Program Files (x86)\\Microsoft Advanced API 32\\msadvapi2_32.exe. Both installed by SID S-1-5-18 (SYSTEM). Time of installation is 01:13 UTC (off-hours).",
+    "interpretation": "These services use plausible-sounding names mimicking Windows API infrastructure but are not legitimate Microsoft services (no real Windows service by this name exists). The 64-bit binary installed under Program Files (x86) is anomalous. Off-hours installation by SYSTEM suggests automated deployment. These may represent the initial persistence implant dropped during the April 2018 compromise phase \u2014 approximately 5 months before the September 2018 subject_srv.exe deployment. Corroboration via Amcache hash lookup is blocked by hive incompatibility.",
+    "confidence": "INFERRED",
+    "artifact_source": "System.evtx EID 7045 record_numbers 3475 and 3482",
+    "supporting_tool": "EvtxECmd",
+    "mitre_technique": "T1543.003",
+    "mitre_warning": null,
+    "examiner": "sansproject",
+    "created_at": "2026-06-06T13:58:43.521393+00:00",
+    "approved_at": null,
+    "approved_by": null,
+    "evidence_quotes": [
+      {
+        "tool": "EvtxECmd",
+        "invocation_id": "33c87d3b-75db-486c-b9c4-09567dcc2003",
+        "claim": "Microsoft Advanced API 64 service installed auto-start 2018-04-26T01:13:12Z",
+        "exact_value": "Name: Microsoft Advanced API 64"
+      },
+      {
+        "tool": "EvtxECmd",
+        "invocation_id": "33c87d3b-75db-486c-b9c4-09567dcc2003",
+        "claim": "Microsoft Advanced API 32 service installed auto-start 2018-04-26T01:13:36Z",
+        "exact_value": "Name: Microsoft Advanced API 32"
+      }
+    ],
+    "claim_confidence": "MEDIUM"
+  }
+]

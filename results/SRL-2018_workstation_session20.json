@@ -1,0 +1,139 @@
+{
+  "total_claims": 10,
+  "grounded": 10,
+  "ungrounded": 0,
+  "contradicted": 0,
+  "inferred_labeled": 0,
+  "grounding_rate": 1.0,
+  "hallucination_rate": 0.0,
+  "all_passed": true,
+  "tier2_verified": 7,
+  "findings": [
+    {
+      "finding_id": "F-sansproject-001",
+      "total_claims": 2,
+      "grounded": 2,
+      "ungrounded": 0,
+      "contradicted": 0,
+      "inferred_labeled": 0,
+      "grounding_rate": 1.0,
+      "hallucination_rate": 0.0,
+      "passed": true,
+      "claims": [
+        {
+          "claim_text": "tool='AmcacheParser' claim='IOC SHA1 in Amcache for csrss.exe' inv_id='f9a16390-6bc1-4173-bb15-dd469d1161b7'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "f9a16390-6bc1-4173-bb15-dd469d1161b7",
+          "note": "Tool 'AmcacheParser' attested and Tier 2 CSV check passed: exact_value '0300c7833bfba831b67f9291097655cb162263fd' found in CSV output (6 of 6 file(s) read)"
+        },
+        {
+          "claim_text": "tool='pyscca' claim='Malicious CSRSS.EXE in Temp\\\\Perfmon executed 3 times' inv_id='8ae1e31e-7d27-4ad2-a532-55908011dfde'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "8ae1e31e-7d27-4ad2-a532-55908011dfde",
+          "note": "Tool 'pyscca' attested and Tier 2 CSV check passed: exact_value 'CSRSS.EXE-7898BE61.pf' found in CSV output (1 of 1 file(s) read)"
+        }
+      ]
+    },
+    {
+      "finding_id": "F-sansproject-002",
+      "total_claims": 2,
+      "grounded": 2,
+      "ungrounded": 0,
+      "contradicted": 0,
+      "inferred_labeled": 0,
+      "grounding_rate": 1.0,
+      "hallucination_rate": 0.0,
+      "passed": true,
+      "claims": [
+        {
+          "claim_text": "tool='EvtxECmd' claim='Microsoft Advanced API 64 auto-start service installed' inv_id='af055021-c2fd-4e9b-9117-99569c4f67d3'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "af055021-c2fd-4e9b-9117-99569c4f67d3",
+          "note": "Tool 'EvtxECmd' attested and Tier 2 CSV check passed: exact_value 'Name: Microsoft Advanced API 64' found in CSV output (1 of 1 file(s) read)"
+        },
+        {
+          "claim_text": "tool='EvtxECmd' claim='Microsoft Advanced API 32 auto-start service installed' inv_id='af055021-c2fd-4e9b-9117-99569c4f67d3'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "af055021-c2fd-4e9b-9117-99569c4f67d3",
+          "note": "Tool 'EvtxECmd' attested and Tier 2 CSV check passed: exact_value 'Name: Microsoft Advanced API 32' found in CSV output (1 of 1 file(s) read)"
+        }
+      ]
+    },
+    {
+      "finding_id": "F-sansproject-003",
+      "total_claims": 2,
+      "grounded": 2,
+      "ungrounded": 0,
+      "contradicted": 0,
+      "inferred_labeled": 0,
+      "grounding_rate": 1.0,
+      "hallucination_rate": 0.0,
+      "passed": true,
+      "claims": [
+        {
+          "claim_text": "tool='EvtxECmd' claim='Cobalt Strike beacon service a03d616 via loopback UNC' inv_id='af055021-c2fd-4e9b-9117-99569c4f67d3'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "af055021-c2fd-4e9b-9117-99569c4f67d3",
+          "note": "Tool 'EvtxECmd' attested and Tier 2 CSV check passed: exact_value 'Name: a03d616' found in CSV output (1 of 1 file(s) read)"
+        },
+        {
+          "claim_text": "tool='Volatility3' claim='p.exe (IOC) running in memory PID 8260 under cmd.exe' inv_id='mem-566f3c84'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "mem-566f3c84",
+          "note": "Tool 'Volatility3' attested in audit log (invocation_id='mem-566f3c84', parsed_record_count=129). exact_value supplied but no valid csv_files in audit entry \u2014 Tier 2 skipped, Tier 1 attestation only."
+        }
+      ]
+    },
+    {
+      "finding_id": "F-sansproject-004",
+      "total_claims": 3,
+      "grounded": 3,
+      "ungrounded": 0,
+      "contradicted": 0,
+      "inferred_labeled": 0,
+      "grounding_rate": 1.0,
+      "hallucination_rate": 0.0,
+      "passed": true,
+      "claims": [
+        {
+          "claim_text": "tool='correlate_evidence' claim='subject_srv.exe CONFIRMED_RUNNING verdict' inv_id='correlation_f3d4c111efac'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "correlation_f3d4c111efac",
+          "note": "Tool 'correlate_evidence' attested in audit log (invocation_id='correlation_f3d4c111efac', parsed_record_count=2). exact_value supplied but no valid csv_files in audit entry \u2014 Tier 2 skipped, Tier 1 attestation only."
+        },
+        {
+          "claim_text": "tool='Volatility3' claim='subject_srv.ex in pslist PID 1096 PPID 740' inv_id='mem-566f3c84'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "mem-566f3c84",
+          "note": "Tool 'Volatility3' attested in audit log (invocation_id='mem-566f3c84', parsed_record_count=129). exact_value supplied but no valid csv_files in audit entry \u2014 Tier 2 skipped, Tier 1 attestation only."
+        },
+        {
+          "claim_text": "tool='EvtxECmd' claim='F-Response Subject service installed 2018-09-06T18:28:30Z' inv_id='af055021-c2fd-4e9b-9117-99569c4f67d3'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "af055021-c2fd-4e9b-9117-99569c4f67d3",
+          "note": "Tool 'EvtxECmd' attested and Tier 2 CSV check passed: exact_value 'Name: F-Response Subject' found in CSV output (1 of 1 file(s) read)"
+        }
+      ]
+    },
+    {
+      "finding_id": "F-sansproject-005",
+      "total_claims": 1,
+      "grounded": 1,
+      "ungrounded": 0,
+      "contradicted": 0,
+      "inferred_labeled": 0,
+      "grounding_rate": 1.0,
+      "hallucination_rate": 0.0,
+      "passed": true,
+      "claims": [
+        {
+          "claim_text": "tool='pyscca' claim='SDELETE.EXE ran once 2018-05-14' inv_id='8ae1e31e-7d27-4ad2-a532-55908011dfde'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "8ae1e31e-7d27-4ad2-a532-55908011dfde",
+          "note": "Tool 'pyscca' attested and Tier 2 CSV check passed: exact_value 'SDELETE.EXE' found in CSV output (1 of 1 file(s) read)"
+        }
+      ]
+    }
+  ],
+  "generated_at": "2026-06-06T09:42:58.854258+00:00"
+}
