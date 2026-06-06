@@ -77,7 +77,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
-from mcp_server.tools._shared import audit_log, run_tool, _load_case_iocs
+from mcp_server.tools._shared import audit_log, run_tool, PathConfinementError, _enforce_case_root, _load_case_iocs
 
 # Verified path on Protocol SIFT, April 28 2026
 # NOTE: EvtxECmd is in a subdirectory unlike the other EZ Tools
@@ -394,15 +394,10 @@ def parse_event_logs(
 
     # ── Validate input ────────────────────────────────────────────────────────
     evtx = Path(evtx_path).resolve()
-    _case_root_env = os.environ.get("CASEFILE_CASE_ROOT")
-    if _case_root_env:
-        try:
-            evtx.relative_to(Path(_case_root_env).resolve())
-        except ValueError:
-            return _error_result(
-                invocation_id, evtx_path,
-                f"evtx_path escapes case root: {evtx_path!r}"
-            )
+    try:
+        _enforce_case_root(evtx)
+    except PathConfinementError as exc:
+        return _error_result(invocation_id, evtx_path, str(exc))
     if not evtx.exists():
         return _error_result(
             invocation_id, evtx_path,
@@ -417,14 +412,10 @@ def parse_event_logs(
     # ── Resolve output directory ──────────────────────────────────────────────
     if output_dir:
         out_dir = Path(output_dir).resolve()
-        if _case_root_env:
-            try:
-                out_dir.relative_to(Path(_case_root_env).resolve())
-            except ValueError:
-                return _error_result(
-                    invocation_id, output_dir,
-                    f"output_dir escapes case root: {output_dir!r}"
-                )
+        try:
+            _enforce_case_root(out_dir)
+        except PathConfinementError as exc:
+            return _error_result(invocation_id, output_dir, str(exc))
     else:
         # Write outside evidence tree — use CASEFILE_CASE_DIR/analysis/
         _case = os.environ.get("CASEFILE_CASE_DIR", str(Path.home() / "cases" / "active"))
