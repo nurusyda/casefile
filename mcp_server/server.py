@@ -57,17 +57,26 @@ def _with_default_output_dir(tool_fn, subdir: str):
     is applied here: the output path is constructed from a trusted env
     var, and individual parser tools already enforce path confinement
     on their input arguments.
-    """
-    @wraps(tool_fn)
-    def wrapper(*args, output_dir=None, **kwargs):
-        if output_dir is None:
-            case_dir = os.environ.get("CASEFILE_CASE_ROOT") or os.environ.get("CASEFILE_CASE_DIR", "")
-            if case_dir:
-                output_dir = str(Path(case_dir) / "analysis" / subdir)
-                os.makedirs(output_dir, exist_ok=True)
-        return tool_fn(*args, output_dir=output_dir, **kwargs)
 
-    wrapper.__signature__ = inspect.signature(tool_fn)
+    Uses sig.bind_partial so output_dir can be supplied positionally
+    (e.g. parse_event_logs('/path/to.evtx', '/custom/out')) without
+    raising TypeError due to the bare *args expansion.
+    """
+    sig = inspect.signature(tool_fn)
+
+    @wraps(tool_fn)
+    def wrapper(*args, **kwargs):
+        bound = sig.bind_partial(*args, **kwargs)
+        if bound.arguments.get("output_dir") is None:
+            case_dir = (os.environ.get("CASEFILE_CASE_ROOT")
+                        or os.environ.get("CASEFILE_CASE_DIR", ""))
+            if case_dir:
+                out = str(Path(case_dir) / "analysis" / subdir)
+                os.makedirs(out, exist_ok=True)
+                bound.arguments["output_dir"] = out
+        return tool_fn(*bound.args, **bound.kwargs)
+
+    wrapper.__signature__ = sig
     wrapper.__annotations__ = tool_fn.__annotations__
     return wrapper
 
