@@ -66,6 +66,7 @@ def _with_default_output_dir(tool_fn, subdir: str):
                 output_dir = str(Path(case_dir) / "analysis" / subdir)
                 os.makedirs(output_dir, exist_ok=True)
         return tool_fn(*args, output_dir=output_dir, **kwargs)
+
     wrapper.__signature__ = inspect.signature(tool_fn)
     wrapper.__annotations__ = tool_fn.__annotations__
     return wrapper
