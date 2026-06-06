@@ -14,7 +14,18 @@
       "Bash(ls -la *)",
       "Bash(sha256sum *)",
       "mcp__casefile__parse_memory",
-      "mcp__casefile__correlate_evidence"
+      "mcp__casefile__correlate_evidence",
+      "mcp__casefile__detect_host_type",
+      "mcp__casefile__export_findings",
+      "mcp__casefile__generate_accuracy_report",
+      "mcp__casefile__search_knowledge",
+      "mcp__casefile__get_knowledge_stats",
+      "mcp__casefile__parse_hayabusa",
+      "mcp__casefile__parse_shellbags",
+      "mcp__casefile__parse_lnk",
+      "mcp__casefile__parse_jumplists",
+      "mcp__casefile__parse_volatility_pslist",
+      "mcp__casefile__parse_volatility_netscan"
     ],
     "deny": [
       "Write(/mnt/evidence/*)",

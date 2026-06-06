@@ -28,6 +28,10 @@ from mcp_server.tools.forensic_rag import search_knowledge, get_knowledge_stats
 from mcp_server.tools.shellbags import parse_shellbags
 from mcp_server.tools.hayabusa import parse_hayabusa
 from mcp_server.tools.export_findings import export_findings
+from mcp_server.tools.lnk import parse_lnk
+from mcp_server.tools.jumplists import parse_jumplists
+from mcp_server.tools.vol_pslist import parse_volatility_pslist
+from mcp_server.tools.vol_netscan import parse_volatility_netscan
 from mcp_server.tools.findings import (
     record_finding,
     get_findings,
@@ -175,6 +179,10 @@ mcp.tool()(get_knowledge_stats)
 mcp.tool()(parse_shellbags)
 mcp.tool()(parse_hayabusa)
 mcp.tool()(export_findings)
+mcp.tool()(parse_lnk)
+mcp.tool()(parse_jumplists)
+mcp.tool()(parse_volatility_pslist)
+mcp.tool()(parse_volatility_netscan)
 
 if __name__ == "__main__":
     mcp.run()
