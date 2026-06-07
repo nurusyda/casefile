@@ -135,7 +135,7 @@ class TestBypass2_PathTraversalOutputDir:
         result = parse_event_logs(evtx_path=legit_evtx, output_dir="/etc")
         assert result.get("error") is not None, \
             f"Expected error, got: {json.dumps(result, default=str)[:500]}"
-        assert "output_dir escapes case root" in result["error"], \
+        assert "path escapes case root" in result["error"], \
             f"Error: {result['error']}"
 
     def test_output_dir_dotdot_traversal_blocked(self, case_root, monkeypatch):
@@ -146,7 +146,7 @@ class TestBypass2_PathTraversalOutputDir:
         legit_evtx = str(case_root / "evidence" / "evtx" / "Security.evtx")
         result = parse_event_logs(evtx_path=legit_evtx, output_dir="/tmp/../etc")
         assert result.get("error") is not None
-        assert "output_dir escapes case root" in result["error"]
+        assert "path escapes case root" in result["error"]
 
     def test_valid_output_dir_inside_case_root_allowed(self, case_root, monkeypatch):
         """A legitimate output_dir inside case_root should succeed in path check."""
