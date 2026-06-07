@@ -7,15 +7,9 @@
 #   - Every committed fixture reproduces its expected grounding numbers
 #     (total_claims, grounded, contradicted, hallucination_rate) from
 #     sanitized audit logs and findings — no raw evidence required.
-#   - The SRL-2018 workstation case additionally reproduces full Tier 2
-#     (CSV-backed exact_value verification) because minimal CSV fixtures
-#     are committed alongside the sanitized audit trail.
-#
-# What this does NOT prove:
-#   - SRL-2018-DC and SRL-2018-FILE reproduce Tier 1 attestation only.
-#     Their parser CSV output is NOT committed (event logs are too large),
-#     so exact_value CSV checks (Tier 2) are skipped. This is by design and
-#     is labelled in the output table.
+#   - All three cases (SRL-2018, SRL-2018-DC, SRL-2018-FILE) reproduce
+#     full Tier 2 (CSV-backed exact_value verification) because minimal
+#     CSV fixtures are committed alongside the sanitized audit trail.
 #
 # Run:
 #   bash verify.sh
@@ -134,24 +128,13 @@ for case_fixture_dir in "$FIXTURES_DIR"/*/; do
         mismatches="$mismatches halluc%($actual_halluc!=$expected_halluc)"
     fi
 
-    # Tier 2: only enforced for workstation case (has committed CSVs)
+    # Tier 2: enforced for all cases (all have committed CSVs)
     tier2_display="$actual_tier2"
     tier2_note=""
-    case "$case_name" in
-        SRL-2018-DC|SRL-2018-FILE)
-            # DC and FILE fixtures do not include parser CSVs.
-            # Tier 2 will naturally be 0 when re-run; the expected value
-            # records what the original session achieved with live data.
-            tier2_display="0*"
-            tier2_note=" (Tier 1 attestation only — CSVs not committed)"
-            ;;
-        *)
-            if [ "$actual_tier2" != "$expected_tier2" ]; then
-                result="FAIL"
-                mismatches="$mismatches tier2($actual_tier2!=$expected_tier2)"
-            fi
-            ;;
-    esac
+    if [ "$actual_tier2" != "$expected_tier2" ]; then
+        result="FAIL"
+        mismatches="$mismatches tier2($actual_tier2!=$expected_tier2)"
+    fi
 
     if [ "$result" = "PASS" ]; then
         PASS_COUNT=$((PASS_COUNT + 1))
@@ -211,9 +194,7 @@ echo ""
 if [ "$FAIL_COUNT" -eq 0 ]; then
     echo "✓ All $PASS_COUNT case(s) PASSED reproducibility check."
     echo ""
-    echo "  SRL-2018:         Full Tier 1 + Tier 2 attestation"
-    echo "  SRL-2018-DC:      Tier 1 attestation only (no CSVs committed)"
-    echo "  SRL-2018-FILE:    Tier 1 attestation only (no CSVs committed)"
+    echo "  All three cases reproduce full Tier 1 + Tier 2 attestation."
     exit 0
 else
     echo "✗ $FAIL_COUNT case(s) FAILED reproducibility check:"

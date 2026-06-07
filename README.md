@@ -50,13 +50,12 @@ Re-runs grounding verification against committed sanitized fixtures — **no raw
 required**. The script copies each fixture into a temp directory, expands path tokens,
 runs the same `scripts/grounding_verify.py` that ralph.sh uses, and diffs the resulting
 claim-accuracy report against the committed expected values. Exit 0 only if every case
-reproduces its committed `total_claims`, `grounded`, `contradicted`, and `hallucination_rate`.
+reproduces its committed `total_claims`, `grounded`, `contradicted`, `hallucination_rate`,
+and `tier2_verified`.
 
-- **SRL-2018** (workstation): full Tier 1 + Tier 2 attestation — minimal parser CSVs
-  are committed alongside the sanitized audit log, so exact-value CSV checks reproduce.
-- **SRL-2018-DC** and **SRL-2018-FILE**: Tier 1 attestation only — parser CSV output
-  (hundreds of MB of event logs) is not committed. The fixtures prove invocation
-  attestation but not cell-value verification for these cases.
+- **All three cases** reproduce full Tier 1 + Tier 2 attestation — minimal parser CSVs
+  are committed alongside the sanitized audit log for every case, so exact-value CSV
+  checks reproduce across the board.
 
 ### vs. Protocol SIFT Baseline
 

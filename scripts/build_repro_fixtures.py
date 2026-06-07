@@ -67,6 +67,91 @@ def write_csv(path, header, rows):
             writer.writerow(row)
 
 
+def _extract_exact_values(findings):
+    """Return set of (invocation_id, exact_value) tuples from findings."""
+    pairs = set()
+    for f in findings:
+        for q in f.get("evidence_quotes", []):
+            ev = q.get("exact_value")
+            inv = q.get("invocation_id")
+            if ev and inv:
+                pairs.add((inv, ev))
+    return pairs
+
+
+def _trim_csv(real_csv_path, exact_values, output_path, max_rows=0, channel=None):
+    """Read real_csv_path, keep header + rows where any cell (case-insensitive
+    stripped) matches one of the exact_values, sanitize paths, write to output_path.
+
+    If max_rows > 0, keep at most that many rows per matched needle.
+    If *channel* is given, only consider rows whose Channel column matches
+    (EvtxECmd CSV column index 6).  Returns the number of data rows written
+    (excluding header).
+    """
+    if not real_csv_path.exists():
+        print(f"    WARNING: real CSV {real_csv_path} not found — skipping")
+        return 0
+
+    needles = {v.lower() for v in exact_values}
+    header = None
+    kept_rows = []
+    # Track how many rows we've kept per needle for max_rows limiting
+    needle_counts: dict[str, int] = {n: 0 for n in needles}
+
+    with open(real_csv_path, newline="", encoding="utf-8", errors="replace") as fh:
+        reader = csv.reader(fh)
+        try:
+            header = next(reader)
+        except StopIteration:
+            print(f"    WARNING: {real_csv_path} is empty")
+            return 0
+
+        for row in reader:
+            # Channel filter — applied before needle matching so a
+            # Security.evtx invocation never pulls System.evtx rows.
+            if channel is not None:
+                try:
+                    row_channel = row[6].strip() if len(row) > 6 else ""
+                except IndexError:
+                    row_channel = ""
+                if row_channel.lower() != channel.lower():
+                    continue
+
+            cells_lower = {cell.strip().lower() for cell in row}
+            matched = cells_lower & needles
+            if matched:
+                # Honour max_rows per needle (0 = unlimited).
+                # Only keep the row if at least one matched needle is still
+                # under its limit.  Only increment the needles that are under
+                # their limits so a saturated needle doesn't block other
+                # needles that still need rows.
+                if max_rows > 0:
+                    under_limit = [n for n in matched
+                                   if needle_counts.get(n, 0) < max_rows]
+                    if not under_limit:
+                        continue
+                    for n in under_limit:
+                        needle_counts[n] += 1
+                else:
+                    for n in matched:
+                        needle_counts[n] += 1
+                # Sanitize absolute paths in every cell
+                sanitized = [sanitize_paths(cell) for cell in row]
+                kept_rows.append(sanitized)
+
+    if kept_rows:
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        write_csv(output_path, header, kept_rows)
+        # Verify by counting needle matches tracked during source read
+        verified = sum(1 for n in needles if needle_counts.get(n, 0) > 0)
+        print(f"    Wrote {len(kept_rows)} rows to {output_path.name} "
+              f"({verified}/{len(needles)} exact_values verified)")
+    else:
+        print(f"    WARNING: no rows matched for {output_path.name}")
+
+    return len(kept_rows)
+
+
 # ── Case: SRL-2018 (WORKSTATION) ─────────────────────────────────────────────────
 
 def build_srl2018_workstation():
@@ -330,7 +415,7 @@ def build_srl2018_dc():
             "invocation_id": "71c9135f-9529-4070-bb64-e854427fd286",
             "tool": "EvtxECmd",
             "examiner": "examiner",
-            "cmd": "dotnet /opt/zimmermantools/EvtxeCmd/EvtxECmd.dll -f {{CASE_DIR}}/evidence/evtx/Security.evtx --inc 4662 --csv {{CASE_DIR}}/analysis/evtx_dcsync_s18 --csvf Security.csv",
+            "cmd": "dotnet /opt/zimmermantools/EvtxeCmd/EvtxECmd.dll -f {{CASE_DIR}}/evidence/evtx/Security.evtx --inc 4662 --csv {{CASE_DIR}}/analysis/evtx_ntds_s18 --csvf Security.csv",
             "returncode": 0,
             "stdout_lines": 8,
             "stderr_excerpt": "",
@@ -338,8 +423,8 @@ def build_srl2018_dc():
             "duration_ms": 3200,
             "evtx_path": "{{CASE_DIR}}/evidence/evtx/Security.evtx",
             "event_ids_filter": [4662],
-            "output_dir": "{{CASE_DIR}}/analysis/evtx_dcsync_s18",
-            "csv_files": ["{{CASE_DIR}}/analysis/evtx_dcsync_s18/Security.csv"],
+            "output_dir": "{{CASE_DIR}}/analysis/evtx_ntds_s18",
+            "csv_files": ["{{CASE_DIR}}/analysis/evtx_ntds_s18/Security.csv"],
             "suspicious_count": 0,
             "capped": False,
         },
@@ -382,9 +467,64 @@ def build_srl2018_dc():
     }
     write_json(case_dir / "expected.json", expected)
 
+    # ── Minimal CSV files for Tier 2 ──
+    # Extract exact_values from findings, grouped by invocation_id
+    exact_pairs = _extract_exact_values(sanitized_findings)
+    # Map invocation_id → set of exact_values
+    by_inv: dict[str, set[str]] = {}
+    for inv_id, ev in exact_pairs:
+        by_inv.setdefault(inv_id, set()).add(ev)
+
+    # Invocation → real CSV mapping (for trimming source)
+    real_csv_map = {
+        # EID 7045 (System.evtx) — "Name: F-Response Subject", "Name: mnemosyne"
+        "7ace1275-7b42-41e5-a0b6-075f8dfb1033": (
+            REPO.parent / "cases/SRL-2018-DC/analysis/evtx_system_s18/System.csv"
+        ),
+        # EID 4662 DCSync detection (Security.evtx) — "shieldbase\\BASE-DC$"
+        # The original investigation session wrote to evtx_ntds_s18.
+        # (Despite the task being DCSync detection, the directory name
+        # "evtx_ntds_s18" reflects the NTDS replication angle of the hunt.
+        # The string "evtx_dcsync_s18" was never used in any session.)
+        "71c9135f-9529-4070-bb64-e854427fd286": (
+            REPO.parent / "cases/SRL-2018-DC/analysis/evtx_ntds_s18/Security.csv"
+        ),
+    }
+
+    # Output basename for each invocation_id
+    csv_basename_map = {
+        "7ace1275-7b42-41e5-a0b6-075f8dfb1033": "evtx_System.csv",
+        "71c9135f-9529-4070-bb64-e854427fd286": "evtx_Security_dcsync.csv",
+    }
+
+    # Per-invocation max_rows limits (keep CSVs minimal)
+    dc_max_rows = {
+        "7ace1275-7b42-41e5-a0b6-075f8dfb1033": 0,   # unlimited (only 2 rows anyway)
+        "71c9135f-9529-4070-bb64-e854427fd286": 2,   # limit dcsync — 1 cell match suffices
+    }
+
+    for inv_id, real_path in real_csv_map.items():
+        ev_set = by_inv.get(inv_id, set())
+        basename = csv_basename_map.get(inv_id, "unknown.csv")
+        out_path = case_dir / "csv" / basename
+        n = _trim_csv(real_path, ev_set, out_path, max_rows=dc_max_rows.get(inv_id, 0))
+        if n == 0 and ev_set:
+            print(f"    ERROR: {basename} — 0 rows matched from {real_path} "
+                  f"for {len(ev_set)} exact_values; Tier 2 will fail")
+
+    # Rewrite csv_files in audit entries to point at trimmed CSVs
+    for entry in audit_entries:
+        inv = entry.get("invocation_id", "")
+        basename = csv_basename_map.get(inv)
+        if basename:
+            entry["csv_files"] = [f"{{{{CASE_DIR}}}}/csv/{basename}"]
+
+    # Re-write audit log with updated csv_files
+    write_jsonl(case_dir / "audit" / "mcp.jsonl", audit_entries)
+
     print(f"  {case}: claims={expected['total_claims']}, "
           f"grounded={expected['grounded']}, "
-          f"tier2={expected['tier2_verified']} (Tier 1 attestation only in fixture)")
+          f"tier2={expected['tier2_verified']}")
 
 
 # ── Case: SRL-2018-FILE ────────────────────────────────────────────────────────
@@ -411,6 +551,24 @@ def build_srl2018_file():
             "output_dir": "{{CASE_DIR}}/analysis/evtx_sec_out",
             "csv_files": ["{{CASE_DIR}}/analysis/evtx_sec_out/Security.csv"],
             "suspicious_count": 8,
+            "capped": False,
+        },
+        {
+            "ts": "2026-06-06T13:55:01.000000+00:00",
+            "invocation_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+            "tool": "EvtxECmd",
+            "examiner": "examiner",
+            "cmd": "dotnet /opt/zimmermantools/EvtxeCmd/EvtxECmd.dll -f {{CASE_DIR}}/evidence/evtx/System.evtx --inc 7045 --csv {{CASE_DIR}}/analysis/evtx_sys_out --csvf System.csv",
+            "returncode": 0,
+            "stdout_lines": 5,
+            "stderr_excerpt": "",
+            "parsed_record_count": 15,
+            "duration_ms": 1800,
+            "evtx_path": "{{CASE_DIR}}/evidence/evtx/System.evtx",
+            "event_ids_filter": [7045],
+            "output_dir": "{{CASE_DIR}}/analysis/evtx_sys_out",
+            "csv_files": ["{{CASE_DIR}}/csv/evtx_System.csv"],
+            "suspicious_count": 5,
             "capped": False,
         },
         {
@@ -473,6 +631,19 @@ def build_srl2018_file():
     with open(findings_src, encoding="utf-8") as fh:
         findings = json.load(fh)
     sanitized_findings = [sanitize_finding(f) for f in findings]
+
+    # Remap System.evtx (EID 7045) evidence_quotes to the new System invocation.
+    # The original findings attribute everything to the Security-only invocation
+    # 33c87d3b, but Name: * exact_values come from System.evtx EID 7045 rows.
+    # Without this remapping the fixture CSV for invocation 33c87d3b would
+    # contain System-channel rows that its audit entry never produced.
+    SYSTEM_INV = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+    for finding in sanitized_findings:
+        for q in finding.get("evidence_quotes", []):
+            ev = q.get("exact_value", "")
+            if ev and ev.lower().startswith("name:"):
+                q["invocation_id"] = SYSTEM_INV
+
     write_json(case_dir / "findings.json", sanitized_findings)
 
     # ── expected.json ──
@@ -489,9 +660,58 @@ def build_srl2018_file():
     }
     write_json(case_dir / "expected.json", expected)
 
+    # ── Minimal CSV files for Tier 2 ──
+    # Extract exact_values from findings, grouped by invocation_id
+    exact_pairs = _extract_exact_values(sanitized_findings)
+    by_inv: dict[str, set[str]] = {}
+    for inv_id, ev in exact_pairs:
+        by_inv.setdefault(inv_id, set()).add(ev)
+
+    # Both invocations draw from the same combined EvtxECmd output CSV.
+    # The *channel* filter guarantees that each trimmed fixture CSV contains
+    # only rows from the correct .evtx source.
+    _COMBINED_CSV = REPO.parent / "cases/SRL-2018-FILE/analysis/evtx_out/evtx.csv"
+
+    real_csv_map = {
+        "33c87d3b-75db-486c-b9c4-09567dcc2003": _COMBINED_CSV,
+        SYSTEM_INV:                            _COMBINED_CSV,
+    }
+
+    csv_basename_map = {
+        "33c87d3b-75db-486c-b9c4-09567dcc2003": "evtx_Security.csv",
+        SYSTEM_INV:                            "evtx_System.csv",
+    }
+
+    # Per-invocation channel filters — ensures Security.evtx invocation never
+    # pulls System.evtx rows and vice versa.
+    channel_map = {
+        "33c87d3b-75db-486c-b9c4-09567dcc2003": "Security",
+        SYSTEM_INV:                            "System",
+    }
+
+    for inv_id, real_path in real_csv_map.items():
+        ev_set = by_inv.get(inv_id, set())
+        basename = csv_basename_map.get(inv_id, "unknown.csv")
+        out_path = case_dir / "csv" / basename
+        n = _trim_csv(real_path, ev_set, out_path,
+                      channel=channel_map.get(inv_id))
+        if n == 0 and ev_set:
+            print(f"    ERROR: {basename} — 0 rows matched from {real_path} "
+                  f"for {len(ev_set)} exact_values; Tier 2 will fail")
+
+    # Rewrite csv_files in audit entries to point at trimmed CSVs
+    for entry in audit_entries:
+        inv = entry.get("invocation_id", "")
+        basename = csv_basename_map.get(inv)
+        if basename:
+            entry["csv_files"] = [f"{{{{CASE_DIR}}}}/csv/{basename}"]
+
+    # Re-write audit log with updated csv_files
+    write_jsonl(case_dir / "audit" / "mcp.jsonl", audit_entries)
+
     print(f"  {case}: claims={expected['total_claims']}, "
           f"grounded={expected['grounded']}, "
-          f"tier2={expected['tier2_verified']} (Tier 1 attestation only in fixture)")
+          f"tier2={expected['tier2_verified']}")
 
 
 # ── Main ────────────────────────────────────────────────────────────────────────

@@ -17,7 +17,7 @@
     "evidence_quotes": [
       {
         "tool": "EvtxECmd",
-        "invocation_id": "33c87d3b-75db-486c-b9c4-09567dcc2003",
+        "invocation_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
         "claim": "Service F-Response Subject installed with subject_srv.exe auto-start",
         "exact_value": "Name: F-Response Subject"
       },
@@ -157,13 +157,13 @@
     "evidence_quotes": [
       {
         "tool": "EvtxECmd",
-        "invocation_id": "33c87d3b-75db-486c-b9c4-09567dcc2003",
+        "invocation_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
         "claim": "Microsoft Advanced API 64 service installed auto-start 2018-04-26T01:13:12Z",
         "exact_value": "Name: Microsoft Advanced API 64"
       },
       {
         "tool": "EvtxECmd",
-        "invocation_id": "33c87d3b-75db-486c-b9c4-09567dcc2003",
+        "invocation_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
         "claim": "Microsoft Advanced API 32 service installed auto-start 2018-04-26T01:13:36Z",
         "exact_value": "Name: Microsoft Advanced API 32"
       }
