@@ -40,6 +40,38 @@ Source files:
 - `results/SRL-2018-DC_session19.json`
 - `results/SRL-2018-FILE_session01.json`
 
+### vs. Protocol SIFT Baseline
+
+To establish why architectural anti-hallucination matters, we ran Protocol SIFT on the
+same SRL-2018 evidence and scored its output manually using CFA-Bench (6 investigation
+checkpoints). Three of six answers contained fabricated details:
+
+| Checkpoint | Question | Protocol SIFT | Failure mode |
+|---|---|---|---|
+| CP1 | Malware present on host? | ✅ Correct | — |
+| CP2 | Execution evidence found? | ❌ Hallucinated | Execution time fabricated — not in artifact |
+| CP3 | Persistence mechanism identified? | ❌ Hallucinated | Service name guessed, not parsed from registry |
+| CP4 | Lateral movement confirmed? | ✅ Not detected | — |
+| CP5 | Coherent UTC timeline produced? | ❌ Hallucinated | Timestamps not sourced from artifacts |
+| CP6 | All findings traceable to artifacts? | ⚠️ No tracing | No invocation ID or tool citation produced |
+
+**Protocol SIFT score: 2/6 correct, 3 hallucinated (50%)**
+
+CaseFile addresses each failure mode architecturally: CP2/CP3 timestamps and service
+names are parsed from CSV output and Tier 2 verified against the actual cell values.
+CP5 timestamps carry invocation IDs linking to the parser run that produced them.
+CP6 traceability is enforced by the audit chain (claim → invocation_id → audit/mcp.jsonl → CSV cell).
+
+CaseFile's measured hallucination rate across 31 claims on three datasets: **0.0%** (0 contradicted).
+
+Source: [`reports/protocol_sift_baseline.json`](reports/protocol_sift_baseline.json) (baseline established April 2026)
+
+> **Note on SRL-2018-FILE grounding (77.8%):** Two claims are marked UNGROUNDED because
+> the audit entry lacked a `csv_files` field — the Amcache and MFT parsers produced 0
+> entries on this hive version, so ralph used pre-existing CSVs. The claims were not
+> fabricated (0 CONTRADICTED); the gap is traceability, not accuracy. The framework
+> flags this transparently rather than silently claiming full grounding.
+
 ---
 
 ## How It Works
@@ -71,7 +103,7 @@ opens the actual CSV output files produced by the parser and verifies that the
 data (Tier 2). This catches the "correct tool, wrong value" failure mode — e.g.,
 citing a SHA1 hash that does not exist in the Amcache CSV. Tier 2 fires for all
 tools that produce CSV output (Amcache, Registry, Event Logs, MFT, Hayabusa);
-Preetch and memory are Tier 1 only. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+Prefetch and memory are Tier 1 only. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 for the full design.
 
 ---
@@ -130,7 +162,7 @@ Full setup instructions: [docs/DEPLOY.md](docs/DEPLOY.md).
 
 ## Architecture
 
-CaseFile is an MCP (Model Context Protocol) server that wraps 21 forensic tools
+CaseFile is an MCP (Model Context Protocol) server that wraps 21 MCP tools (13 forensic parsers plus correlation, findings, RAG, and accuracy workflow tools)
 as typed, structured Python functions. Claude Code calls these tools over the MCP
 protocol — it never sees raw shell output. Every tool call is logged to an
 append-only audit trail. The grounding verifier runs post-investigation to check
