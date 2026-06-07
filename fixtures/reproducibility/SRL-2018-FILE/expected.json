@@ -1,0 +1,8 @@
+{
+  "total_claims": 9,
+  "grounded": 7,
+  "ungrounded": 2,
+  "contradicted": 0,
+  "hallucination_rate": 0.0,
+  "tier2_verified": 6
+}

@@ -40,6 +40,24 @@ Source files:
 - `results/SRL-2018-DC_session19.json`
 - `results/SRL-2018-FILE_session01.json`
 
+### Reproduce our numbers
+
+```bash
+bash verify.sh
+```
+
+Re-runs grounding verification against committed sanitized fixtures — **no raw evidence
+required**. The script copies each fixture into a temp directory, expands path tokens,
+runs the same `scripts/grounding_verify.py` that ralph.sh uses, and diffs the resulting
+claim-accuracy report against the committed expected values. Exit 0 only if every case
+reproduces its committed `total_claims`, `grounded`, `contradicted`, and `hallucination_rate`.
+
+- **SRL-2018** (workstation): full Tier 1 + Tier 2 attestation — minimal parser CSVs
+  are committed alongside the sanitized audit log, so exact-value CSV checks reproduce.
+- **SRL-2018-DC** and **SRL-2018-FILE**: Tier 1 attestation only — parser CSV output
+  (hundreds of MB of event logs) is not committed. The fixtures prove invocation
+  attestation but not cell-value verification for these cases.
+
 ### vs. Protocol SIFT Baseline
 
 To establish why architectural anti-hallucination matters, we ran Protocol SIFT on the

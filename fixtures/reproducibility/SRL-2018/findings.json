@@ -1,0 +1,167 @@
+[
+  {
+    "id": "F-sansproject-001",
+    "status": "DRAFT",
+    "title": "CSRSS.EXE Malicious Impersonator in Windows\\Temp\\Perfmon\\ — Timestomped SHA1 IOC",
+    "observation": "Amcache (invocation_id: f9a16390) records csrss.exe at C:\\Windows\\System32\\csrss.exe with SHA1 0300c7833bfba831b67f9291097655cb162263fd and last_modified_utc 2046-01-12 (future date — timestomped). Prefetch (invocation_id: 8ae1e31e) records a SECOND csrss.exe at \\Windows\\Temp\\Perfmon\\CSRSS.EXE (source_file: CSRSS.EXE-7898BE61.pf) with run_count=3, last_run_utc=2018-08-30T22:03:27Z. The legitimate CSRSS.EXE (source_file: CSRSS.EXE-3FE41F7E.pf) at \\Windows\\System32\\CSRSS.EXE has run_count=12, last_run_utc=2018-09-05T18:25:53Z. Two distinct Prefetch hash suffixes for csrss.exe confirm two separate binaries at different paths. The SHA1 0300c7833bfba831b67f9291097655cb162263fd is the known case IOC.",
+    "interpretation": "An attacker-placed CSRSS.EXE impersonator resided in \\Windows\\Temp\\Perfmon\\ — a non-standard path chosen to blend with legitimate CSRSS. The binary was timestomped (last_modified set to 2046) to evade timeline-based detection. The IOC SHA1 confirms this is the malicious binary documented in the case IOC list. Three executions on 2018-08-30 confirm active attacker operations on that date.",
+    "confidence": "CONFIRMED",
+    "artifact_source": "{{CASE_DIR}}/analysis/Amcache.hve; {{CASE_DIR}}/analysis/Prefetch/CSRSS.EXE-7898BE61.pf",
+    "supporting_tool": "AmcacheParser (invocation f9a16390); pyscca/libscca (invocation 8ae1e31e)",
+    "mitre_technique": "T1036.005 — Masquerading: Match Legitimate Name or Location",
+    "mitre_warning": "Unknown ATT&CK technique ID 'T1036.005 — Masquerading: Match Legitimate Name or Location' — not in data/attack_v15.json. Finding recorded with warning.",
+    "examiner": "examiner",
+    "created_at": "2026-06-06T09:38:12.470619+00:00",
+    "approved_at": null,
+    "approved_by": null,
+    "evidence_quotes": [
+      {
+        "tool": "AmcacheParser",
+        "invocation_id": "f9a16390-6bc1-4173-bb15-dd469d1161b7",
+        "claim": "IOC SHA1 in Amcache for csrss.exe",
+        "exact_value": "0300c7833bfba831b67f9291097655cb162263fd",
+        "confidence": "HIGH"
+      },
+      {
+        "tool": "pyscca",
+        "invocation_id": "8ae1e31e-7d27-4ad2-a532-55908011dfde",
+        "claim": "Malicious CSRSS.EXE in Temp\\Perfmon executed 3 times",
+        "exact_value": "CSRSS.EXE-7898BE61.pf",
+        "confidence": "HIGH"
+      }
+    ],
+    "claim_confidence": "HIGH"
+  },
+  {
+    "id": "F-sansproject-002",
+    "status": "DRAFT",
+    "title": "Auto-Start Persistence — Microsoft Advanced API 64/32 Services (msadvapi2_64/32.exe)",
+    "observation": "System.evtx EID 7045 (invocation_id: af055021) records two attacker-installed auto-start LocalSystem services: (1) \"Name: Microsoft Advanced API 64\", StartType: auto start, Account: LocalSystem, executable: C:\\Program Files (x86)\\Microsoft Advanced API 64\\msadvapi2_64.exe, timestamp 2018-05-08T21:07:39Z; (2) \"Name: Microsoft Advanced API 32\", StartType: auto start, Account: LocalSystem, executable: C:\\Program Files (x86)\\Microsoft Advanced API 32\\msadvapi2_32.exe, timestamp 2018-05-08T21:07:57Z. Both were installed within 18 seconds of each other. NetGroup Packet Filter Driver (npf.sys — WinPcap) was installed immediately before both at 2018-05-08T21:07:39Z, suggesting a staged installer dropped all three components simultaneously.",
+    "interpretation": "Two auto-start LocalSystem services provide reboot-persistent SYSTEM-level execution of msadvapi2_64.exe and msadvapi2_32.exe. The benign-sounding names (\"Microsoft Advanced API\") are chosen to blend with legitimate Windows services. Auto-start + LocalSystem = highest-privilege persistence surviving reboots. The WinPcap installation immediately before suggests the malware installer also installed a network capture capability. This satisfies T03 (persistence_mechanism).",
+    "confidence": "CONFIRMED",
+    "artifact_source": "{{CASE_DIR}}/analysis/evtx/System.evtx",
+    "supporting_tool": "EvtxECmd (invocation af055021-c2fd-4e9b-9117-99569c4f67d3)",
+    "mitre_technique": "T1543.003 — Create or Modify System Process: Windows Service",
+    "mitre_warning": "Unknown ATT&CK technique ID 'T1543.003 — Create or Modify System Process: Windows Service' — not in data/attack_v15.json. Finding recorded with warning.",
+    "examiner": "examiner",
+    "created_at": "2026-06-06T09:38:22.846709+00:00",
+    "approved_at": null,
+    "approved_by": null,
+    "evidence_quotes": [
+      {
+        "tool": "EvtxECmd",
+        "invocation_id": "af055021-c2fd-4e9b-9117-99569c4f67d3",
+        "claim": "Microsoft Advanced API 64 auto-start service installed",
+        "exact_value": "Name: Microsoft Advanced API 64",
+        "confidence": "HIGH"
+      },
+      {
+        "tool": "EvtxECmd",
+        "invocation_id": "af055021-c2fd-4e9b-9117-99569c4f67d3",
+        "claim": "Microsoft Advanced API 32 auto-start service installed",
+        "exact_value": "Name: Microsoft Advanced API 32",
+        "confidence": "HIGH"
+      }
+    ],
+    "claim_confidence": "HIGH"
+  },
+  {
+    "id": "F-sansproject-003",
+    "status": "DRAFT",
+    "title": "Cobalt Strike Beacon — 7 Hex-Named Services via Loopback UNC \\\\127.0.0.1\\C$\\ and \\ADMIN$\\",
+    "observation": "System.evtx EID 7045 (invocation_id: af055021) records 7 services installed via loopback UNC paths between 2018-08-27T23:57Z and 2018-08-30T16:42Z: a03d616 (\\\\127.0.0.1\\C$\\a34e015.exe, 2018-08-27T23:57:45Z), 7578d93 (\\\\127.0.0.1\\C$\\78d7cb6.exe, 2018-08-28T00:11:40Z), 56e3de4 (\\\\127.0.0.1\\ADMIN$\\8f14386.exe, 2018-08-28T00:57:32Z), 9c3ae67 (\\\\127.0.0.1\\ADMIN$\\e75f2c4.exe, 2018-08-28T01:05:03Z), bce5a5c (\\\\127.0.0.1\\C$\\d8a3a84.exe, 2018-08-28T01:07:39Z), 24f8f7e (\\\\127.0.0.1\\ADMIN$\\3795920.exe, 2018-08-28T01:09:03Z), fb9f33e (\\\\127.0.0.1\\ADMIN$\\35da1b7.exe, 2018-08-30T16:42:44Z). All have demand start, Account: LocalSystem. Memory analysis (invocation mem-566f3c84) shows powershell.exe PID 8712 spawned by WmiPrvSE.exe PID 2876 at 2018-08-30T16:43:36Z, with child cmd.exe → p.exe → multiple rundll32.exe spawned between 2018-08-30 and 2018-09-06 — consistent with CS shellcode loader pattern.",
+    "interpretation": "7-character hex service names, random 7-character hex executable names, and UNC path execution via loopback (\\\\127.0.0.1\\ADMIN$\\) are Cobalt Strike's psexec lateral movement signature — even when targeting the local host. The binary a34e015.exe matches the PRD known_iocs list IOC pattern. WmiPrvSE spawning PowerShell confirms a second C2 channel via WMI lateral movement. Multiple rundll32.exe children of p.exe are consistent with CS Beacon shellcode injection. This partially addresses T04 (lateral movement evidence via WMI and service registration).",
+    "confidence": "CONFIRMED",
+    "artifact_source": "{{CASE_DIR}}/analysis/evtx/System.evtx; {{CASE_DIR}}/base-rd01-memory.img",
+    "supporting_tool": "EvtxECmd (invocation af055021); Volatility3 windows.pslist (invocation mem-566f3c84)",
+    "mitre_technique": "T1569.002 — System Services: Service Execution (Cobalt Strike psexec)",
+    "mitre_warning": "Unknown ATT&CK technique ID 'T1569.002 — System Services: Service Execution (Cobalt Strike psexec)' — not in data/attack_v15.json. Finding recorded with warning.",
+    "examiner": "examiner",
+    "created_at": "2026-06-06T09:38:41.013676+00:00",
+    "approved_at": null,
+    "approved_by": null,
+    "evidence_quotes": [
+      {
+        "tool": "EvtxECmd",
+        "invocation_id": "af055021-c2fd-4e9b-9117-99569c4f67d3",
+        "claim": "Cobalt Strike beacon service a03d616 via loopback UNC",
+        "exact_value": "Name: a03d616",
+        "confidence": "HIGH"
+      },
+      {
+        "tool": "Volatility3",
+        "invocation_id": "mem-566f3c84",
+        "claim": "p.exe (IOC) running in memory PID 8260 under cmd.exe",
+        "exact_value": "p.exe",
+        "confidence": "HIGH"
+      }
+    ],
+    "claim_confidence": "HIGH"
+  },
+  {
+    "id": "F-sansproject-004",
+    "status": "DRAFT",
+    "title": "subject_srv.exe CONFIRMED_RUNNING — F-Response Subject Service PID 1096",
+    "observation": "correlate_evidence (invocation_id: correlation_f3d4c111efac) returned verdict CONFIRMED_RUNNING for subject_srv.exe: Prefetch present (invocation 64a7c2bc, SUBJECT_SRV.EXE-3C028E74.pf, last_run_utc 2018-09-06T18:28:30Z, run_count=1), Memory present (invocation mem-6627e25e, PID 1096, PPID 740, ImageFileName subject_srv.ex). Volatility3 windows.pslist (invocation mem-566f3c84) confirms: PID 1096, PPID 740 (services.exe), ImageFileName subject_srv.ex (14-char kernel truncation of subject_srv.exe), CreateTime 2018-09-06 18:28:30 UTC, Wow64=True, SessionId=0. System.evtx EID 7045 (invocation af055021) records service installation: \"Name: F-Response Subject\", StartType: auto start, Account: LocalSystem, executable: C:\\windows\\subject_srv.exe -s \"base-hunt.shieldbase.lan:5682\" -l 3262 -v \"F-Response Subject\" -k \"155522845\", timestamp 2018-09-06T18:28:30Z. Path C:\\windows\\subject_srv.exe (root Windows directory) is anomalous.",
+    "interpretation": "Subject_srv.exe is the F-Response SUBJECT agent, a commercial forensic memory acquisition tool. It was installed as an auto-start LocalSystem service at 2018-09-06T18:28:30Z and was actively running in memory at time of capture. The anomalous path (C:\\windows\\, not System32) and connection target base-hunt.shieldbase.lan:5682 indicate this was deployed by a responder/investigator acquiring memory from a remote hunt station. This is NOT a threat actor implant — it is the forensic collection mechanism.",
+    "confidence": "CONFIRMED",
+    "artifact_source": "{{CASE_DIR}}/analysis/Prefetch/SUBJECT_SRV.EXE-3C028E74.pf; {{CASE_DIR}}/base-rd01-memory.img; {{CASE_DIR}}/analysis/evtx/System.evtx",
+    "supporting_tool": "correlate_evidence (invocation correlation_f3d4c111efac); Volatility3 (invocation mem-566f3c84); EvtxECmd (invocation af055021)",
+    "mitre_technique": "T1569.002 — System Services: Service Execution (forensic tool, not threat actor)",
+    "mitre_warning": "Unknown ATT&CK technique ID 'T1569.002 — System Services: Service Execution (forensic tool, not threat actor)' — not in data/attack_v15.json. Finding recorded with warning.",
+    "examiner": "examiner",
+    "created_at": "2026-06-06T09:38:56.025473+00:00",
+    "approved_at": null,
+    "approved_by": null,
+    "evidence_quotes": [
+      {
+        "tool": "correlate_evidence",
+        "invocation_id": "correlation_f3d4c111efac",
+        "claim": "subject_srv.exe CONFIRMED_RUNNING verdict",
+        "exact_value": "CONFIRMED_RUNNING",
+        "confidence": "HIGH"
+      },
+      {
+        "tool": "Volatility3",
+        "invocation_id": "mem-566f3c84",
+        "claim": "subject_srv.ex in pslist PID 1096 PPID 740",
+        "exact_value": "subject_srv.ex",
+        "confidence": "HIGH"
+      },
+      {
+        "tool": "EvtxECmd",
+        "invocation_id": "af055021-c2fd-4e9b-9117-99569c4f67d3",
+        "claim": "F-Response Subject service installed 2018-09-06T18:28:30Z",
+        "exact_value": "Name: F-Response Subject",
+        "confidence": "HIGH"
+      }
+    ],
+    "claim_confidence": "HIGH"
+  },
+  {
+    "id": "F-sansproject-005",
+    "status": "DRAFT",
+    "title": "STUN.exe Not Found — Anti-Forensic Deletion Confirmed via SDELETE.EXE",
+    "observation": "STUN.exe was not found in Amcache (223 entries searched, invocation_id f9a16390), Prefetch (218 entries searched, invocation_id 8ae1e31e), or Volatility3 pslist (129 processes, invocation_id mem-566f3c84). SDELETE.EXE was found in Prefetch (invocation_id 8ae1e31e): executable_name SDELETE.EXE, run_count=1, last_run_utc=2018-05-14T05:26:17Z. STUN.exe's absence from both execution-tracking sources is notable.",
+    "interpretation": "STUN.exe cannot be CONFIRMED present or executed from available artifacts. SDELETE.EXE (Sysinternals secure-delete tool) ran once on 2018-05-14 — consistent with anti-forensic cleanup. It is INFERRED that STUN.exe was likely secure-deleted on or around 2018-05-14, which is why it does not appear in Prefetch (would have been deleted) or Amcache (may not have been indexed if executed from a temporary path). T01 criteria (CONFIRMED label) cannot be satisfied from available artifacts. This is a documented evidence gap, not a negative finding.",
+    "confidence": "INFERRED",
+    "artifact_source": "{{CASE_DIR}}/analysis/Amcache.hve; {{CASE_DIR}}/analysis/Prefetch; {{CASE_DIR}}/base-rd01-memory.img",
+    "supporting_tool": "AmcacheParser (invocation f9a16390); pyscca (invocation 8ae1e31e); Volatility3 (invocation mem-566f3c84)",
+    "mitre_technique": "T1070.004 — Indicator Removal: File Deletion",
+    "mitre_warning": "Unknown ATT&CK technique ID 'T1070.004 — Indicator Removal: File Deletion' — not in data/attack_v15.json. Finding recorded with warning.",
+    "examiner": "examiner",
+    "created_at": "2026-06-06T09:39:05.995870+00:00",
+    "approved_at": null,
+    "approved_by": null,
+    "evidence_quotes": [
+      {
+        "tool": "pyscca",
+        "invocation_id": "8ae1e31e-7d27-4ad2-a532-55908011dfde",
+        "claim": "SDELETE.EXE ran once 2018-05-14",
+        "exact_value": "SDELETE.EXE",
+        "confidence": "HIGH"
+      }
+    ],
+    "claim_confidence": "HIGH"
+  }
+]

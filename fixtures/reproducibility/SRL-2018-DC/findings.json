@@ -1,0 +1,188 @@
+[
+  {
+    "id": "F-sansproject-001",
+    "status": "DRAFT",
+    "title": "Sustained Network Logons to DC from IOC IP 172.16.6.12 (BASE-RD-02)",
+    "observation": "EID 4624: 1025 LogonType 3 (network) authentication events recorded on base-dc.shieldbase.lan originating from BASE-RD-02 (172.16.6.12) between 2018-09-04T13:02:24Z and the end of the log period. Accounts authenticating: NT AUTHORITY\\ANONYMOUS LOGON (NTLM) and SHIELDBASE.LAN\\BASE-RD-02$ (Kerberos machine account). No named user accounts in these logon events.",
+    "interpretation": "172.16.6.12 is a CONFIRMED IOC from the SRL-2018 workstation investigation. The volume (1025 events) and mix of anonymous NTLM + machine Kerberos logons is consistent with lateral movement reconnaissance or SMB enumeration from a compromised host (BASE-RD-02) against the domain controller. This may represent post-compromise DC probing from the already-compromised R&D subnet host.",
+    "confidence": "INFERRED",
+    "artifact_source": "Security.evtx — {{CASE_DIR}}/evidence/evtx/Security.evtx",
+    "supporting_tool": "EvtxECmd",
+    "mitre_technique": "T1021 — Remote Services / Lateral Movement",
+    "mitre_warning": "Unknown ATT&CK technique ID 'T1021 — Remote Services / Lateral Movement' — not in data/attack_v15.json. Finding recorded with warning.",
+    "examiner": "examiner",
+    "created_at": "2026-06-06T05:55:14.431672+00:00",
+    "approved_at": null,
+    "approved_by": null,
+    "evidence_quotes": [
+      {
+        "tool": "EvtxECmd",
+        "claim": "1025 LogonType 3 events from 172.16.6.12 starting 2018-09-04T13:02:24Z",
+        "invocation_id": "6cad926d-0929-4bfd-9832-cb4efb8701dc",
+        "exact_value": "BASE-RD-02 (172.16.6.12)"
+      }
+    ],
+    "claim_confidence": "MEDIUM"
+  },
+  {
+    "id": "F-sansproject-002",
+    "status": "DRAFT",
+    "title": "Kerberoasting Scan Against spfarm Service Account from 172.16.4.7",
+    "observation": "EID 4769: 975 Kerberos TGS ticket requests for ServiceName 'spservices' targeting Target 'SHIELDBASE.LAN\\spfarm@SHIELDBASE.LAN' from source IP 172.16.4.7, between 2018-09-04T12:58:47Z and 2018-09-04T13:22:47Z (24 minutes). Requests used sequential ephemeral source ports (55195–55295+), indicating automated tooling. Ticket encryption type: AES256-CTS-HMAC-SHA1-96. 487 of 975 requests failed with KDC_ERR_MUST_USE_USER2USER (missing SPN). Source IP 172.16.4.7 is not in the current IOC list but is within the 172.16.x.x internal subnet.",
+    "interpretation": "The volume (975 requests), sequential port usage, and 24-minute window are consistent with automated Kerberoasting tooling (e.g., Rubeus, GetSPNs). The spfarm account is a SharePoint service account — high-value target for credential theft. AES256 tickets are harder to crack offline than RC4 but Kerberoasting with AES256 is possible. The scan started 3.5 minutes BEFORE the first suspicious logon from 172.16.6.12, suggesting a coordinated multi-vector initial access or reconnaissance phase. 172.16.4.7 requires identification as a new threat actor source not previously catalogued.",
+    "confidence": "INFERRED",
+    "artifact_source": "Security.evtx — {{CASE_DIR}}/evidence/evtx/Security.evtx",
+    "supporting_tool": "EvtxECmd",
+    "mitre_technique": "T1558.003 — Steal or Forge Kerberos Tickets: Kerberoasting",
+    "mitre_warning": "Unknown ATT&CK technique ID 'T1558.003 — Steal or Forge Kerberos Tickets: Kerberoasting' — not in data/attack_v15.json. Finding recorded with warning.",
+    "examiner": "examiner",
+    "created_at": "2026-06-06T05:55:26.702743+00:00",
+    "approved_at": null,
+    "approved_by": null,
+    "evidence_quotes": [
+      {
+        "tool": "EvtxECmd",
+        "claim": "975 TGS requests for spservices targeting spfarm from 172.16.4.7 starting 2018-09-04T12:58:47Z",
+        "invocation_id": "5a3c5dea-c316-4097-ae1f-28cea845d4bc",
+        "exact_value": "ServiceName: spservices"
+      },
+      {
+        "tool": "EvtxECmd",
+        "claim": "AES256 ticket encryption type used",
+        "invocation_id": "5a3c5dea-c316-4097-ae1f-28cea845d4bc",
+        "exact_value": "TicketEncryptionType: AES256-CTS-HMAC-SHA1-96"
+      },
+      {
+        "tool": "EvtxECmd",
+        "claim": "Target account is spfarm SharePoint farm credential",
+        "invocation_id": "5a3c5dea-c316-4097-ae1f-28cea845d4bc",
+        "exact_value": "Target: SHIELDBASE.LAN\\spfarm@SHIELDBASE.LAN"
+      }
+    ],
+    "claim_confidence": "MEDIUM"
+  },
+  {
+    "id": "F-sansproject-003",
+    "status": "DRAFT",
+    "title": "Explicit Credential Abuse — Multiple Domain Accounts Targeted on DC",
+    "observation": "EID 4648: 91 explicit credential logon events recorded on base-dc.shieldbase.lan. Unique account targets: shieldbase\\nfury (multiple uses from PID 0x50, TargetServerName: localhost), shieldbase\\cbarton, shieldbase\\mhill, shieldbase\\rsydow, SHIELDBASE.LAN\\rsydow-a, SHIELDBASE.LAN\\BASE-DC$. The nfury account was targeted repeatedly between 2018-09-04T21:42:07Z and 2018-09-04T21:51:07Z from PID 0x50 (decimal 80 — very low PID, suggesting LSASS or kernel process context). All events show username shieldbase\\BASE-DC$ as the subject performing the explicit authentication.",
+    "interpretation": "Repeated explicit credential use for multiple domain user accounts (nfury, cbarton, mhill, rsydow) from PID 80 on the DC is consistent with credential testing or pass-the-hash/pass-the-ticket operations. PID 80 is anomalously low for a user-mode process and suggests this activity originates from a privileged system process context. The targeting of multiple distinct user accounts within a short window indicates credential harvesting or credential spraying against the domain controller itself. shieldbase\\nfury was targeted 5+ times within 10 minutes.",
+    "confidence": "INFERRED",
+    "artifact_source": "Security.evtx — {{CASE_DIR}}/evidence/evtx/Security.evtx",
+    "supporting_tool": "EvtxECmd",
+    "mitre_technique": "T1550.002 — Use Alternate Authentication Material: Pass the Hash",
+    "mitre_warning": "Unknown ATT&CK technique ID 'T1550.002 — Use Alternate Authentication Material: Pass the Hash' — not in data/attack_v15.json. Finding recorded with warning.",
+    "examiner": "examiner",
+    "created_at": "2026-06-06T05:55:37.776164+00:00",
+    "approved_at": null,
+    "approved_by": null,
+    "evidence_quotes": [
+      {
+        "tool": "EvtxECmd",
+        "claim": "shieldbase\\nfury targeted with explicit credentials from PID 0x50 starting 2018-09-04T21:42:07Z",
+        "invocation_id": "6cad926d-0929-4bfd-9832-cb4efb8701dc",
+        "exact_value": "Target: shieldbase\\nfury"
+      },
+      {
+        "tool": "EvtxECmd",
+        "claim": "Multiple domain accounts targeted: cbarton, mhill, rsydow also in explicit credential events",
+        "invocation_id": "6cad926d-0929-4bfd-9832-cb4efb8701dc",
+        "exact_value": "Target: shieldbase\\cbarton"
+      }
+    ],
+    "claim_confidence": "MEDIUM"
+  },
+  {
+    "id": "F-sansproject-004",
+    "status": "DRAFT",
+    "title": "subject_srv.exe Executing from Anomalous Path C:\\\\Windows (Not System32)",
+    "observation": "EID 4688: Three process creation events for C:\\Windows\\subject_srv.exe recorded on base-dc.shieldbase.lan, spawned by C:\\Windows\\System32\\services.exe. Timestamps: 2018-09-06T22:11:15Z (PID 0x1408), 2018-09-07T20:26:17Z (PID 0x9AC), 2018-09-07T20:30:59Z (PID 0x163C). Command line: 'C:\\windows\\subject_srv.exe -s \"base-hunt.shieldbase.lan:5682\" -l 3262 -v \"F-Response Subject\" -k \"155522845\"'. Account: shieldbase\\BASE-DC$ (computer account, SYSTEM context). Parent PID consistent across sessions (0x284/0x288). correlate_evidence() returned NOT_FOUND (no Amcache/Prefetch/MFT parseable for this DC).",
+    "interpretation": "subject_srv.exe at C:\\Windows (not C:\\Windows\\System32) is an anomalous executable path — legitimate system executables reside in System32 or SysWOW64. The binary is F-Response SUBJECT, a commercial forensic memory acquisition agent that connects back to a collection host (base-hunt.shieldbase.lan:5682). It was installed as a service (EID 7045: \"F-Response Subject\", auto start, LocalSystem) enabling DFIR remote memory acquisition of the DC. The anomalous path and auto-start service configuration require further investigation to determine if this is examiner-installed or attacker-placed.",
+    "confidence": "INFERRED",
+    "artifact_source": "Security.evtx — {{CASE_DIR}}/evidence/evtx/Security.evtx",
+    "supporting_tool": "EvtxECmd",
+    "mitre_technique": "T1569.002 — System Services: Service Execution",
+    "mitre_warning": "Unknown ATT&CK technique ID 'T1569.002 — System Services: Service Execution' — not in data/attack_v15.json. Finding recorded with warning.",
+    "examiner": "examiner",
+    "created_at": "2026-06-06T05:55:58.187628+00:00",
+    "approved_at": null,
+    "approved_by": null,
+    "evidence_quotes": [
+      {
+        "tool": "EvtxECmd",
+        "claim": "subject_srv.exe executing at C:\\Windows (anomalous, not System32) via services.exe at 2018-09-06T22:11:15Z",
+        "invocation_id": "6cad926d-0929-4bfd-9832-cb4efb8701dc",
+        "exact_value": "C:\\Windows\\subject_srv.exe C:\\windows\\subject_srv.exe -s \"base-hunt.shieldbase.lan:5682\" -l 3262 -v \"F-Response Subject\" -k \"155522845\""
+      },
+      {
+        "tool": "EvtxECmd",
+        "claim": "Parent process is services.exe confirming service-based execution",
+        "invocation_id": "6cad926d-0929-4bfd-9832-cb4efb8701dc",
+        "exact_value": "Parent process: C:\\Windows\\System32\\services.exe"
+      },
+      {
+        "tool": "correlate_evidence",
+        "claim": "correlate_evidence returned NOT_FOUND — no Amcache/Prefetch/MFT source available on DC",
+        "invocation_id": "correlation_4ddb81378703",
+        "exact_value": "NOT_FOUND"
+      }
+    ],
+    "claim_confidence": "MEDIUM"
+  },
+  {
+    "id": "F-sansproject-005",
+    "status": "DRAFT",
+    "title": "F-Response Subject and mnemosyne Services Installed on Domain Controller",
+    "observation": "EID 7045 (System.evtx): Two non-standard services installed on base-dc.shieldbase.lan. (1) 'F-Response Subject' — StartType: auto start, Account: LocalSystem, installed 2018-09-06T22:11:15Z. Corresponds to subject_srv.exe execution (EID 4688 same second). (2) 'mnemosyne' — StartType: demand start, installed three times: 2018-09-06T22:11:15Z, 2018-09-07T20:26:45Z, 2018-09-07T20:30:59Z. All other 7045 entries are VMware tools, Windows built-ins, McAfee AV, and standard DC services from April–August 2018 baseline.",
+    "interpretation": "Two anomalous services installed September 2018 stand out against a baseline of legitimate services established in April–August 2018. 'F-Response Subject' configured for auto-start on LocalSystem provides persistent SYSTEM-level access to DC memory/storage, surviving reboots. 'mnemosyne' is a memory forensics kernel driver used by F-Response for raw memory access — demand start (loaded on request). Installation of mnemosyne 3 times suggests repeated forensic collection sessions. These are consistent with either legitimate DFIR acquisition activity or an attacker leveraging F-Response as a living-off-the-land tool for persistent memory exfiltration.",
+    "confidence": "INFERRED",
+    "artifact_source": "System.evtx — {{CASE_DIR}}/evidence/evtx/System.evtx",
+    "supporting_tool": "EvtxECmd",
+    "mitre_technique": "T1543.003 — Create or Modify System Process: Windows Service",
+    "mitre_warning": "Unknown ATT&CK technique ID 'T1543.003 — Create or Modify System Process: Windows Service' — not in data/attack_v15.json. Finding recorded with warning.",
+    "examiner": "examiner",
+    "created_at": "2026-06-06T05:56:10.455363+00:00",
+    "approved_at": null,
+    "approved_by": null,
+    "evidence_quotes": [
+      {
+        "tool": "EvtxECmd",
+        "claim": "F-Response Subject service installed auto start at 2018-09-06T22:11:15Z",
+        "invocation_id": "7ace1275-7b42-41e5-a0b6-075f8dfb1033",
+        "exact_value": "Name: F-Response Subject"
+      },
+      {
+        "tool": "EvtxECmd",
+        "claim": "mnemosyne kernel driver service installed demand start same timestamp",
+        "invocation_id": "7ace1275-7b42-41e5-a0b6-075f8dfb1033",
+        "exact_value": "Name: mnemosyne"
+      }
+    ],
+    "claim_confidence": "MEDIUM"
+  },
+  {
+    "id": "F-sansproject-006",
+    "status": "DRAFT",
+    "title": "NEGATIVE: No DCSync Attack Detected — DS Replication Events Normal (BASE-DC$ Only)",
+    "observation": "EID 4662: 83 total events queried (not capped). All 83 events have username shieldbase\\BASE-DC$. AccessMask values: 0x100 (DS-Replication-Get-Changes, code %%7688) against Domain-DNS object type {19195a5b-6da0-11d0-afd3-00c04fd930c9}, and 0x20 (%%7685) against object type {bf967a86-0de6-11d0-a285-00aa003049e2}. No non-DC account performed directory service replication access. EID 4663 produced 0 results (no file-level object access logged).",
+    "interpretation": "All DS-Replication-Get-Changes access (the DCSync indicator) was performed exclusively by shieldbase\\BASE-DC$ — the domain controller's own computer account, which is the legitimate replication identity. DCSync attack requires a non-DC principal to hold DS-Replication-Get-Changes/All permissions and invoke replication. No such anomaly is present in the 83 EID 4662 events. DCSync (NTDS credential dump via replication) is NOT confirmed in this evidence set.",
+    "confidence": "INFERRED",
+    "artifact_source": "Security.evtx — {{CASE_DIR}}/evidence/evtx/Security.evtx",
+    "supporting_tool": "EvtxECmd",
+    "mitre_technique": "T1003.006 — OS Credential Dumping: DCSync",
+    "mitre_warning": "Unknown ATT&CK technique ID 'T1003.006 — OS Credential Dumping: DCSync' — not in data/attack_v15.json. Finding recorded with warning.",
+    "examiner": "examiner",
+    "created_at": "2026-06-06T05:56:21.723139+00:00",
+    "approved_at": null,
+    "approved_by": null,
+    "evidence_quotes": [
+      {
+        "tool": "EvtxECmd",
+        "claim": "All 83 EID 4662 events have username shieldbase\\BASE-DC$ — no user account DCSync",
+        "invocation_id": "71c9135f-9529-4070-bb64-e854427fd286",
+        "exact_value": "shieldbase\\BASE-DC$"
+      }
+    ],
+    "claim_confidence": "MEDIUM"
+  }
+]

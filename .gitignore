@@ -21,6 +21,12 @@ htmlcov/
 audit/mcp.jsonl
 audit/*.jsonl
 
+# Reproducibility fixtures — sanitized, no raw evidence, FORCE-INCLUDED
+!fixtures/reproducibility/
+!fixtures/reproducibility/**/*.jsonl
+!fixtures/reproducibility/**/*.json
+!fixtures/reproducibility/**/*.csv
+
 # Evidence — never commit case data
 cases/
 /mnt/

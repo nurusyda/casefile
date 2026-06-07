@@ -10,3 +10,5 @@ jobs:
           python-version: "3.10"
       - run: pip install -e ".[dev]" --break-system-packages 2>/dev/null || pip install -e ".[dev]"
       - run: pytest tests/ -q
+      - name: Reproducibility check
+        run: bash verify.sh
