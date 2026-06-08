@@ -2,6 +2,14 @@
 
 How CaseFile turns Claude Code from a chatbot into a grounded forensic investigator.
 
+**Architectural pattern: Approach 2 — Custom MCP Server** (per the *Find Evil!* 2026
+hackathon brief's four supported approaches). CaseFile runs as a parallel MCP server
+beside Claude Code, not as an extension of Protocol SIFT. The trade-off this choice
+makes explicit: we accept the cost of duplicating some Protocol SIFT capabilities in
+order to enforce architectural guarantees — registered-tool gating, read-only
+evidence paths, TTY-only approval, and a typed tool surface that a prompt-layer
+extension to Protocol SIFT could not provide.
+
 ---
 
 ## System Overview

@@ -20,6 +20,33 @@ and file server (BASE-FILE).
 
 ---
 
+## Verified Properties
+
+Three properties of this submission can be reproduced by a judge from a fresh clone in
+under five minutes — every claim below has a committed artifact and a one-command check.
+
+- **0.0% hallucination, judge-reproducible.** `bash verify.sh` re-runs grounding
+  verification against committed sanitized fixtures (audit logs + trimmed parser CSVs)
+  and reprints the headline numbers per case and in aggregate. All three datasets
+  reproduce full Tier 1 + Tier 2 attestation. No raw evidence required.
+  *Artifact:* [`verify.sh`](verify.sh), [`fixtures/reproducibility/`](fixtures/reproducibility).
+- **0.0% false-positive rate on a benign control corpus.** A 25-row synthetic
+  clean-Windows corpus is passed through all five parsers; zero rows are flagged as
+  suspicious. `csrss.exe` at `C:\Windows\System32` is **not** flagged while `csrss.exe`
+  at `Temp\Perfmon` **is** — path-sensitive matching, not name-blind keyword hits.
+  *Artifact:* [`tests/test_false_positive.py`](tests/test_false_positive.py)
+  (44 tests), [`tests/fixtures/clean/`](tests/fixtures/clean).
+- **Evidence-borne prompt injection is contained at the architecture layer.**
+  Adversarial instructions embedded in evidence (filenames, registry values,
+  event-log fields, finding text) cannot escalate the agent's privileges, because
+  destructive and approval capabilities are not registered as MCP tools. Injection
+  can bias reasoning; it cannot reach action. The reasoning channel is caught
+  downstream by the grounding verifier, not by this boundary.
+  *Artifact:* BYPASS-9 in [`docs/SECURITY_MODEL.md`](docs/SECURITY_MODEL.md),
+  6 tests in [`tests/test_security_boundaries.py`](tests/test_security_boundaries.py).
+
+---
+
 ## Results
 
 Post-correction grounding verification across three datasets from the CRIMSON OSPREY case:
@@ -180,15 +207,23 @@ Full setup instructions: [docs/DEPLOY.md](docs/DEPLOY.md).
 
 ## Architecture
 
-CaseFile is an MCP (Model Context Protocol) server that wraps 21 MCP tools (13 forensic parsers plus correlation, findings, RAG, and accuracy workflow tools)
-as typed, structured Python functions. Claude Code calls these tools over the MCP
-protocol — it never sees raw shell output. Every tool call is logged to an
-append-only audit trail. The grounding verifier runs post-investigation to check
-every claim against tool output. The approve gate requires a human TTY and password —
-the AI cannot approve its own findings.
+**Architectural pattern: Approach 2 — Custom MCP Server** (per the *Find Evil!* 2026
+hackathon brief's four supported approaches). CaseFile is a parallel MCP server, not
+an extension of Protocol SIFT. The choice was deliberate: a typed tool surface lets
+us enforce architectural anti-hallucination guarantees (registered-tool gating,
+read-only evidence paths, TTY-only approval) that a prompt-layer extension cannot
+provide.
+
+CaseFile wraps 21 MCP tools (13 forensic parsers plus correlation, findings, RAG,
+and accuracy workflow tools) as typed, structured Python functions. Claude Code
+calls these tools over the MCP protocol — it never sees raw shell output. Every
+tool call is logged to an append-only audit trail. The grounding verifier runs
+post-investigation to check every claim against tool output. The approve gate
+requires a human TTY and password — the AI cannot approve its own findings.
 
 ```mermaid
 graph TD
+    subgraph S["Approach 2 — Custom MCP Server"]
     A[Claude Code] -->|MCP protocol| B[CaseFile MCP Server]
     B --> C[parse_amcache]
     B --> D[parse_prefetch]
@@ -206,11 +241,13 @@ graph TD
     O -->|CONTRADICTED| P["Self-correction loop"]
     O -->|GROUNDED| Q[claim_accuracy_report.json]
     R["casefile-approve (Human TTY only)"] -->|Password required| M
+    end
     style L fill:#2d5a27,color:#fff
     style N fill:#1a3a5c,color:#fff
     style O fill:#1a3a5c,color:#fff
     style P fill:#5c1a1a,color:#fff
     style R fill:#5c3d00,color:#fff
+    style S fill:#0f1419,color:#fff,stroke:#4a90e2,stroke-width:2px
 ```
 
 Full architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
