@@ -31,10 +31,23 @@ try:
         assert_sources_attested,
         build_claim_accuracy_report,
     )
-except ImportError as e:
-    print(f"[grounding] IMPORT ERROR: {e}", flush=True)
-    print("[grounding] FATAL: grounding module not available — cannot verify findings.", flush=True)
-    sys.exit(1)  # Fatal: grounding module required; exit(0) would silently skip all checks
+except ImportError:
+    # Allow running without `pip install -e .`
+    # Only inject repo root when PYTHONPATH is not externally controlled;
+    # when PYTHONPATH is already set the caller is deliberately managing it.
+    if "PYTHONPATH" not in os.environ:
+        sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+    try:
+        from mcp_server.tools.grounding import (
+            verify_finding_claims,
+            get_attested_sources,
+            assert_sources_attested,
+            build_claim_accuracy_report,
+        )
+    except ImportError as e:
+        print(f"[grounding] IMPORT ERROR: {e}", flush=True)
+        print("[grounding] FATAL: grounding module not available — cannot verify findings.", flush=True)
+        sys.exit(1)  # Fatal: grounding module required; exit(0) would silently skip all checks
 
 def _require_env(key: str, default: str) -> str:
     val = os.environ.get(key)

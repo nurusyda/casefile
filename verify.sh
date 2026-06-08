@@ -22,6 +22,9 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$REPO_ROOT"
 
+# Allow grounding_verify.py to import mcp_server without `pip install -e .`
+export PYTHONPATH="$REPO_ROOT:${PYTHONPATH:-}"
+
 FIXTURES_DIR="$REPO_ROOT/fixtures/reproducibility"
 
 if [ ! -d "$FIXTURES_DIR" ]; then
