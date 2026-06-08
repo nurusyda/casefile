@@ -6,12 +6,21 @@ Exits with code 1 if the file is missing or malformed (caller falls back to defa
 """
 import json
 import sys
+from pathlib import Path
+
+if len(sys.argv) < 2:
+    sys.exit(1)
+
+prd_file = Path(sys.argv[1]).resolve()
+allowed_root = Path(__file__).resolve().parent.parent  # project root
+if not prd_file.is_relative_to(allowed_root):
+    sys.exit(1)
 
 try:
-    with open(sys.argv[1], encoding="utf-8") as f:
+    with open(prd_file, encoding="utf-8") as f:
         val = json.load(f).get("max_iterations")
     if not isinstance(val, int) or not val > 0:
         sys.exit(1)
     print(val)
-except (IndexError, KeyError, OSError, ValueError, TypeError, json.JSONDecodeError):
+except (OSError, ValueError, TypeError, json.JSONDecodeError):
     sys.exit(1)

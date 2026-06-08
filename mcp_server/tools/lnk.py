@@ -49,7 +49,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
-from mcp_server.tools._shared import audit_log, run_tool, PathConfinementError, _enforce_case_root
+from mcp_server.tools._shared import audit_log, run_tool, PathConfinementError, _enforce_case_root, _cap_entries_keep_suspicious
 
 LECMD_BIN = "dotnet /opt/zimmermantools/LECmd.dll"
 
@@ -125,7 +125,11 @@ def _parse_lecmd_csv(raw: str) -> list[dict[str, Any]]:
 
 
 def _flag_suspicious(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Flag LNK entries that warrant analyst review."""
+    """Flag LNK entries that warrant analyst review.
+
+    Returns COPIES of flagged entries with 'suspicion_reasons' and
+    'confidence' keys added.  Original entries are never mutated.
+    """
     suspicious: list[dict[str, Any]] = []
     for entry in entries:
         reasons: list[str] = []
@@ -411,15 +415,19 @@ def parse_lnk(
 
     # ── Cap for context window safety ─────────────────────────────────────────
     total = len(all_entries)
+
+    def _lnk_entry_key(e: dict[str, Any]) -> tuple:
+        return (e.get("source_file"), e.get("target_path"))
+
     if not include_all and total > _DEFAULT_CAP:
-        susp_keys = {(e.get("source_file"), e.get("target_path")) for e in suspicious}
-        non_susp = [
-            e for e in all_entries
-            if (e.get("source_file"), e.get("target_path")) not in susp_keys
-        ]
-        cap = max(0, _DEFAULT_CAP - len(suspicious))
-        entries_out = suspicious + non_susp[:cap]
-        entries_out.sort(key=lambda e: (e.get("created_utc") or "9999"))
+        entries_out, _ = _cap_entries_keep_suspicious(
+            all_entries,
+            suspicious,
+            _DEFAULT_CAP,
+            key_fn=_lnk_entry_key,
+            sort_key_fn=lambda e: (e.get("created_utc") or "9999"),
+            sort_reverse=False,
+        )
     else:
         entries_out = all_entries
 

@@ -6,6 +6,8 @@ The human-in-the-loop gate is enforced via cli_approve() which requires a TTY.
 These tests call approve_finding() directly to verify the approval logic.
 """
 import json
+from unittest.mock import patch
+
 import pytest
 
 
@@ -51,13 +53,13 @@ def test_record_finding_writes_json(isolated_case_dir):
     assert data[0]["status"] == "DRAFT"
 
 
-def test_record_finding_logs_to_audit(tmp_path, monkeypatch):
+def test_record_finding_logs_to_audit(isolated_case_dir):
     import mcp_server.tools._shared as shared
-    audit_file = tmp_path / "mcp.jsonl"
-    monkeypatch.setattr(shared, "AUDIT_FILE", audit_file)
     from mcp_server.tools.findings import record_finding
-    result = record_finding(title="A", observation="X", interpretation="Y",
-                            confidence="CONFIRMED", artifact_source="/a", supporting_tool="parse_amcache")
+    audit_file = isolated_case_dir / "mcp.jsonl"
+    with patch.object(shared, "AUDIT_FILE", audit_file):
+        result = record_finding(title="A", observation="X", interpretation="Y",
+                                confidence="CONFIRMED", artifact_source="/a", supporting_tool="parse_amcache")
     record = json.loads(audit_file.read_text().strip())
     assert record["tool"] == "record_finding"
     assert record["finding_id"] == result["finding_id"]

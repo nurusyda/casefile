@@ -164,7 +164,7 @@ def record_finding(
     def _agg(quotes: list) -> str:
         if not quotes:
             return "UNSCORED"
-        levels = [q.get("confidence", "MEDIUM") for q in quotes]
+        levels = [q.get("confidence") or "MEDIUM" for q in quotes]
         if any(lv == "LOW" for lv in levels):
             return "LOW"
         if all(lv == "HIGH" for lv in levels):
@@ -272,6 +272,8 @@ def get_findings(
                 findings = findings.get("findings", [])
         except Exception:
             findings = []
+
+    limit = min(limit, 1000)  # hard cap to prevent unbounded memory use
 
     if status:
         filtered = [f for f in findings if f.get("status") == status.upper()]

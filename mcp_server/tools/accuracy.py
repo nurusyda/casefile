@@ -78,7 +78,8 @@ def generate_accuracy_report(
         return {"error": f"Ground truth file not found: {ground_truth_file}"}
 
     try:
-        ground_truth = json.loads(gt_path.read_text(encoding="utf-8"))
+        raw_bytes = gt_path.read_bytes()
+        ground_truth = json.loads(raw_bytes.decode("utf-8"))
     except json.JSONDecodeError as exc:
         _audit_error(f"Invalid ground truth JSON: {exc.msg}")
         return {"error": f"Invalid ground truth JSON: {exc.msg}"}
@@ -188,7 +189,7 @@ def generate_accuracy_report(
         },
         "checkpoint_scores": checkpoint_scores,
         "ground_truth_file": str(gt_path),
-        "ground_truth_sha256": hashlib.sha256(gt_path.read_bytes()).hexdigest(),
+        "ground_truth_sha256": hashlib.sha256(raw_bytes).hexdigest(),
         "invocation_id": invocation_id,
     }
 

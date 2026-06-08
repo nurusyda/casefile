@@ -63,17 +63,34 @@ for finding in findings:
     except Exception as exc:
         print(f"[grounding-recheck] verify_finding_claims failed for {fid}: {exc}", flush=True)
         total_contradicted += 1  # Count verification failures as unresolved
-        results.append({"status": "error", "finding": fid, "error": str(exc)})
 
+# Always write a report — ralph.sh depends on this file to trigger corrections.
+# When every verification raised, results is empty; produce a minimal error report
+# so the self-correction loop does not silently stall.
+Path(claim_report_path).parent.mkdir(parents=True, exist_ok=True)
 if results:
     report = build_claim_accuracy_report(results)
-    Path(claim_report_path).parent.mkdir(parents=True, exist_ok=True)
-    with open(claim_report_path, "w", encoding="utf-8") as fh:
-        json.dump(report, fh, indent=2)
-    print(
-        f"[grounding-recheck] hallucination_rate={report.get('hallucination_rate')} "
-        f"contradicted={report.get('contradicted')}",
-        flush=True,
-    )
+else:
+    report = {
+        "total_claims": 0,
+        "grounded": 0,
+        "ungrounded": 0,
+        "contradicted": total_contradicted,
+        "inferred_labeled": 0,
+        "grounding_rate": 0.0,
+        "hallucination_rate": 1.0,
+        "all_passed": False,
+        "tier2_verified": 0,
+        "findings": [],
+        "error": f"All {total_contradicted} finding verifications raised exceptions — "
+                 f"check [grounding-recheck] stderr lines above for details.",
+    }
+with open(claim_report_path, "w", encoding="utf-8") as fh:
+    json.dump(report, fh, indent=2)
+print(
+    f"[grounding-recheck] hallucination_rate={report.get('hallucination_rate')} "
+    f"contradicted={report.get('contradicted')}",
+    flush=True,
+)
 
 sys.exit(2 if total_contradicted > 0 else 0)

@@ -397,8 +397,29 @@ def parse_event_logs(
     try:
         _enforce_case_root(evtx)
     except PathConfinementError as exc:
+        audit_log(
+            tool="EvtxECmd",
+            invocation_id=invocation_id,
+            cmd=f"parse_event_logs(evtx_path={evtx_path!r})",
+            returncode=-1,
+            stdout_lines=0,
+            stderr_excerpt=str(exc)[:500],
+            parsed_record_count=0,
+            duration_ms=int((time.monotonic() - t_start) * 1000),
+        )
         return _error_result(invocation_id, evtx_path, str(exc))
     if not evtx.exists():
+        duration_ms = int((time.monotonic() - t_start) * 1000)
+        audit_log(
+            tool="EvtxECmd",
+            invocation_id=invocation_id,
+            cmd=f"parse_event_logs(evtx_path={evtx_path!r})",
+            returncode=1,
+            stdout_lines=0,
+            stderr_excerpt=f"EVTX path not found: {evtx_path}",
+            parsed_record_count=0,
+            duration_ms=duration_ms,
+        )
         return _error_result(
             invocation_id, evtx_path,
             f"EVTX path not found: {evtx_path}\n"
@@ -415,14 +436,60 @@ def parse_event_logs(
         try:
             _enforce_case_root(out_dir)
         except PathConfinementError as exc:
+            audit_log(
+                tool="EvtxECmd",
+                invocation_id=invocation_id,
+                cmd=f"parse_event_logs(evtx_path={evtx_path!r}, output_dir={output_dir!r})",
+                returncode=-1,
+                stdout_lines=0,
+                stderr_excerpt=str(exc)[:500],
+                parsed_record_count=0,
+                duration_ms=int((time.monotonic() - t_start) * 1000),
+            )
             return _error_result(invocation_id, output_dir, str(exc))
     else:
         # Write outside evidence tree — use CASEFILE_CASE_DIR/analysis/
         _case = os.environ.get("CASEFILE_CASE_DIR", str(Path.home() / "cases" / "active"))
         out_dir = Path(_case) / "analysis" / "evtx_out" / invocation_id
+        try:
+            _enforce_case_root(out_dir)
+        except PathConfinementError:
+            # Fallback: use CASEFILE_CASE_ROOT if set
+            case_root = os.environ.get("CASEFILE_CASE_ROOT")
+            if case_root:
+                out_dir = Path(case_root) / "analysis" / "evtx_out" / invocation_id
+                try:
+                    _enforce_case_root(out_dir)
+                except PathConfinementError as exc:
+                    audit_log(
+                        tool="EvtxECmd",
+                        invocation_id=invocation_id,
+                        cmd=f"parse_event_logs(evtx_path={evtx_path!r})",
+                        returncode=-1,
+                        stdout_lines=0,
+                        stderr_excerpt=f"Output dir outside case root: {exc}"[:500],
+                        parsed_record_count=0,
+                        duration_ms=int((time.monotonic() - t_start) * 1000),
+                    )
+                    return _error_result(invocation_id, str(out_dir), str(exc))
+            else:
+                # CASEFILE_CASE_ROOT not set; cannot resolve a safe output directory.
+                duration_ms = int((time.monotonic() - t_start) * 1000)
+                audit_log(
+                    tool="EvtxECmd",
+                    invocation_id=invocation_id,
+                    cmd=f"parse_event_logs(evtx_path={evtx_path!r})",
+                    returncode=-1,
+                    stdout_lines=0,
+                    stderr_excerpt="Cannot determine safe output dir; CASEFILE_CASE_ROOT not set"[:500],
+                    parsed_record_count=0,
+                    duration_ms=duration_ms,
+                )
+                return _error_result(
+                    invocation_id, str(out_dir),
+                    "Output directory outside case root and no fallback root available"
+                )
     out_dir.mkdir(parents=True, exist_ok=True)
-
-    prefix = evtx.stem if not evtx.is_dir() else "evtx"
 
     # ── Build EvtxECmd command ────────────────────────────────────────────────
     # EvtxECmd flags:
@@ -434,9 +501,10 @@ def parse_event_logs(
     #   -q   quiet
     if evtx.is_dir():
         input_flag = f"-d {shlex.quote(str(evtx))}"
+        prefix = "evtx"
     else:
         input_flag = f"-f {shlex.quote(str(evtx))}"
-        prefix = evtx.stem if evtx.is_file() else "evtx"
+        prefix = evtx.stem
 
     inc_flag = ""
     if ids_to_use:

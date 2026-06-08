@@ -54,7 +54,7 @@ KNOWN_TOP_LEVEL = {
     "falsepositives", "level", "fields", "related", "definition",
 }
 
-ATTACK_TAG_RE = re.compile(r"^attack\.(t\d{4}(\.\d{3})?|[a-z_]+)$")
+ATTACK_TAG_RE = re.compile(r"^attack\.(t\d{4}(\.\d{3})?|[a-z][a-z_-]*)$")
 UUID_RE = re.compile(
     r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
     re.IGNORECASE,
@@ -112,7 +112,8 @@ def validate_rule(path: Path) -> tuple[list[str], list[str]]:
     tags = rule.get("tags", [])
     if not isinstance(tags, list):
         errors.append("tags must be a list")
-    else:
+        tags = []  # prevent later iteration on non-list
+    if isinstance(tags, list):
         attack_tags = [t for t in tags if str(t).startswith("attack.")]
         if not attack_tags:
             warnings.append("No attack.* tags found — add ATT&CK technique mapping")

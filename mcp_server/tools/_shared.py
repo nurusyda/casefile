@@ -13,7 +13,11 @@ import subprocess
 import shlex
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
+from typing import Any, Callable, Optional
+
+#: Hashable key function for content-based entry deduplication.
+#: Each tool module supplies its own key_fn based on its CSV schema.
+EntryKeyFn = Callable[[dict[str, Any]], Any]
 
 
 class PathConfinementError(ValueError):
@@ -140,6 +144,125 @@ def _load_case_iocs() -> tuple[list[str], list[str]]:
         return known_iocs, suspicious_patterns
     except (json.JSONDecodeError, OSError):
         return [], []
+
+
+def _cap_entries_keep_suspicious(
+    entries: list[dict[str, Any]],
+    suspicious: list[dict[str, Any]],
+    cap: int,
+    key_fn: EntryKeyFn,
+    sort_key_fn: Optional[Callable[[dict[str, Any]], Any]] = None,
+    sort_reverse: bool = False,
+) -> tuple[list[dict[str, Any]], bool]:
+    """Cap entries to *cap*, keeping suspicious entries first.
+
+    Uses a content-based key function to match suspicious entries against
+    their counterparts in the main entries list.  This is the canonical
+    capping implementation — every parser tool that produces a flat entry
+    list should route through this function rather than duplicating the
+    dedup/slice logic.
+
+    **Design contract — why content keys, not id():**
+    ``_flag_suspicious()`` returns **copies** of flagged entries with
+    ``suspicion_reasons`` / ``confidence`` keys added.  Because these are
+    copies, Python ``id()`` identity cannot be used for dedup.  Instead the
+    caller passes a *key_fn* that extracts a stable, hashable identity from
+    an entry dict (e.g. ``(timestamp_utc, event_id, record_number)`` for
+    EvtxECmd entries).  The key MUST be unique-enough within one tool run
+    to avoid false dedup collisions.
+
+    Args:
+        entries:     Full list of parsed entries (chronological / last-write order).
+        suspicious:  Flagged entries — COPIES returned by ``_flag_suspicious()``.
+        cap:         Maximum entries to return.
+        key_fn:      ``entry -> hashable`` used to match suspicious entries to
+                     their source entries in ``entries``.
+        sort_key_fn: If provided, the output list is sorted by this key.
+        sort_reverse: Passed to ``list.sort(reverse=...)``.
+
+    Returns:
+        ``(capped_entries, truncated_suspicious)`` where
+        ``truncated_suspicious`` is ``True`` when the number of suspicious
+        entries (including keyless entries force-appended in the third pass)
+        exceeds *cap* (analyst note recommended).
+
+        Suspicious entries whose *key_fn* raises are **not** silently
+        dropped — they are appended directly to the suspicious partition
+        so that ``suspicion_reasons`` / ``confidence`` metadata is preserved
+        even when the entry cannot be matched by content key.
+    """
+    total = len(entries)
+    if total <= cap:
+        return entries, False
+
+    # Build a content-key set from suspicious entries.
+    # Entries whose key_fn raises cannot be matched by key, so we force them
+    # directly into susp_out to avoid silently dropping flagged evidence.
+    susp_keys: set[Any] = set()
+    for se in suspicious:
+        try:
+            susp_keys.add(key_fn(se))
+        except (KeyError, TypeError, IndexError):
+            pass  # will be force-appended to susp_out in the third pass below
+
+    # Partition into suspicious and non-suspicious using content keys
+    susp_out: list[dict[str, Any]] = []
+    non_susp: list[dict[str, Any]] = []
+    seen_susp: set[Any] = set()
+    for e in entries:
+        try:
+            k = key_fn(e)
+        except (KeyError, TypeError, IndexError):
+            non_susp.append(e)
+            continue
+        if k in susp_keys:
+            susp_out.append(e)
+            seen_susp.add(k)
+        else:
+            non_susp.append(e)
+
+    # Build a key→copy map from *suspicious* entries (the copies that carry
+    # suspicion_reasons/confidence metadata), then patch susp_out to replace
+    # matched originals with their flagged copies so metadata is preserved.
+    copy_map: dict[Any, dict[str, Any]] = {}
+    for se in suspicious:
+        try:
+            k = key_fn(se)
+            copy_map.setdefault(k, se)  # first copy wins
+        except (KeyError, TypeError, IndexError):
+            pass
+
+    for i, e in enumerate(susp_out):
+        try:
+            k = key_fn(e)
+            if k in copy_map:
+                susp_out[i] = copy_map[k]
+        except (KeyError, TypeError, IndexError):
+            pass
+
+    # Append suspicious entries whose keys could not be computed — these are
+    # un-matchable copies; they carry suspicion_reasons / confidence metadata
+    # that must not be silently dropped.
+    for se in suspicious:
+        try:
+            k = key_fn(se)
+        except (KeyError, TypeError, IndexError):
+            susp_out.append(se)
+            continue
+        if k not in seen_susp:
+            susp_out.append(se)
+
+    truncated_suspicious = len(susp_out) > cap
+    if truncated_suspicious:
+        susp_out = susp_out[:cap]
+
+    remaining = max(0, cap - len(susp_out))
+    entries_out = susp_out + non_susp[:remaining]
+
+    if sort_key_fn is not None:
+        entries_out.sort(key=sort_key_fn, reverse=sort_reverse)
+
+    return entries_out, truncated_suspicious
 
 
 def run_tool(cmd: str, timeout: int = 300) -> subprocess.CompletedProcess:

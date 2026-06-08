@@ -52,7 +52,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
-from mcp_server.tools._shared import audit_log, run_tool, PathConfinementError, _enforce_case_root
+from mcp_server.tools._shared import audit_log, run_tool, PathConfinementError, _enforce_case_root, _cap_entries_keep_suspicious
 
 JLECMD_BIN = "dotnet /opt/zimmermantools/JLECmd.dll"
 
@@ -126,7 +126,11 @@ def _parse_jlecmd_csv(raw: str) -> list[dict[str, Any]]:
 
 
 def _flag_suspicious(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Flag jump list entries that warrant analyst review."""
+    """Flag jump list entries that warrant analyst review.
+
+    Returns COPIES of flagged entries with 'suspicion_reasons' and
+    'confidence' keys added.  Original entries are never mutated.
+    """
     suspicious: list[dict[str, Any]] = []
     for entry in entries:
         reasons: list[str] = []
@@ -134,11 +138,19 @@ def _flag_suspicious(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
         app_id = (entry.get("app_id") or "").lower()
 
         # RDP connection history
+        # Note: JLECmd may include trailing versioning in the AppID column,
+        # so we use substring match rather than exact equality.
         if "1b4dd67f29cb1962" in app_id:
             reasons.append(
-                f"RDP connection target: {entry.get('target_path') or entry.get('lnk_path')} "
+                f"RDP connection target: {entry.get('target_path') or entry.get('lnk_path') or ''} "
                 f"— verify source and authorization"
             )
+
+        # High-value AppIDs — flag additional DFIR-relevant applications
+        for aid, desc in _HIGH_VALUE_APP_IDS.items():
+            if aid in app_id and aid != "1b4dd67f29cb1962":
+                reasons.append(f"High-value AppID {aid} ({desc}) — review context")
+                break
 
         # Suspicious target directories
         for pattern in _SUSPICIOUS_TARGET_PATTERNS:
@@ -411,16 +423,19 @@ def parse_jumplists(
 
     # ── Cap for context window safety ─────────────────────────────────────────
     total = len(all_entries)
+
+    def _jl_entry_key(e: dict[str, Any]) -> tuple:
+        return (e.get("source_file"), e.get("app_id"), e.get("target_path"))
+
     if not include_all and total > _DEFAULT_CAP:
-        susp_keys = {(e.get("app_id"), e.get("target_path")) for e in suspicious}
-        non_susp = [
-            e for e in all_entries
-            if (e.get("app_id"), e.get("target_path")) not in susp_keys
-        ]
-        cap = max(0, _DEFAULT_CAP - len(suspicious))
-        entries_out = suspicious + non_susp[:cap]
-        entries_out.sort(key=lambda e: (e.get("target_accessed") or "0000"),
-                         reverse=True)
+        entries_out, _ = _cap_entries_keep_suspicious(
+            all_entries,
+            suspicious,
+            _DEFAULT_CAP,
+            key_fn=_jl_entry_key,
+            sort_key_fn=lambda e: (e.get("target_accessed") or "0000"),
+            sort_reverse=True,
+        )
     else:
         entries_out = all_entries
 

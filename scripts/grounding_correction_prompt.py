@@ -15,7 +15,10 @@ import os
 import sys
 from pathlib import Path
 
-case_dir = os.environ.get("CASE_DIR", ".")
+case_dir = os.environ.get("CASEFILE_CASE_DIR") or os.environ.get("CASE_DIR", ".")
+if not os.environ.get("CASEFILE_CASE_DIR") and not os.environ.get("CASE_DIR"):
+    print("error: neither CASEFILE_CASE_DIR nor CASE_DIR is set", file=sys.stderr)
+    sys.exit(1)
 report_path = Path(case_dir) / "analysis" / "claim_accuracy_report.json"
 
 if not report_path.exists():

@@ -37,7 +37,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 import shlex
-from mcp_server.tools._shared import audit_log, run_tool
+from mcp_server.tools._shared import audit_log, run_tool, _cap_entries_keep_suspicious
 
 SBECMD_BIN = "dotnet /opt/zimmermantools/SBECmd.dll"
 
@@ -124,7 +124,11 @@ def _safe_int(val: str) -> Optional[int]:
 
 
 def _flag_suspicious(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Flag shellbag entries that indicate attacker activity."""
+    """Flag shellbag entries that indicate attacker activity.
+
+    Returns COPIES of flagged entries with 'suspicion_reasons' and
+    'confidence' keys added.  Original entries are never mutated.
+    """
     suspicious = []
     for entry in entries:
         path = entry.get("absolute_path", "").lower()
@@ -134,11 +138,10 @@ def _flag_suspicious(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
         if path.startswith("\\\\") or "\\unc\\" in path or "network" in entry.get("shell_type", "").lower():
             reasons.append("Network share access -- possible lateral movement reconnaissance")
 
-        # Temp/staging directories
+        # Temp/staging directories — collect ALL matching patterns
         for pattern in ["\\temp\\", "\\tmp\\", "\\users\\public\\", "\\programdata\\"]:
             if pattern in path:
                 reasons.append(f"Staging/temp directory accessed: {pattern}")
-                break
 
         # USB/removable drive access
         if "removable" in entry.get("shell_type", "").lower():
@@ -374,11 +377,18 @@ def parse_shellbags(
 
     # Cap for context window
     total = len(all_entries)
+
+    def _sb_entry_key(e: dict[str, Any]) -> tuple:
+        return (e.get("absolute_path"), e.get("source_file"))
+
+    truncated_suspicious = False
     if not include_all and total > 500:
-        susp_keys = {e["absolute_path"] for e in suspicious}
-        non_susp = [e for e in all_entries if e["absolute_path"] not in susp_keys]
-        cap = max(0, 500 - len(suspicious))
-        entries_out = (suspicious[:500] + non_susp[:max(0, 500 - min(len(suspicious), 500))])[:500]
+        entries_out, truncated_suspicious = _cap_entries_keep_suspicious(
+            all_entries,
+            suspicious,
+            500,
+            key_fn=_sb_entry_key,
+        )
     else:
         entries_out = all_entries
 
@@ -402,6 +412,14 @@ def parse_shellbags(
         },
     )
 
+    analyst_note = _ANALYST_NOTE
+    if truncated_suspicious:
+        analyst_note += (
+            f" WARNING: {len(suspicious)} suspicious entries found "
+            f"but capped to 500. Some suspicious entries may have been dropped. "
+            f"Re-run with include_all=True to get the full set."
+        )
+
     return {
         "invocation_id":    invocation_id,
         "tool":             "SBECmd",
@@ -415,5 +433,5 @@ def parse_shellbags(
         "output_dir":       str(out_dir),
         "duration_ms":      duration_ms,
         "error":            None,
-        "analyst_note":     _ANALYST_NOTE,
+        "analyst_note":     analyst_note,
     }

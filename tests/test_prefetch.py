@@ -378,8 +378,9 @@ class TestParsePrefetchIntegration:
         assert result["total_entries"] == 600
 
     def test_tool_failure_returns_error(self, tmp_path):
-        with patch.dict("os.environ", {"CASEFILE_EXAMINER": "casefile"}, clear=False):
-            result = parse_prefetch(str(tmp_path / "nonexistent"))
+        with patch("mcp_server.tools._shared.AUDIT_FILE", tmp_path / "mcp.jsonl"):
+            with patch.dict("os.environ", {"CASEFILE_EXAMINER": "casefile"}, clear=False):
+                result = parse_prefetch(str(tmp_path / "nonexistent"))
         assert result["error"] is not None
         assert "not found" in result["error"].lower()
         assert result["entries"] == []
@@ -430,11 +431,11 @@ class TestParsePrefetchIntegration:
         pf_dir = tmp_path / "Prefetch"
         pf_dir.mkdir()
 
-        with patch.dict("os.environ", {"CASEFILE_EXAMINER": "casefile"}, clear=False):
-            result = parse_prefetch(str(pf_dir))
+        with patch("mcp_server.tools._shared.AUDIT_FILE", tmp_path / "mcp.jsonl"):
+            with patch.dict("os.environ", {"CASEFILE_EXAMINER": "casefile"}, clear=False):
+                result = parse_prefetch(str(pf_dir))
 
         assert result["error"] is None
         assert result["total_entries"] == 0
-        assert result["analyst_note"] is not None
         assert result["analyst_note"] is not None
         assert len(result["analyst_note"]) > 0

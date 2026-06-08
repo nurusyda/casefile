@@ -163,11 +163,22 @@ def compile_check(mode: str) -> str:
 # --------------------------------------------------------------------------- #
 # Option A: full file content for modified files
 # --------------------------------------------------------------------------- #
+def _secret_re() -> "re.Pattern":
+    return re.compile(
+        r'(?:api[_-]?key|token|secret|password|auth)\s*[:=]\s*["\'][^\s"\']{8,}["\']'
+        r'|sk-[a-zA-Z0-9]{20,}'
+        r'|ghp_[a-zA-Z0-9]{36}'
+        r'|xox[bpras]-[a-zA-Z0-9-]+',
+        re.IGNORECASE,
+    )
+
+
 def full_file_context(mode: str, max_bytes_per_file: int = 40_000) -> str:
     """Return full content of all modified files for LLM context."""
     changed = _changed_files(mode)
     if not changed:
         return ""
+    _SECRET_RE = _secret_re()
     sections = [
         "FULL FILE CONTENT (use this to verify imports, function signatures, "
         "surrounding context  -  do not contradict what you see here):"
@@ -178,6 +189,8 @@ def full_file_context(mode: str, max_bytes_per_file: int = 40_000) -> str:
             continue
         try:
             content = fp.read_text(encoding="utf-8", errors="replace")
+            if _SECRET_RE.search(content):
+                die(f"Aborting: file {f} appears to contain a secret; remove it or use a non-secret copy before running --full-file-context.")
             content_bytes = content.encode("utf-8")
             if len(content_bytes) > max_bytes_per_file:
                 content = content_bytes[:max_bytes_per_file].decode("utf-8", errors="replace") + "\n... [truncated at 40KB]"
@@ -193,10 +206,22 @@ def full_file_context(mode: str, max_bytes_per_file: int = 40_000) -> str:
 
 def deep_scan(model: str) -> None:
     """Scan all .py files in the repo 2 at a time. One-time full audit."""
-    py_files = sorted(glob.glob("**/*.py", recursive=True))
-    py_files = [f for f in py_files if not any(
-        seg in f for seg in ("venv/", "__pycache__", ".git/", "patch_")
-    )]
+    # Use git ls-files to get all tracked .py files regardless of cwd
+    try:
+        result = subprocess.run(
+            ["git", "ls-files", "*.py"],
+            capture_output=True, text=True, check=True,
+        )
+        py_files = sorted(
+            f for f in result.stdout.splitlines()
+            if not any(seg in f for seg in ("venv/", "__pycache__", ".git/", "patch_"))
+        )
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        # Fallback: glob from repo root
+        py_files = sorted(glob.glob("**/*.py", recursive=True))
+        py_files = [f for f in py_files if not any(
+            seg in f for seg in ("venv/", "__pycache__", ".git/", "patch_")
+        )]
     if not py_files:
         print("No .py files found.")
         return
@@ -679,6 +704,17 @@ def build_auto_context() -> str:
     """
     facts = []
 
+    # Locate repo root so paths work regardless of cwd
+    try:
+        repo_root = subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"],
+            capture_output=True, text=True, check=True,
+        ).stdout.strip()
+    except Exception:
+        repo_root = "."
+    server_py = os.path.join(repo_root, "mcp_server/server.py")
+    shared_py = os.path.join(repo_root, "mcp_server/tools/_shared.py")
+
     def find(pattern: str, path: str) -> list[tuple[int, str]]:
         """Return [(lineno, line), ...] for lines matching pattern in path."""
         try:
@@ -692,10 +728,6 @@ def build_auto_context() -> str:
             for i, line in enumerate(text.splitlines(), 1)
             if rx.search(line)
         ]
-
-    # MCP tool registrations
-    server_py = "mcp_server/server.py"
-    if Path(server_py).exists():
         hits = find("mcp.tool", server_py)
         if hits:
             facts.append(f"MCP tools registered in {server_py}: {len(hits)} tool(s)")
@@ -756,15 +788,14 @@ def build_auto_context() -> str:
             facts.append("approve_finding: NOT registered in mcp_server/server.py (Law 5 compliant)")
 
     # BLOCKED_COMMANDS presence
-    shared = "mcp_server/tools/_shared.py"
-    if Path(shared).exists():
-        hits = find("BLOCKED_COMMANDS", shared)
+    if Path(shared_py).exists():
+        hits = find("BLOCKED_COMMANDS", shared_py)
         if hits:
-            facts.append(f"BLOCKED_COMMANDS: present in {shared}")
+            facts.append(f"BLOCKED_COMMANDS: present in {shared_py}")
 
     # audit_log signature (keyword-only args)
-    if Path(shared).exists():
-        hits = find("def audit_log", shared)
+    if Path(shared_py).exists():
+        hits = find("def audit_log", shared_py)
         if hits:
             _, sig_line = hits[0]
             facts.append(f"audit_log signature: {sig_line.strip()}")

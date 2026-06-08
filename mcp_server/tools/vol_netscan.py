@@ -34,7 +34,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
-from mcp_server.tools._shared import audit_log, PathConfinementError, _enforce_case_root
+from mcp_server.tools._shared import audit_log, PathConfinementError, _enforce_case_root, _cap_entries_keep_suspicious
 from mcp_server.tools.memory import MemoryToolError, parse_memory
 
 _DEFAULT_CAP = 500
@@ -84,7 +84,11 @@ def _is_private_ipv4(addr: str) -> bool:
 
 
 def _flag_suspicious(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Flag netscan entries that warrant analyst review."""
+    """Flag netscan entries that warrant analyst review.
+
+    Returns COPIES of flagged records with 'suspicion_reasons' and
+    'confidence' keys added.  Original records are never mutated.
+    """
     suspicious: list[dict[str, Any]] = []
     for rec in records:
         reasons: list[str] = []
@@ -337,19 +341,24 @@ def parse_volatility_netscan(
 
     # ── Cap for context window safety ─────────────────────────────────────────
     total = len(records)
+
+    def _ns_entry_key(r: dict[str, Any]) -> tuple:
+        return (
+            r.get("Owner", r.get("ImageFileName", "")),
+            r.get("LocalAddr", r.get("LocalAddress", "")),
+            r.get("LocalPort", r.get("Local Port", "")),
+            r.get("ForeignAddr", r.get("ForeignAddress", "")),
+            r.get("ForeignPort", r.get("Foreign Port", "")),
+            r.get("State", r.get("Status", "")),
+        )
+
     if not include_all and total > _DEFAULT_CAP:
-        susp_keys = {
-            (s.get("ForeignAddr", ""), s.get("ForeignPort", ""),
-             s.get("LocalPort", ""), s.get("Owner", ""))
-            for s in suspicious
-        }
-        non_susp = [
-            r for r in records
-            if (r.get("ForeignAddr", ""), r.get("ForeignPort", ""),
-                r.get("LocalPort", ""), r.get("Owner", "")) not in susp_keys
-        ]
-        cap = max(0, _DEFAULT_CAP - len(suspicious))
-        entries_out = suspicious + non_susp[:cap]
+        entries_out, _ = _cap_entries_keep_suspicious(
+            records,
+            suspicious,
+            _DEFAULT_CAP,
+            key_fn=_ns_entry_key,
+        )
     else:
         entries_out = records
 

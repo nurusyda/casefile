@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 import time
 import uuid
 from datetime import datetime, timezone
@@ -143,18 +144,27 @@ _OCSF_STATUS_MAP = {
 }
 
 
-def _iso_to_ms(iso_str: str) -> int:
-    """Convert ISO 8601 string to epoch milliseconds, fallback to now."""
+def _iso_to_ms(iso_str: str) -> int | None:
+    """Convert ISO 8601 string to epoch milliseconds, return None on failure."""
+    if not iso_str:
+        return None
     try:
         return int(datetime.fromisoformat(iso_str).timestamp() * 1000)
     except Exception:
-        return int(datetime.now(timezone.utc).timestamp() * 1000)
+        return None
 
 
 def _finding_to_ocsf(finding: dict, case_id: str) -> dict:
     """Convert a CaseFile finding to OCSF v1.3 Finding (class_uid=2004)."""
-    observation_ms = _iso_to_ms(finding.get("timestamp") or "")
-    created_ms = _iso_to_ms(finding.get("created_at") or "") or observation_ms
+    ts_str = finding.get("timestamp") or finding.get("created_at") or ""
+    observation_ms = _iso_to_ms(ts_str)
+    if observation_ms is None:
+        fid = finding.get("finding_id", "?")
+        print(f"export_findings: unparseable timestamp '{ts_str}' in finding {fid} — falling back to epoch 0", file=sys.stderr)
+        observation_ms = 0
+    created_ms = _iso_to_ms(finding.get("created_at") or "")
+    if created_ms is None:
+        created_ms = observation_ms
     ts_ms = observation_ms
 
     severity_label = finding.get("severity", "MEDIUM").upper()
@@ -263,15 +273,6 @@ def export_findings(
     case_dir = Path(
         os.environ.get("CASEFILE_CASE_DIR") or os.path.expanduser("~/cases/active")
     )
-    _evidence_root = Path("/mnt/evidence")
-    if _evidence_root.exists() and case_dir.resolve().is_relative_to(_evidence_root.resolve()):
-        return {
-            "format": format,
-            "exported_count": 0,
-            "output_path": None,
-            "events": [],
-            "error": "Export denied: case directory is inside evidence path /mnt/evidence.",
-        }
     _case_yaml = case_dir / "CASE.yaml"
     case_id = case_dir.name
     if _case_yaml.exists():
@@ -286,6 +287,16 @@ def export_findings(
 
     findings_path = case_dir / "findings.json"
     if not findings_path.exists():
+        audit_log(
+            tool="export_findings",
+            invocation_id=invocation_id or str(uuid.uuid4()),
+            cmd=f"export_findings(format={format!r}, status_filter={status_filter!r})",
+            returncode=-1,
+            stdout_lines=0,
+            stderr_excerpt="findings.json not found in the case directory",
+            parsed_record_count=0,
+            duration_ms=int((time.monotonic() - _start_time) * 1000),
+        )
         return {
             "format": format,
             "exported_count": 0,
@@ -298,6 +309,16 @@ def export_findings(
         raw = json.loads(findings_path.read_text())
         findings = raw.get("findings", []) if isinstance(raw, dict) else raw
     except (json.JSONDecodeError, OSError) as e:
+        audit_log(
+            tool="export_findings",
+            invocation_id=invocation_id or str(uuid.uuid4()),
+            cmd=f"export_findings(format={format!r}, status_filter={status_filter!r})",
+            returncode=-1,
+            stdout_lines=0,
+            stderr_excerpt=f"Cannot read findings.json: {e}"[:500],
+            parsed_record_count=0,
+            duration_ms=int((time.monotonic() - _start_time) * 1000),
+        )
         return {
             "format": format,
             "exported_count": 0,
@@ -319,6 +340,16 @@ def export_findings(
     elif format == "ocsf":
         events = [_finding_to_ocsf(f, case_id) for f in findings if isinstance(f, dict)]
     else:
+        audit_log(
+            tool="export_findings",
+            invocation_id=invocation_id or str(uuid.uuid4()),
+            cmd=f"export_findings(format={format!r}, status_filter={status_filter!r})",
+            returncode=-1,
+            stdout_lines=0,
+            stderr_excerpt=f"Unknown format '{format}'",
+            parsed_record_count=0,
+            duration_ms=int((time.monotonic() - _start_time) * 1000),
+        )
         return {
             "format": format,
             "exported_count": 0,
@@ -335,7 +366,17 @@ def export_findings(
     else:
         resolved = Path(output_path).resolve()
         case_root = case_dir.resolve()
-        if case_root not in resolved.parents and resolved != case_root:
+        if not resolved.is_relative_to(case_root):
+            audit_log(
+                tool="export_findings",
+                invocation_id=invocation_id or str(uuid.uuid4()),
+                cmd=f"export_findings(format={format!r}, status_filter={status_filter!r})",
+                returncode=-1,
+                stdout_lines=0,
+                stderr_excerpt="output_path must be within the current case directory",
+                parsed_record_count=0,
+                duration_ms=int((time.monotonic() - _start_time) * 1000),
+            )
             return {
                 "format": format,
                 "exported_count": 0,
@@ -347,6 +388,16 @@ def export_findings(
     try:
         Path(output_path).resolve().write_text(json.dumps(events, indent=2))
     except OSError as e:
+        audit_log(
+            tool="export_findings",
+            invocation_id=invocation_id or str(uuid.uuid4()),
+            cmd=f"export_findings(format={format!r}, status_filter={status_filter!r})",
+            returncode=-1,
+            stdout_lines=0,
+            stderr_excerpt=f"Could not write to {output_path}: {e}"[:500],
+            parsed_record_count=len(events),
+            duration_ms=int((time.monotonic() - _start_time) * 1000),
+        )
         return {
             "format": format,
             "exported_count": len(events),

@@ -239,7 +239,7 @@ def _norm_ts(raw: str) -> Optional[str]:
         datetime.fromisoformat(raw.rstrip("Z"))
         return raw
     except ValueError:
-        return raw
+        return raw  # malformed — pass through raw; handle in correlation/findings layer
 
 
 def _build_category_summary(entries: list[dict[str, Any]]) -> dict[str, int]:
@@ -378,6 +378,21 @@ def parse_registry(
 
     # ── Resolve batch file ────────────────────────────────────────────────────
     batch = Path(batch_file).resolve() if batch_file else Path(KROLL_BATCH_FILE).resolve()
+    try:
+        _enforce_case_root(batch)
+    except PathConfinementError as exc:
+        duration_ms = int((time.monotonic() - t_start) * 1000)
+        audit_log(
+            tool="RECmd",
+            invocation_id=invocation_id,
+            cmd=f"RECmd({hive_dir}) — rejected: batch file outside case root",
+            returncode=1,
+            stdout_lines=0,
+            stderr_excerpt=str(exc)[:500],
+            parsed_record_count=0,
+            duration_ms=duration_ms,
+        )
+        return _error_result(invocation_id, hive_dir, str(exc), str(batch))
     if not batch.exists():
         duration_ms = int((time.monotonic() - t_start) * 1000)
         err_msg = (

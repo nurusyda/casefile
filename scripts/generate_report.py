@@ -85,7 +85,7 @@ generated_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 # ── Collect MITRE techniques ──────────────────────────────────────────────────
 mitre = {}
 for f in findings:
-    for t in f.get("mitre_technique", "").split(","):
+    for t in (f.get("mitre_technique") or "").split(","):
         t = t.strip()
         if t:
             mitre[t] = mitre.get(t, 0) + 1
@@ -150,9 +150,9 @@ if timeline:
     p("|-----------------|-------|------------|--------|")
     for event in sorted(timeline, key=lambda x: x.get("timestamp_utc", "")):
         ts = event.get("timestamp_utc", "—")
-        desc = event.get("description", "—")[:80]
+        desc = (event.get("description") or "—")[:80]
         conf = event.get("confidence", "—")
-        source = event.get("artifact_source", "—")[:40]
+        source = (event.get("artifact_source") or "—")[:40]
         p(f"| `{ts}` | {desc} | {conf} | {source} |")
     hr()
 
@@ -175,7 +175,7 @@ for f in confirmed:
     if quotes:
         p("**Evidence:**")
         for q in quotes:
-            inv = q.get("invocation_id", "—")[:8]
+            inv = (q.get("invocation_id") or "—")[:8]
             field = q.get("field", "—")
             val = q.get("exact_value", "—")
             claim = q.get("claim", "—")

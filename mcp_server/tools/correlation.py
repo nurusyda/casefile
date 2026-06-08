@@ -15,6 +15,7 @@ Verdict logic is deterministic (no LLM):
 
 from __future__ import annotations
 
+import ntpath
 import os
 import sys
 import time
@@ -483,6 +484,7 @@ def detect_contradictions(
 
     # 1. Execution before creation -> timestomping indicator (T1070.006)
     pf_time = prefetch.details.get("last_run_utc") if prefetch.present and prefetch.details else None
+    # si_created_utc is the canonical field; Created0x10 is the raw MFT column name fallback
     mft_si = (mft.details.get("si_created_utc") or mft.details.get("Created0x10")) if mft.present and mft.details else None
     if pf_time and mft_si:
         try:
@@ -526,9 +528,14 @@ def detect_contradictions(
         })
 
     # 3. Amcache path vs MFT path mismatch -> DLL sideloading / binary replacement
-    ac_path = (amcache.details.get("full_path") or amcache.details.get("path", "")).lower() if amcache.present and amcache.details else ""
-    mft_fp = (mft.details.get("file_path") or "").lower() if mft.present and mft.details else ""
-    if ac_path and mft_fp and ac_path not in mft_fp and mft_fp not in ac_path:
+    # MFT "file_path" holds the full file path — extract its parent directory.
+    # Amcache "full_path" is the full file path — extract its parent directory.
+    # Compare directory-to-directory.
+    ac_full = (amcache.details.get("full_path") or amcache.details.get("path", "")).lower() if amcache.present and amcache.details else ""
+    mft_full = (mft.details.get("file_path") or "").lower() if mft.present and mft.details else ""
+    ac_parent = ntpath.dirname(ac_full).rstrip("\\").lower() if ac_full else ""
+    mft_parent = ntpath.dirname(mft_full).rstrip("\\").lower() if mft_full else ""
+    if ac_parent and mft_parent and ac_parent != mft_parent:
         contradictions.append({
             "name": "path_mismatch_amcache_mft",
             "sources": ["amcache", "mft"],
@@ -537,7 +544,7 @@ def detect_contradictions(
                 "possible DLL sideloading or binary replacement (T1574.001)."
             ),
             "severity": "HIGH",
-            "details": {"amcache_path": ac_path, "mft_path": mft_fp},
+            "details": {"amcache_path": ac_full, "mft_path": mft_full},
             "mitre": "T1574.001",
         })
 
@@ -710,8 +717,22 @@ def detect_host_type(case_dir: str) -> dict:
         # Build a lowercase name → Path map for all entries in case_dir
         try:
             _dir_entries = {f.name.lower(): f for f in case_path.iterdir()}
-        except PermissionError:
-            _dir_entries = {}
+        except (PermissionError, OSError):
+            host_type = "UNKNOWN"
+            indicators.append(
+                f"Cannot scan case_dir due to permission error — {case_path}"
+            )
+            recommendation = (
+                "Proceed with caution. Unable to enumerate directory contents. "
+                "Document artifact gaps explicitly."
+            )
+            _returncode = 0
+            return {
+                "host_type": host_type,
+                "indicators": indicators,
+                "recommendation": recommendation,
+                "invocation_id": invocation_id,
+            }
 
         # Workstation signals
         amcache_present = "amcache.hve" in _dir_entries

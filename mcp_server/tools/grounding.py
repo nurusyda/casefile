@@ -456,7 +456,7 @@ def validate_evidence_quotes(finding: dict) -> None:
     confidence = finding.get("confidence", "")
     quotes = finding.get("evidence_quotes", [])
 
-    if "CONFIRMED" in confidence and not quotes:
+    if confidence == "CONFIRMED" and not quotes:
         raise GroundingError(
             f"Finding {finding_id!r} has confidence={confidence!r} but "
             "evidence_quotes is empty. CONFIRMED findings must cite at least "
@@ -605,7 +605,7 @@ def verify_finding_claims(
     claim_results: list[ClaimVerification] = []
 
     # --- INFERRED with no quotes: acceptable ---
-    if not quotes and "INFERRED" in confidence:
+    if not quotes and confidence == "INFERRED":
         claim_results.append(ClaimVerification(
             claim_text="(no evidence_quotes — INFERRED finding)",
             status="INFERRED_LABELED",
@@ -628,7 +628,7 @@ def verify_finding_claims(
         )
 
     # --- CONFIRMED with no quotes: defensive catch ---
-    if not quotes and "CONFIRMED" in confidence:
+    if not quotes and confidence == "CONFIRMED":
         claim_results.append(ClaimVerification(
             claim_text="(no evidence_quotes — CONFIRMED finding)",
             status="UNGROUNDED",
