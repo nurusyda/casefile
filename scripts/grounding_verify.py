@@ -36,10 +36,14 @@ except ImportError as e:
     print("[grounding] FATAL: grounding module not available — cannot verify findings.", flush=True)
     sys.exit(1)  # Fatal: grounding module required; exit(0) would silently skip all checks
 
-case_dir = os.environ.get("CASE_DIR", ".")
-audit_log_path = os.environ.get("AUDIT_LOG", f"{case_dir}/audit/mcp.jsonl")
-findings_file = os.environ.get("FINDINGS_FILE", f"{case_dir}/findings.json")
-claim_report_path = os.environ.get("CLAIM_REPORT", f"{case_dir}/analysis/claim_accuracy_report.json")
+def _require_env(key: str, default: str) -> str:
+    val = os.environ.get(key)
+    return val if val is not None else default
+
+case_dir = _require_env("CASE_DIR", ".")
+audit_log_path = _require_env("AUDIT_LOG", f"{case_dir}/audit/mcp.jsonl")
+findings_file = _require_env("FINDINGS_FILE", f"{case_dir}/findings.json")
+claim_report_path = _require_env("CLAIM_REPORT", f"{case_dir}/analysis/claim_accuracy_report.json")
 
 # Load findings
 if not Path(findings_file).exists():

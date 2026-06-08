@@ -9,6 +9,9 @@ import sys
 
 try:
     with open(sys.argv[1]) as f:
-        print(json.load(f)["max_iterations"])
+        val = json.load(f).get("max_iterations")
+    if not isinstance(val, int) or val <= 0:
+        sys.exit(1)
+    print(val)
 except (IndexError, KeyError, OSError, ValueError, TypeError, json.JSONDecodeError):
     sys.exit(1)

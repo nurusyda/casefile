@@ -39,15 +39,33 @@ def test_deny_blocks_approvals_write(settings):
 def test_allow_list_contains_all_mcp_tools(settings):
     allow = settings["permissions"]["allow"]
     expected = [
+        # Core parsers
         "mcp__casefile__parse_amcache",
         "mcp__casefile__parse_prefetch",
         "mcp__casefile__parse_event_logs",
         "mcp__casefile__parse_registry",
         "mcp__casefile__parse_mft",
         "mcp__casefile__parse_memory",
+        "mcp__casefile__parse_shellbags",
+        "mcp__casefile__parse_hayabusa",
+        "mcp__casefile__parse_lnk",
+        "mcp__casefile__parse_jumplists",
+        # Volatility wrappers
+        "mcp__casefile__parse_volatility_pslist",
+        "mcp__casefile__parse_volatility_netscan",
+        # Correlation & host type
+        "mcp__casefile__correlate_evidence",
+        "mcp__casefile__detect_host_type",
+        # Findings
         "mcp__casefile__record_finding",
         "mcp__casefile__get_findings",
         "mcp__casefile__record_timeline_event",
+        # Accuracy & export
+        "mcp__casefile__generate_accuracy_report",
+        "mcp__casefile__export_findings",
+        # Knowledge base
+        "mcp__casefile__search_knowledge",
+        "mcp__casefile__get_knowledge_stats",
     ]
     for tool in expected:
         assert tool in allow, f"Missing from allow list: {tool}"

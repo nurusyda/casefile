@@ -28,7 +28,7 @@ Usage by Claude:
 import csv
 import io
 import os
-import tempfile
+
 import shlex
 import time
 import uuid
@@ -232,11 +232,19 @@ def parse_amcache(
 
     # ── Resolve output directory ──────────────────────────────────────────────
     if output_dir:
-        out_dir = Path(output_dir)
+        out_dir = Path(output_dir).resolve()
+        try:
+            _enforce_case_root(out_dir)
+        except PathConfinementError as exc:
+            return _error_result(invocation_id, amcache_path, str(exc))
     else:
         # Write outside evidence tree — use CASEFILE_CASE_DIR/analysis/
         _case = os.environ.get("CASEFILE_CASE_DIR", str(Path.home() / "cases" / "active"))
         out_dir = Path(_case) / "analysis" / "amcache_out" / invocation_id
+    try:
+        _enforce_case_root(out_dir)
+    except PathConfinementError as exc:
+        return _error_result(invocation_id, amcache_path, str(exc))
     out_dir.mkdir(parents=True, exist_ok=True)
 
     # ── Build AmcacheParser command ───────────────────────────────────────────
@@ -320,7 +328,7 @@ def parse_amcache(
                 "AmcacheParser produced no CSV output. "
                 "The hive may be empty, heavily stripped, or from an OS version "
                 "that uses a different Amcache schema. "
-                "Verify the hive is readable: file {hive}"
+                f"Verify the hive is readable: file {hive}"
             ),
         }
 

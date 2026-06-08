@@ -28,7 +28,7 @@ try:
 except ImportError:  # not available outside SIFT
     pyscca = None
 
-from mcp_server.tools._shared import audit_log
+from mcp_server.tools._shared import audit_log, PathConfinementError, _enforce_case_root
 
 _SUSPICIOUS_PATHS = [
     "\\windows\\temp\\",
@@ -320,9 +320,38 @@ def parse_prefetch(
         )
     pf_path = Path(prefetch_path).resolve()
 
+    try:
+        _enforce_case_root(pf_path)
+    except PathConfinementError as exc:
+        duration_ms = int((time.monotonic() - t_start) * 1000)
+        audit_log(
+            tool="pyscca",
+            invocation_id=invocation_id,
+            cmd=f"pyscca({prefetch_path})",
+            returncode=1,
+            stdout_lines=0,
+            stderr_excerpt=str(exc)[:500],
+            parsed_record_count=0,
+            duration_ms=duration_ms,
+            extra={"prefetch_path": str(pf_path)},
+        )
+        return _error_result(invocation_id, prefetch_path, str(exc))
+
     if not pf_path.exists():
-        return _error_result(invocation_id, prefetch_path,
-                             f"Path not found: {prefetch_path}")
+        duration_ms = int((time.monotonic() - t_start) * 1000)
+        err_msg = f"Path not found: {prefetch_path}"
+        audit_log(
+            tool="pyscca",
+            invocation_id=invocation_id,
+            cmd=f"pyscca({prefetch_path})",
+            returncode=1,
+            stdout_lines=0,
+            stderr_excerpt=err_msg,
+            parsed_record_count=0,
+            duration_ms=duration_ms,
+            extra={"prefetch_path": str(pf_path)},
+        )
+        return _error_result(invocation_id, prefetch_path, err_msg)
 
     if pf_path.is_dir():
         pf_files = sorted(pf_path.glob("*.pf"))
@@ -331,8 +360,20 @@ def parse_prefetch(
     elif pf_path.is_file() and pf_path.suffix.lower() == ".pf":
         pf_files = [pf_path]
     else:
-        return _error_result(invocation_id, prefetch_path,
-                             f"Not a .pf file or directory: {prefetch_path}")
+        duration_ms = int((time.monotonic() - t_start) * 1000)
+        err_msg = f"Not a .pf file or directory: {prefetch_path}"
+        audit_log(
+            tool="pyscca",
+            invocation_id=invocation_id,
+            cmd=f"pyscca({prefetch_path})",
+            returncode=1,
+            stdout_lines=0,
+            stderr_excerpt=err_msg,
+            parsed_record_count=0,
+            duration_ms=duration_ms,
+            extra={"prefetch_path": str(pf_path)},
+        )
+        return _error_result(invocation_id, prefetch_path, err_msg)
 
     if not pf_files:
         duration_ms = int((time.monotonic() - t_start) * 1000)
@@ -357,7 +398,8 @@ def parse_prefetch(
             "duration_ms":      duration_ms,
             "error":            None,
             "analyst_note": (
-                "PECmd produced no output. Prefetch may be disabled (common on "
+                "pyscca found no Prefetch files (.pf) in directory. "
+                "Prefetch may be disabled (common on "
                 "Windows Server or some SSD configurations) or the folder is empty. "
                 "Document absence of Prefetch as a finding — it is not neutral."
             ),
@@ -408,7 +450,7 @@ def parse_prefetch(
                 "source_file":     e.get("source_file", ""),
             })
         csv_out_file.write_text(buf.getvalue(), encoding="utf-8")
-    except OSError:
+    except (OSError, IOError, RuntimeError):
         csv_out_file = None
 
     csv_files = [str(csv_out_file)] if csv_out_file and csv_out_file.exists() else []

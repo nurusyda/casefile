@@ -228,15 +228,6 @@ def _flag_suspicious(entries: list[dict[str, Any]], case_iocs: list[str] | None 
     return flagged
 
 
-def _build_category_summary(entries: list[dict[str, Any]]) -> dict[str, int]:
-    """Return count of entries per category for quick overview."""
-    summary: dict[str, int] = {}
-    for e in entries:
-        cat = e.get("category") or "unknown"
-        summary[cat] = summary.get(cat, 0) + 1
-    return dict(sorted(summary.items(), key=lambda x: x[1], reverse=True))
-
-
 def _norm_ts(raw: str) -> Optional[str]:
     """Return ISO-8601 UTC string or None."""
     if not raw or raw.strip() in ("", "0", "N/A"):
@@ -256,6 +247,15 @@ def _safe_int(val: str) -> Optional[int]:
         return int(str(val).strip())
     except (ValueError, AttributeError):
         return None
+
+
+def _build_category_summary(entries: list[dict[str, Any]]) -> dict[str, int]:
+    """Return count of entries per category for quick overview."""
+    summary: dict[str, int] = {}
+    for e in entries:
+        cat = e.get("category") or "unknown"
+        summary[cat] = summary.get(cat, 0) + 1
+    return dict(sorted(summary.items(), key=lambda x: x[1], reverse=True))
 
 
 def _error_result(invocation_id: str, hive_dir: str, error_msg: str) -> dict:
@@ -350,32 +350,95 @@ def parse_registry(
     try:
         _enforce_case_root(hive_path)
     except PathConfinementError as exc:
+        duration_ms = int((time.monotonic() - t_start) * 1000)
+        audit_log(
+            tool="RECmd",
+            invocation_id=invocation_id,
+            cmd=f"RECmd({hive_dir}) — rejected: path not confined",
+            returncode=1,
+            stdout_lines=0,
+            stderr_excerpt=str(exc)[:500],
+            parsed_record_count=0,
+            duration_ms=duration_ms,
+        )
         return _error_result(invocation_id, hive_dir, str(exc))
     if not hive_path.exists():
-        return _error_result(
-            invocation_id, hive_dir,
+        duration_ms = int((time.monotonic() - t_start) * 1000)
+        err_msg = (
             f"Hive directory not found: {hive_dir}\n"
             "Extract registry hives from the image first:\n"
             "  image_export.py --name NTUSER.DAT --name SOFTWARE "
             "--name SYSTEM --name SAM -w /cases/.../registry/ <image>"
         )
+        audit_log(
+            tool="RECmd",
+            invocation_id=invocation_id,
+            cmd=f"RECmd({hive_dir}) — rejected: directory not found",
+            returncode=1,
+            stdout_lines=0,
+            stderr_excerpt=err_msg[:500],
+            parsed_record_count=0,
+            duration_ms=duration_ms,
+        )
+        return _error_result(invocation_id, hive_dir, err_msg)
 
     # ── Resolve batch file ────────────────────────────────────────────────────
     batch = Path(batch_file).resolve() if batch_file else Path(KROLL_BATCH_FILE).resolve()
     if not batch.exists():
-        return _error_result(
-            invocation_id, hive_dir,
+        duration_ms = int((time.monotonic() - t_start) * 1000)
+        err_msg = (
             f"Batch file not found: {batch}\n"
             "Verify RECmd is installed: ls /opt/zimmermantools/RECmd/BatchExamples/"
         )
+        audit_log(
+            tool="RECmd",
+            invocation_id=invocation_id,
+            cmd=f"RECmd({hive_dir}) — rejected: batch file not found",
+            returncode=1,
+            stdout_lines=0,
+            stderr_excerpt=err_msg[:500],
+            parsed_record_count=0,
+            duration_ms=duration_ms,
+        )
+        return _error_result(invocation_id, hive_dir, err_msg)
 
     # ── Resolve output directory ──────────────────────────────────────────────
     if output_dir:
-        out_dir = Path(output_dir)
+        out_dir = Path(output_dir).resolve()
+        try:
+            _enforce_case_root(out_dir)
+        except PathConfinementError as exc:
+            duration_ms = int((time.monotonic() - t_start) * 1000)
+            audit_log(
+                tool="RECmd",
+                invocation_id=invocation_id,
+                cmd=f"RECmd({hive_dir}) — rejected: output_dir not confined",
+                returncode=1,
+                stdout_lines=0,
+                stderr_excerpt=str(exc)[:500],
+                parsed_record_count=0,
+                duration_ms=duration_ms,
+            )
+            return _error_result(invocation_id, hive_dir, str(exc))
     else:
         # Write outside evidence tree — use CASEFILE_CASE_DIR/analysis/
         _case = os.environ.get("CASEFILE_CASE_DIR", str(Path.home() / "cases" / "active"))
         out_dir = Path(_case) / "analysis" / "registry_out" / invocation_id
+    try:
+        _enforce_case_root(out_dir)
+    except PathConfinementError as exc:
+        duration_ms = int((time.monotonic() - t_start) * 1000)
+        audit_log(
+            tool="RECmd",
+            invocation_id=invocation_id,
+            cmd=f"RECmd({hive_dir}) — rejected: output_dir not confined",
+            returncode=1,
+            stdout_lines=0,
+            stderr_excerpt=str(exc)[:500],
+            parsed_record_count=0,
+            duration_ms=duration_ms,
+        )
+        return _error_result(invocation_id, hive_dir, str(exc))
     out_dir.mkdir(parents=True, exist_ok=True)
 
     prefix = "registry"

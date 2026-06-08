@@ -38,13 +38,6 @@ from mcp_server.tools.findings import (
     record_timeline_event,
 )
 
-SRUM       = "dotnet /opt/zimmermantools/SrumECmd.dll"
-SHELLBAGS  = "dotnet /opt/zimmermantools/SBECmd.dll"
-REGRIPPER  = "/usr/share/regripper/rip.pl"
-LOG2TIMELINE = "log2timeline.py"
-PSORT      = "psort.py"
-# NOT AVAILABLE: VSCMount (Windows-only), MemProcFS (Windows-only)
-
 # ── Default output_dir wrapper ────────────────────────────────────────────────
 
 def _with_default_output_dir(tool_fn, subdir: str):
@@ -72,10 +65,11 @@ def _with_default_output_dir(tool_fn, subdir: str):
     def wrapper(*args, **kwargs):
         bound = sig.bind_partial(*args, **kwargs)
         if bound.arguments.get("output_dir") is None:
-            case_dir = (os.environ.get("CASEFILE_CASE_ROOT")
-                        or os.environ.get("CASEFILE_CASE_DIR", ""))
-            if case_dir:
-                out = str(Path(case_dir) / "analysis" / subdir)
+            case_dir_raw = (os.environ.get("CASEFILE_CASE_ROOT")
+                            or os.environ.get("CASEFILE_CASE_DIR", ""))
+            if case_dir_raw:
+                case_dir = Path(case_dir_raw).resolve()
+                out = str(case_dir / "analysis" / subdir)
                 os.makedirs(out, exist_ok=True)
                 bound.arguments["output_dir"] = out
         return tool_fn(*bound.args, **bound.kwargs)

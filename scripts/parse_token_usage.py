@@ -58,9 +58,9 @@ def parse_token_counts(text: str) -> dict:
         result["output_tokens"] = int(m_out.group(1).replace(",", ""))
         result["tokens_found"] = True
 
-    # Pattern 3: "cache_read: N" / "cache_creation: N"
-    m_cr = re.search(r"cache[_\s]read[:\s]+(\d[\d,]*)", text)
-    m_cw = re.search(r"cache[_\s](?:creation|write)[:\s]+(\d[\d,]*)", text)
+    # Pattern 3: "cache_read: N" / "cache_creation: N" (case-insensitive)
+    m_cr = re.search(r"[Cc]ache[_\s]read[:\s]+(\d[\d,]*)", text)
+    m_cw = re.search(r"[Cc]ache[_\s](?:creation|write)[:\s]+(\d[\d,]*)", text)
     if m_cr:
         result["cache_read_tokens"] = int(m_cr.group(1).replace(",", ""))
         result["tokens_found"] = True
@@ -69,7 +69,8 @@ def parse_token_counts(text: str) -> dict:
         result["tokens_found"] = True
 
     # Pattern 4: JSON-like {"usage": {"input_tokens": N, ...}}
-    m_json = re.search(r'"usage"\s*:\s*\{[^}]+\}', text)
+    # Uses balanced-brace matching to handle nested objects
+    m_json = re.search(r'"usage"\s*:\s*(\{(?:[^{}]|\{(?:[^{}])*\})*\})', text)
     if m_json:
         try:
             usage = json.loads("{" + m_json.group(0) + "}")["usage"]

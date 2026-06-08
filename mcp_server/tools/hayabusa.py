@@ -18,7 +18,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
-from mcp_server.tools._shared import audit_log
+from mcp_server.tools._shared import audit_log, PathConfinementError, _enforce_case_root
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -233,10 +233,13 @@ def parse_hayabusa(
 
     # --- Input validation ---
     evtx_path = Path(evtx_dir)
-    if not evtx_path.exists():
-        raise ValueError(f"evtx_dir does not exist: {evtx_dir}")
     if evtx_path.is_symlink():
         raise ValueError(f"evtx_dir must not be a symlink: {evtx_dir}")
+    evtx_path = evtx_path.resolve()
+    if not evtx_path.exists():
+        raise ValueError(f"evtx_dir does not exist: {evtx_dir}")
+    # Enforce path confinement when CASEFILE_CASE_ROOT is set
+    _enforce_case_root(evtx_path)
 
     # Normalise min_level
     min_level_norm = _canonical_level(min_level)

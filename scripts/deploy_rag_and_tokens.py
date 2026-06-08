@@ -193,6 +193,11 @@ ralph_src = ralph.read_text(encoding="utf-8")
 
 TOKEN_TRACK_MARKER = "parse_token_usage.py"
 
+# Guard: verify parse_token_usage.py exists before patching ralph.sh
+if not (REPO / "scripts" / "parse_token_usage.py").exists():
+    print("ERROR: scripts/parse_token_usage.py not found — token tracking will fail.")
+    sys.exit(1)
+
 if TOKEN_TRACK_MARKER in ralph_src:
     print("OK: Token tracking already present in ralph.sh")
 else:
@@ -207,7 +212,7 @@ else:
     CLAUDE_OUTPUT_FILE=$(mktemp)
     printf '%s' "${CLAUDE_OUTPUT}" > "${CLAUDE_OUTPUT_FILE}"
     PYTHONPATH="${SCRIPT_DIR}" python3 "${SCRIPT_DIR}/scripts/parse_token_usage.py" \\
-        --output "@${CLAUDE_OUTPUT_FILE}" \\
+        --output "${CLAUDE_OUTPUT_FILE}" \\
         --iteration "${ITER}" \\
         --case-dir "${CASE_DIR}" \\
         --phase "main" || true

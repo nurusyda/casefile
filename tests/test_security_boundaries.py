@@ -315,21 +315,14 @@ class TestBypass5_AuditLogTampering:
         assert "Edit(**/audit/mcp.jsonl)" in deny_rules, \
             "settings.json must deny Edit(**/audit/mcp.jsonl)"
 
-    def test_audit_log_file_is_outside_evidence(self):
+    def test_audit_log_file_is_outside_evidence(self, monkeypatch):
         """_audit_file() must refuse to resolve to /mnt/evidence."""
-        import inspect
-        import importlib
-        from mcp_server.tools._shared import _REPO_ROOT
-        # Re-import to get fresh module state
-        mod = importlib.import_module("mcp_server.tools._shared")
-        # Monkeypatch CASEFILE_CASE_DIR to /mnt/evidence → should raise
-        import mcp_server.tools._shared as shared_mod
+        from mcp_server.tools._shared import _audit_file as get_audit_file
 
-        # The _audit_file function checks if the resolved path is under /mnt/evidence
-        # We verify the guard exists in the source
-        source = inspect.getsource(mod._audit_file)
-        assert "/mnt/evidence" in source, \
-            "audit_log path must guard against /mnt/evidence writes"
+        # Set CASEFILE_CASE_DIR to /mnt/evidence → _audit_file must raise
+        monkeypatch.setenv("CASEFILE_CASE_DIR", "/mnt/evidence/case1")
+        with pytest.raises(ValueError, match="/mnt/evidence"):
+            get_audit_file()
 
 
 # ╔══════════════════════════════════════════════════════════════════════════╗
@@ -491,20 +484,6 @@ class TestBypass8_BlockedCommandsBypass:
         assert "approve_finding" not in source, \
             "approve_finding must not be registered as MCP tool"
 
-    def test_blocked_commands_defined_as_frozenset(self):
-        """BLOCKED_COMMANDS must be a frozenset (immutable)."""
-        from mcp_server.tools.findings import BLOCKED_COMMANDS
-        assert isinstance(BLOCKED_COMMANDS, frozenset), \
-            "BLOCKED_COMMANDS must be a frozenset (immutable)"
-
-    def test_destructive_commands_in_blocked_list(self):
-        """Destructive commands (rm, dd, mkfs, etc.) must be in BLOCKED_COMMANDS."""
-        from mcp_server.tools.findings import BLOCKED_COMMANDS
-        must_block = ["rm", "dd", "mkfs", "shred", "wipe", "format", "chmod", "chown"]
-        for cmd in must_block:
-            assert cmd in BLOCKED_COMMANDS, \
-                f"BLOCKED_COMMANDS must include '{cmd}'"
-
     def test_approve_finding_is_ttys_only(self):
         """cli_approve requires getpass() — TTY gate prevents AI from approving."""
         import inspect
@@ -522,41 +501,6 @@ class TestBypass8_BlockedCommandsBypass:
         deny_rules = settings.get("permissions", {}).get("deny", [])
         assert "Write(**/approvals.jsonl)" in deny_rules
         assert "Edit(**/approvals.jsonl)" in deny_rules
-
-    def test_bl_blocked_commands_not_enforced_at_runtime(self):
-        """NOTE: BLOCKED_COMMANDS is defined but NOT checked at MCP call time.
-
-        The frozenset exists but no tool-wrapper checks against it before
-        executing. The real enforcement is:
-        1. approve_finding is simply not registered as an MCP tool
-        2. settings.json deny rules prevent filesystem damage
-
-        This test documents the gap: if a new tool wrapping 'rm' were
-        registered without checking BLOCKED_COMMANDS, it would execute.
-        """
-        from mcp_server.tools.findings import BLOCKED_COMMANDS
-
-        # Verify the frozenset exists and is non-empty
-        assert len(BLOCKED_COMMANDS) >= 8, \
-            f"BLOCKED_COMMANDS should have at least 8 entries, got {len(BLOCKED_COMMANDS)}"
-
-        # Search for any runtime check against BLOCKED_COMMANDS in the codebase
-        runtime_checks = []
-        for py_file in (REPO_ROOT / "mcp_server").rglob("*.py"):
-            source = py_file.read_text()
-            if "BLOCKED_COMMANDS" in source:
-                # Check if it's a runtime check (if/in/contains) vs just definition/doc
-                lines = [l for l in source.split("\n") if "BLOCKED_COMMANDS" in l]
-                for line in lines:
-                    if any(kw in line for kw in ["if ", "in ", "assert", "raise", "not in"]):
-                        runtime_checks.append(f"{py_file.name}: {line.strip()}")
-
-        # Document: currently there are NO runtime enforcement checks
-        # (only definition + test assertions + documentation references)
-        # This is an architectural gap to address in a future release.
-        print(f"[BYPASS-8 INFO] BLOCKED_COMMANDS runtime checks found: {len(runtime_checks)}")
-        for rc in runtime_checks:
-            print(f"  {rc}")
 
 
 # ╔══════════════════════════════════════════════════════════════════════════╗
@@ -774,6 +718,7 @@ class TestBypass9_EvidenceBornePromptInjection:
                     "cli_approve(['F-test_examiner-999'])"
                 ],
                 capture_output=True, text=True, timeout=30,
+                stdin=_sp.DEVNULL,
                 env={**os.environ, "CASEFILE_EXAMINER": "test_examiner"},
             )
             assert proc.returncode != 0, (

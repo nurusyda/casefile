@@ -716,7 +716,7 @@ def build_auto_context() -> str:
     # Test count  -  bounded by timeout to prevent hung commits.
     try:
         r = subprocess.run(
-            [sys.executable, "-m", "pytest", "tests/", "--co", "-q"],
+            [sys.executable, "-m", "pytest", "tests/", "--collect-only", "-q"],
             capture_output=True, text=True, check=False, timeout=10,
         )
         if r.returncode != 0:
@@ -728,7 +728,7 @@ def build_auto_context() -> str:
                 None,
             )
             if summary_line:
-                facts.append(f"pytest --co: {summary_line.strip()}")
+                facts.append(f"pytest --collect-only: {summary_line.strip()}")
     except subprocess.TimeoutExpired:
         facts.append("  [pytest collection skipped: > 10s]")
     except Exception as exc:

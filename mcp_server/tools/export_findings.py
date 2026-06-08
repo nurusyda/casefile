@@ -341,7 +341,7 @@ def export_findings(
                 "exported_count": 0,
                 "output_path": None,
                 "events": [],
-                "error": f"output_path must be within case directory: {case_dir}",
+                "error": "output_path must be within the current case directory",
             }
 
     try:
@@ -351,7 +351,6 @@ def export_findings(
             "format": format,
             "exported_count": len(events),
             "output_path": None,
-            "events": events,
             "error": f"Could not write to {output_path}: {e}",
         }
 

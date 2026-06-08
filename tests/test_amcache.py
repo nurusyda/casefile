@@ -252,7 +252,7 @@ class TestParseAmcacheIntegration:
             result = parse_amcache(str(hive), output_dir=str(out_dir), include_all=False)
 
         assert result["total_entries"] == 600
-        assert result["entries_returned"] <= 500
+        assert result["entries_returned"] == 500
         assert result["entries_capped"] is True
 
     @patch("mcp_server.tools.amcache.run_tool")

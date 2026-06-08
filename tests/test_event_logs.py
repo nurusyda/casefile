@@ -21,9 +21,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from mcp_server.tools.event_logs import (
     DEFAULT_EVENT_IDS,
     _flag_suspicious,
-    _norm_ts,
     _parse_evtx_csv,
-    _safe_int,
     parse_event_logs,
 )
 

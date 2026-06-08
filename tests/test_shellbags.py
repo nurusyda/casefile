@@ -194,12 +194,11 @@ class TestFlagSuspicious:
 def _make_fake_run_tool(csv_content: str, out_dir_ref: list):
     """Returns a mock run_tool that writes CSV to the output directory."""
     def fake_run_tool(cmd, timeout=120):
-        # Extract output dir from command (handles shlex.quote paths)
-        parts = cmd.split("--csv ")
-        if len(parts) > 1:
-            raw = parts[1].strip().split()[0]
-            out = raw.replace("'", "")
-            out_path = Path(out)
+        # Extract output dir from --csv flag using regex to handle quoting variations
+        import re
+        m = re.search(r'--csv\s+([\'\"]?)([^\s\'\"]+)\1', cmd)
+        if m:
+            out_path = Path(m.group(2).strip())
             out_path.mkdir(parents=True, exist_ok=True)
             (out_path / "SBECmd_Output.csv").write_text(csv_content, encoding="utf-8")
             out_dir_ref.append(out_path)

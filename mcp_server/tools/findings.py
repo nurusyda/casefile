@@ -17,13 +17,6 @@ from mcp_server.tools.grounding import (
     validate_evidence_quotes,
 )
 
-BLOCKED_COMMANDS = frozenset({
-    "rm", "rmdir", "dd", "mkfs", "format", "shred", "wipe",
-    "chmod", "chown", "mv", "truncate", "fdisk", "parted",
-    "approve",
-    "approve_finding",
-})
-
 
 
 def _case_dir() -> Path:
@@ -403,7 +396,8 @@ def approve_finding(finding_id: str) -> dict:
         return {"error": err, "finding_id": finding_id}
 
     try:
-        data: list = json.loads(findings_file.read_text(encoding="utf-8"))
+        raw = json.loads(findings_file.read_text(encoding="utf-8"))
+        data: list = raw.get("findings", []) if isinstance(raw, dict) else raw
     except Exception as exc:
         err = f"Failed to read findings.json: {exc}"
         _audit(1, err)
@@ -456,10 +450,19 @@ def approve_finding(finding_id: str) -> dict:
 
 def cli_approve(argv=None) -> None:
     """CLI entrypoint: casefile-approve <finding_id>
-    Called only from a human terminal — getpass() ensures the AI cannot
-    supply the password. This is the structural human-in-the-loop gate.
+    Called only from a human terminal — getpass() + isatty() ensure the AI
+    cannot supply the password. This is the structural human-in-the-loop gate.
     """
     import sys
+
+    # TTY gate: must fire BEFORE any business logic (argument parsing,
+    # finding lookup, etc.).  getpass() alone is insufficient — when
+    # stdin is /dev/null it returns an empty string instead of raising
+    # EOFError, so we guard with an explicit isatty() check first.
+    if not sys.stdin.isatty():
+        print("ERROR: No TTY available. Run from a real terminal.", file=sys.stderr)
+        sys.exit(1)
+
     args = argv if argv is not None else sys.argv[1:]
     if len(args) != 1:
         print("Usage: casefile-approve <finding_id>", file=sys.stderr)

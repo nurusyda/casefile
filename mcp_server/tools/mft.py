@@ -327,6 +327,29 @@ def _error_result(invocation_id: str, mft_path: str, error_msg: str) -> dict:
     }
 
 
+def _reject(
+    invocation_id: str,
+    mft_path: str,
+    t_start: float,
+    cmd: str,
+    stderr_excerpt: str,
+    tool: str = "MFTECmd",
+) -> dict:
+    """Log a rejection to the audit log and return an error result."""
+    duration_ms = int((time.monotonic() - t_start) * 1000)
+    audit_log(
+        tool=tool,
+        invocation_id=invocation_id,
+        cmd=cmd,
+        returncode=-1,
+        stdout_lines=0,
+        stderr_excerpt=stderr_excerpt[:500],
+        parsed_record_count=0,
+        duration_ms=duration_ms,
+    )
+    return _error_result(invocation_id, mft_path, stderr_excerpt)
+
+
 def parse_mft(
     mft_path: str,
     output_dir: Optional[str] = None,
@@ -397,26 +420,44 @@ def parse_mft(
     try:
         _enforce_case_root(mft)
     except PathConfinementError as exc:
-        return _error_result(invocation_id, mft_path, str(exc))
+        return _reject(invocation_id, mft_path, t_start,
+                       f"<rejected: path not confined: {mft_path!r}>",
+                       str(exc))
     if not mft.exists():
-        return _error_result(
-            invocation_id, mft_path,
+        err_msg = (
             f"$MFT file not found: {mft_path}\n"
             "Extract it from the image first:\n"
             "  icat -o <partition_offset> <image> 0 > /cases/.../MFT\n"
             "Or: image_export.py --name '$MFT' -w /cases/.../ <image>"
         )
+        return _reject(invocation_id, mft_path, t_start,
+                       f"<rejected: file not found: {mft_path!r}>",
+                       err_msg)
     if not mft.is_file():
-        return _error_result(invocation_id, mft_path,
-                             f"Path is not a file: {mft_path}")
+        err_msg = f"Path is not a file: {mft_path}"
+        return _reject(invocation_id, mft_path, t_start,
+                       f"<rejected: not a file: {mft_path!r}>",
+                       err_msg)
 
     # ── Resolve output directory ──────────────────────────────────────────────
     if output_dir:
-        out_dir = Path(output_dir)
+        out_dir = Path(output_dir).resolve()
+        try:
+            _enforce_case_root(out_dir)
+        except PathConfinementError as exc:
+            return _reject(invocation_id, mft_path, t_start,
+                           f"<rejected: output_dir not confined: {output_dir!r}>",
+                           str(exc))
     else:
         # Write outside evidence tree — use CASEFILE_CASE_DIR/analysis/
         _case = os.environ.get("CASEFILE_CASE_DIR", str(Path.home() / "cases" / "active"))
         out_dir = Path(_case) / "analysis" / "mft_out" / invocation_id  # isolate per-run: prevents stale CSV ingestion / invocation_id
+    try:
+        _enforce_case_root(out_dir)
+    except PathConfinementError as exc:
+        return _reject(invocation_id, mft_path, t_start,
+                       f"<rejected: output_dir not confined: {out_dir!r}>",
+                       str(exc))
     out_dir.mkdir(parents=True, exist_ok=True)
 
     prefix = "mft"

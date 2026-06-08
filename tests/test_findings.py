@@ -116,12 +116,6 @@ def test_record_timeline_event_writes_json(isolated_case_dir):
     assert data[0]["event_type"] == "persistence"
 
 
-def test_blocked_commands_contains_destructive():
-    from mcp_server.tools.findings import BLOCKED_COMMANDS
-    for cmd in ("rm", "dd", "mkfs", "approve"):
-        assert cmd in BLOCKED_COMMANDS
-
-
 def test_bad_confidence_defaults_to_inferred():
     from mcp_server.tools.findings import record_finding
     result = record_finding(title="X", observation="A", interpretation="B",
