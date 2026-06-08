@@ -63,6 +63,7 @@ for finding in findings:
     except Exception as exc:
         print(f"[grounding-recheck] verify_finding_claims failed for {fid}: {exc}", flush=True)
         total_contradicted += 1  # Count verification failures as unresolved
+        results.append({"status": "error", "finding": fid, "error": str(exc)})
 
 if results:
     report = build_claim_accuracy_report(results)

@@ -204,6 +204,13 @@ def deep_scan(model: str) -> None:
     total = len(pairs)
     print(f"{C.CYAN}{C.BOLD}DEEP SCAN: {len(py_files)} files -> {total} pairs{C.RESET}")
     auto_ctx = build_auto_context()
+    _SECRET_RE = re.compile(
+        r'(?:api[_-]?key|token|secret|password|auth)\s*[:=]\s*["\'][^\s"\']{8,}["\']'
+        r'|sk-[a-zA-Z0-9]{20,}'
+        r'|ghp_[a-zA-Z0-9]{36}'
+        r'|xox[bpras]-[a-zA-Z0-9-]+',
+        re.IGNORECASE,
+    )
     for idx, pair in enumerate(pairs, 1):
         banner(f"DEEP SCAN [{idx}/{total}]: {', '.join(pair)}", C.MAGENTA)
         sections = [
@@ -219,6 +226,9 @@ def deep_scan(model: str) -> None:
                 continue
             try:
                 content = fp.read_text(encoding="utf-8", errors="replace")
+                if _SECRET_RE.search(content):
+                    print(f"{C.YELLOW}[skip] {f} contains possible secret; not sent to API.{C.RESET}")
+                    continue
                 sections.append(f"### {f} ###\n{content}")
             except OSError as exc:
                 sections.append(f"### {f} [unreadable: {exc}]")
@@ -717,7 +727,7 @@ def build_auto_context() -> str:
     try:
         r = subprocess.run(
             [sys.executable, "-m", "pytest", "tests/", "--collect-only", "-q"],
-            capture_output=True, text=True, check=False, timeout=10,
+            capture_output=True, text=True, check=False, timeout=30,
         )
         if r.returncode != 0:
             facts.append(f"  [pytest collection failed (rc={r.returncode})]")

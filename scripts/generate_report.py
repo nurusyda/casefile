@@ -37,19 +37,29 @@ if not findings_file.exists():
     print(f"error: findings.json not found at {findings_file}", file=sys.stderr)
     sys.exit(1)
 
-findings = json.loads(findings_file.read_text(encoding="utf-8"))
+try:
+    findings = json.loads(findings_file.read_text(encoding="utf-8"))
+except (json.JSONDecodeError, OSError) as exc:
+    print(f"error: failed to parse findings.json: {exc}", file=sys.stderr)
+    sys.exit(1)
 
 # ── Load timeline ─────────────────────────────────────────────────────────────
 timeline_file = case_path / "timeline.json"
 timeline = []
 if timeline_file.exists():
-    timeline = json.loads(timeline_file.read_text(encoding="utf-8"))
+    try:
+        timeline = json.loads(timeline_file.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        timeline = []
 
 # ── Load accuracy report ──────────────────────────────────────────────────────
 accuracy_file = case_path / "analysis" / "claim_accuracy_report.json"
 accuracy = {}
 if accuracy_file.exists():
-    accuracy = json.loads(accuracy_file.read_text(encoding="utf-8"))
+    try:
+        accuracy = json.loads(accuracy_file.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        accuracy = {}
 
 # ── Determine case name from directory ───────────────────────────────────────
 case_name = case_path.name  # e.g. SRL-2018
@@ -151,7 +161,7 @@ h2(f"CONFIRMED Findings ({len(confirmed)})")
 p("*These findings are directly supported by tool output in the audit log.*")
 p()
 for f in confirmed:
-    h3(f"{f['id']} — {f['title']}")
+    h3(f"{f.get('id', '?')} — {f.get('title', 'Untitled')}")
     p(f"**MITRE:** `{f.get('mitre_technique', '—')}`  ")
     p(f"**Source:** {f.get('artifact_source', '—')}  ")
     p(f"**Tool:** `{f.get('supporting_tool', '—')}`  ")
@@ -181,7 +191,7 @@ if inferred:
       "Cannot be upgraded to CONFIRMED without additional artifact analysis.*")
     p()
     for f in inferred:
-        h3(f"{f['id']} — {f['title']}")
+        h3(f"{f.get('id', '?')} — {f.get('title', 'Untitled')}")
         p(f"**MITRE:** `{f.get('mitre_technique', '—')}`  ")
         p(f"**Source:** {f.get('artifact_source', '—')}  ")
         p()
@@ -198,7 +208,7 @@ if hypotheses:
     p("*Unconfirmed — require additional investigation.*")
     p()
     for f in hypotheses:
-        h3(f"{f['id']} — {f['title']}")
+        h3(f"{f.get('id', '?')} — {f.get('title', 'Untitled')}")
         p(f.get("interpretation", "—"))
         p()
     hr()

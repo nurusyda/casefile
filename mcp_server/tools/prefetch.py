@@ -111,8 +111,11 @@ def _parse_pf_file(pf_path: Path) -> Optional[dict[str, Any]]:
                 if f.lower().endswith(exe_lower):
                     full_path = f
                     break
-            if not full_path and files_loaded:
-                full_path = files_loaded[0]
+            # Do NOT fall back to files_loaded[0] — first entry is typically
+            # a DLL, not the executable.  An incorrect full_path breaks
+            # suspicious-path detection and cross-source correlation.
+            # if not full_path and files_loaded:
+            #     full_path = files_loaded[0]  # intentionally disabled
         except Exception:
             pass
 
@@ -433,23 +436,28 @@ def parse_prefetch(
     try:
         _case = os.environ.get("CASEFILE_CASE_DIR", str(Path.home() / "cases" / "active"))
         csv_out_dir = Path(_case) / "analysis" / "prefetch_csv" / invocation_id
-        csv_out_dir.mkdir(parents=True, exist_ok=True)
-        csv_out_file = csv_out_dir / "prefetch_summary.csv"
-        buf = io.StringIO()
-        writer = csv.DictWriter(
-            buf,
-            fieldnames=["executable_name", "last_run_utc", "run_count", "source_file"],
-            extrasaction="ignore",
-        )
-        writer.writeheader()
-        for e in all_entries:
-            writer.writerow({
-                "executable_name": e.get("executable_name", ""),
-                "last_run_utc":    e.get("last_run_utc", ""),
-                "run_count":       e.get("run_count", ""),
-                "source_file":     e.get("source_file", ""),
-            })
-        csv_out_file.write_text(buf.getvalue(), encoding="utf-8")
+        try:
+            _enforce_case_root(csv_out_dir.resolve())
+        except PathConfinementError:
+            csv_out_file = None  # skip CSV write if path escapes case root
+        else:
+            csv_out_dir.mkdir(parents=True, exist_ok=True)
+            csv_out_file = csv_out_dir / "prefetch_summary.csv"
+            buf = io.StringIO()
+            writer = csv.DictWriter(
+                buf,
+                fieldnames=["executable_name", "last_run_utc", "run_count", "source_file"],
+                extrasaction="ignore",
+            )
+            writer.writeheader()
+            for e in all_entries:
+                writer.writerow({
+                    "executable_name": e.get("executable_name", ""),
+                    "last_run_utc":    e.get("last_run_utc", ""),
+                    "run_count":       e.get("run_count", ""),
+                    "source_file":     e.get("source_file", ""),
+                })
+            csv_out_file.write_text(buf.getvalue(), encoding="utf-8")
     except (OSError, IOError, RuntimeError):
         csv_out_file = None
 

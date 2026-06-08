@@ -157,7 +157,7 @@ def _norm_ts(raw: str) -> Optional[str]:
         datetime.fromisoformat(raw.rstrip("Z"))
         return raw
     except ValueError:
-        return raw  # return as-is rather than drop it
+        return None  # drop unparseable timestamps — never return raw garbage
 
 
 def _safe_int(val: str) -> Optional[int]:
@@ -436,4 +436,5 @@ def _error_result(invocation_id: str, amcache_path: str, error_msg: str) -> dict
         "duration_ms": 0,
         "error": error_msg,
         "analyst_note": None,
+        "note": None,
     }

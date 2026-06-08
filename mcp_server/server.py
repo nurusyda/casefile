@@ -72,7 +72,7 @@ def _with_default_output_dir(tool_fn, subdir: str):
                 out = str(case_dir / "analysis" / subdir)
                 os.makedirs(out, exist_ok=True)
                 bound.arguments["output_dir"] = out
-        return tool_fn(*bound.args, **bound.kwargs)
+        return tool_fn(**bound.arguments)
 
     wrapper.__signature__ = sig
     wrapper.__annotations__ = tool_fn.__annotations__

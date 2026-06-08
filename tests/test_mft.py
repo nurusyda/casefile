@@ -362,19 +362,23 @@ class TestParseMftIntegration:
         mock_run.return_value = SimpleNamespace(returncode=0, stdout="", stderr="")
 
         header = (
-            "EntryNumber,SequenceNumber,InUse,ParentEntryNumber,FullPath,FileName,"
+            "EntryNumber,SequenceNumber,InUse,ParentEntryNumber,ParentPath,FileName,"
             "Extension,FileSize,ReferenceCount,ReparseTarget,IsDirectory,HasAds,IsAds,"
-            "SI_LastModified,SI_LastAccess,SI_MFTRecordChanged,SI_Created,"
-            "FN_LastModified,FN_LastAccess,FN_MFTRecordChanged,FN_Created,"
-            "ObjectIdFileDroid,LogfileSequenceNumber,SecurityId,ZoneIdContents,"
-            "SIMftEntryFlags,FNMftEntryFlags\n"
+            "SI<FN,uSecZeros,Copied,SiFlags,NameType,"
+            "Created0x10,Created0x30,LastModified0x10,LastModified0x30,"
+            "LastRecordChange0x10,LastRecordChange0x30,LastAccess0x10,LastAccess0x30,"
+            "UpdateSequenceNumber,LogfileSequenceNumber,SecurityId,ObjectIdFileDroid,"
+            "LoggedUtilStream,ZoneIdContents,SourceFile,"
+            "ResidentDataBase64,ResidentDataHex,ResidentDataASCII\n"
         )
         ts = "2024-01-01 00:00:00"
+        n_cols = 36  # match header column count
         rows = "\n".join(
-            f"{i},1,TRUE,80,C:\\Windows\\file{i}.dll,file{i}.dll,"
+            f"{i},1,TRUE,80,C:\\Windows,file{i}.dll,"
             f".dll,1024,1,,FALSE,FALSE,FALSE,"
+            f"SI,0,0,,1,"
             f"{ts},{ts},{ts},{ts},{ts},{ts},{ts},{ts},"
-            f",{i},,,ARCHIVE,ARCHIVE"
+            f",{i},,,,,,,,"
             for i in range(600)
         )
         self._write_csv(out_dir, "mft", header + rows)

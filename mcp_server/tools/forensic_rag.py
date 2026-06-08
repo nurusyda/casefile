@@ -1,6 +1,6 @@
 """Forensic Knowledge RAG — keyword-based search over curated DFIR references.
 
-Provides ``forensic_knowledge_search()`` MCP tool that searches a bundled
+Provides ``search_knowledge()`` MCP tool that searches a bundled
 knowledge base of MITRE ATT&CK techniques, artifact guides, Sigma rule
 patterns, and forensic methodology references.
 
@@ -161,6 +161,12 @@ def _score_record(rec: dict, query_tokens: list[str]) -> float:
     return score
 
 
+def _normalize_category(raw: str) -> str:
+    """Normalise category string: 'sigma' → 'sigma_rule'."""
+    c = raw or ""
+    return "sigma_rule" if c == "sigma" else c
+
+
 def search_knowledge(
     query: str,
     *,
@@ -223,10 +229,7 @@ def search_knowledge(
     candidates = _RECORDS
     if category:
         cat_lower = category.lower().strip()
-        def _norm_cat(r: dict) -> str:
-            _c = r.get("category") or r.get("source", "")
-            return "sigma_rule" if _c == "sigma" else _c
-        candidates = [r for r in _RECORDS if _norm_cat(r).lower() == cat_lower]
+        candidates = [r for r in _RECORDS if _normalize_category(r.get("category") or r.get("source", "")).lower() == cat_lower]
 
     scored: list[tuple[float, dict]] = []
     for rec in candidates:
@@ -262,8 +265,7 @@ def get_knowledge_stats() -> dict:
     _load_kb()
     categories: dict[str, int] = {}
     for rec in _RECORDS:
-        _src = rec.get("category") or rec.get("source", "unknown")
-        cat = "sigma_rule" if _src == "sigma" else _src
+        cat = _normalize_category(rec.get("category") or rec.get("source", "unknown"))
         categories[cat] = categories.get(cat, 0) + 1
     _stats = {
         "total_records": len(_RECORDS),

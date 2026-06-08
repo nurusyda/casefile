@@ -330,17 +330,22 @@ def _check_audit_field(
             )
 
     # Boolean — CR-5: normalise string representations; use bool() for numerics
+    # Extended falsy set covers "0.00", "0.000", "0x0", etc.
+    _FALSY_STRS = frozenset({"false", "0", "0.0", "0.00", "0.000", "0x0", "", "none", "null"})
     if expected.lower() == "true":
         if isinstance(value, (int, float)):
             actual_bool = bool(value)
         else:
-            actual_bool = str(value).lower() not in ("false", "0", "0.0", "", "none", "null")
+            actual_bool = str(value).lower().strip() not in _FALSY_STRS
         return ("OK" if actual_bool else "MISMATCH"), f"{audit_field} = {value!r} (expected truthy)"
     if expected.lower() == "false":
         if isinstance(value, (int, float)):
             actual_bool = bool(value)
         else:
-            actual_bool = str(value).lower() not in ("false", "0", "0.0", "", "none", "null")
+            try:
+                actual_bool = bool(float(value))
+            except (ValueError, TypeError):
+                actual_bool = str(value).lower().strip() not in _FALSY_STRS
         return ("OK" if not actual_bool else "MISMATCH"), f"{audit_field} = {value!r} (expected falsy)"
 
     # Substring / string containment

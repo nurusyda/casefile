@@ -436,7 +436,7 @@ def parse_event_logs(
         input_flag = f"-d {shlex.quote(str(evtx))}"
     else:
         input_flag = f"-f {shlex.quote(str(evtx))}"
-        prefix = evtx.stem
+        prefix = evtx.stem if evtx.is_file() else "evtx"
 
     inc_flag = ""
     if ids_to_use:
@@ -547,10 +547,10 @@ def parse_event_logs(
     CAP = 1000  # context window safety limit — LLM cannot process 10K+ events
     total = len(all_entries)
     if not include_all and total > CAP:
-        susp_keys = {(e["event_id"], e["record_number"]) for e in suspicious}
+        susp_keys = {(e.get("source_file", ""), e["event_id"], e["record_number"]) for e in suspicious}
         non_susp = [
             e for e in all_entries
-            if (e["event_id"], e["record_number"]) not in susp_keys
+            if (e.get("source_file", ""), e["event_id"], e["record_number"]) not in susp_keys
         ]
         cap = max(0, CAP - len(suspicious))
         entries_out = suspicious + non_susp[:cap]

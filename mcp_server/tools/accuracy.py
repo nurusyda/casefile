@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import time
 import uuid
 import hashlib
@@ -129,7 +130,7 @@ def generate_accuracy_report(
                 matched = True
                 matched_finding_id = f.get("finding_id")
                 break
-            if cp_id.lower() in (obs + interp):
+            if re.search(r'\b' + re.escape(cp_id.lower()) + r'\b', obs + interp):
                 matched = True
                 matched_finding_id = f.get("finding_id")
                 break

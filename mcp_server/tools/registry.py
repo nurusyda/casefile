@@ -242,13 +242,6 @@ def _norm_ts(raw: str) -> Optional[str]:
         return raw
 
 
-def _safe_int(val: str) -> Optional[int]:
-    try:
-        return int(str(val).strip())
-    except (ValueError, AttributeError):
-        return None
-
-
 def _build_category_summary(entries: list[dict[str, Any]]) -> dict[str, int]:
     """Return count of entries per category for quick overview."""
     summary: dict[str, int] = {}
@@ -258,12 +251,13 @@ def _build_category_summary(entries: list[dict[str, Any]]) -> dict[str, int]:
     return dict(sorted(summary.items(), key=lambda x: x[1], reverse=True))
 
 
-def _error_result(invocation_id: str, hive_dir: str, error_msg: str) -> dict:
+def _error_result(invocation_id: str, hive_dir: str, error_msg: str,
+                  batch_file: str = "") -> dict:
     return {
         "invocation_id":      invocation_id,
         "tool":               "RECmd",
         "hive_dir":           hive_dir,
-        "batch_file":         KROLL_BATCH_FILE,
+        "batch_file":         batch_file or KROLL_BATCH_FILE,
         "run_ts_utc":         datetime.now(timezone.utc).isoformat(),
         "total_entries":      0,
         "entries_returned":   0,
@@ -361,7 +355,7 @@ def parse_registry(
             parsed_record_count=0,
             duration_ms=duration_ms,
         )
-        return _error_result(invocation_id, hive_dir, str(exc))
+        return _error_result(invocation_id, hive_dir, str(exc), batch_file or "")
     if not hive_path.exists():
         duration_ms = int((time.monotonic() - t_start) * 1000)
         err_msg = (
@@ -380,7 +374,7 @@ def parse_registry(
             parsed_record_count=0,
             duration_ms=duration_ms,
         )
-        return _error_result(invocation_id, hive_dir, err_msg)
+        return _error_result(invocation_id, hive_dir, err_msg, batch_file or "")
 
     # ── Resolve batch file ────────────────────────────────────────────────────
     batch = Path(batch_file).resolve() if batch_file else Path(KROLL_BATCH_FILE).resolve()
@@ -400,7 +394,7 @@ def parse_registry(
             parsed_record_count=0,
             duration_ms=duration_ms,
         )
-        return _error_result(invocation_id, hive_dir, err_msg)
+        return _error_result(invocation_id, hive_dir, err_msg, str(batch))
 
     # ── Resolve output directory ──────────────────────────────────────────────
     if output_dir:
@@ -419,7 +413,7 @@ def parse_registry(
                 parsed_record_count=0,
                 duration_ms=duration_ms,
             )
-            return _error_result(invocation_id, hive_dir, str(exc))
+            return _error_result(invocation_id, hive_dir, str(exc), str(batch))
     else:
         # Write outside evidence tree — use CASEFILE_CASE_DIR/analysis/
         _case = os.environ.get("CASEFILE_CASE_DIR", str(Path.home() / "cases" / "active"))
@@ -438,7 +432,7 @@ def parse_registry(
             parsed_record_count=0,
             duration_ms=duration_ms,
         )
-        return _error_result(invocation_id, hive_dir, str(exc))
+        return _error_result(invocation_id, hive_dir, str(exc), str(batch))
     out_dir.mkdir(parents=True, exist_ok=True)
 
     prefix = "registry"
@@ -474,7 +468,7 @@ def parse_registry(
             parsed_record_count=0,
             duration_ms=duration_ms,
         )
-        return _error_result(invocation_id, hive_dir, str(exc))
+        return _error_result(invocation_id, hive_dir, str(exc), str(batch))
     except Exception as exc:
         duration_ms = int((time.monotonic() - t_start) * 1000)
         audit_log(
@@ -487,7 +481,7 @@ def parse_registry(
             parsed_record_count=0,
             duration_ms=duration_ms,
         )
-        return _error_result(invocation_id, hive_dir, f"Unexpected error: {exc}")
+        return _error_result(invocation_id, hive_dir, f"Unexpected error: {exc}", str(batch))
 
     # ── Find and parse CSV output ─────────────────────────────────────────────
     csv_files = list(out_dir.glob("*.csv"))
@@ -551,10 +545,10 @@ def parse_registry(
     # ── Cap for context window ────────────────────────────────────────────────
     total = len(all_entries)
     if not include_all and total > 500:
-        susp_keys = {(e["key_path"], e["value_name"]) for e in suspicious}
+        susp_keys = {(e.get("source_hive", ""), e["key_path"], e["value_name"]) for e in suspicious}
         non_susp = [
             e for e in all_entries
-            if (e["key_path"], e["value_name"]) not in susp_keys
+            if (e.get("source_hive", ""), e["key_path"], e["value_name"]) not in susp_keys
         ]
         cap = max(0, 500 - len(suspicious))
         entries_out = suspicious + non_susp[:cap]

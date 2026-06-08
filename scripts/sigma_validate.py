@@ -175,7 +175,9 @@ def main() -> int:
                 print(f"ERROR: {p} is outside the project directory", file=sys.stderr)
                 continue
             if path.is_dir():
-                rule_files.extend(sorted(path.glob("**/*.yml")))
+                for f in sorted(path.glob("**/*.yml")):
+                    if f.resolve().is_relative_to(PROJECT_ROOT):
+                        rule_files.append(f)
             elif path.is_file():
                 rule_files.append(path)
             else:
@@ -185,7 +187,8 @@ def main() -> int:
         if not sigma_dir.exists():
             print(f"ERROR: {sigma_dir} does not exist. Create it with Sigma rules.", file=sys.stderr)
             return 1
-        rule_files = sorted(sigma_dir.glob("**/*.yml"))
+        rule_files = [f for f in sorted(sigma_dir.glob("**/*.yml"))
+                      if f.resolve().is_relative_to(PROJECT_ROOT)]
 
     if not rule_files:
         print("No Sigma rule files found.", file=sys.stderr)

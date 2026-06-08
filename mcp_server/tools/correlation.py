@@ -20,6 +20,7 @@ import sys
 import time
 import uuid
 from dataclasses import dataclass, field
+from datetime import datetime as _dt
 from typing import Any
 
 from pathlib import Path
@@ -570,6 +571,7 @@ def correlate_evidence(
     """
     invocation_id = f"correlation_{uuid.uuid4().hex[:12]}"
     t_start = time.monotonic()
+    _safe_name = repr(process_name)  # safe for logging even if None/invalid
 
     # --- Audit state (populated inside try, consumed in finally) ------------
     _verdict: str | None = None
@@ -642,7 +644,7 @@ def correlate_evidence(
         audit_log(
             tool="correlate_evidence",
             invocation_id=invocation_id,
-            cmd=f"correlate_evidence(process_name={process_name!r})",
+            cmd=f"correlate_evidence(process_name={_safe_name})",
             returncode=_returncode,
             stdout_lines=0,
             stderr_excerpt="",

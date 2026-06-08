@@ -138,10 +138,10 @@ if results:
         flush=True,
     )
 
-# Exit non-zero only if CONTRADICTED claims — forces correction loop
-if total_contradicted > 0:
+# Exit non-zero if CONTRADICTED or UNGROUNDED claims — forces correction loop
+if total_contradicted > 0 or total_ungrounded > 0:
     print(
-        f"[grounding] {total_contradicted} CONTRADICTED claim(s) detected. "
+        f"[grounding] {total_contradicted} CONTRADICTED, {total_ungrounded} UNGROUNDED claim(s). "
         "Signalling correction needed.",
         flush=True,
     )
@@ -154,5 +154,5 @@ if attestation_warnings:
         flush=True,
     )
 
-print("[grounding] All claims grounded. ✓", flush=True)
+print("[grounding] All claims verified successfully. ✓", flush=True)
 sys.exit(0)

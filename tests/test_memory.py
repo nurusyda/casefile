@@ -273,7 +273,9 @@ class TestCaching:
         )
         # First run populates cache
         first_result = parse_memory(str(memory_image), plugin="windows.pslist")
-        # Corrupt the cache — use _cache_path() to stay aligned with implementation
+        # Corrupt the cache — use _cache_path() to stay aligned with implementation.
+        # NOTE: importing a private helper creates coupling to internal details;
+        # if _cache_path is renamed, this test will need a corresponding update.
         from mcp_server.tools.memory import _cache_path
         sha_short = first_result["image_sha256"][:16]
         cache_file = _cache_path(sha_short, "windows.pslist")

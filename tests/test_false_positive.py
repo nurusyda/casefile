@@ -206,7 +206,8 @@ class TestCorrelateEvidenceBenign:
     present, the system returns CONFIRMED_HISTORICAL or weaker.
     """
 
-    def test_svchost_verdict_not_malicious(self, tmp_path, monkeypatch):
+    @patch("mcp_server.tools.correlation.audit_log")
+    def test_svchost_verdict_not_malicious(self, mock_audit_log, tmp_path, monkeypatch):
         """svchost.exe with clean amcache entries → non-CONFIRMED_RUNNING verdict."""
         monkeypatch.setenv("CASEFILE_EXAMINER", "test-fp")
         monkeypatch.delenv("CASEFILE_MEMORY_IMAGE", raising=False)
@@ -257,7 +258,8 @@ class TestCorrelateEvidenceBenign:
             f"Got: {result['verdict']} — reasoning: {result['verdict_reasoning']}"
         )
 
-    def test_explorer_verdict_not_malicious(self, tmp_path, monkeypatch):
+    @patch("mcp_server.tools.correlation.audit_log")
+    def test_explorer_verdict_not_malicious(self, mock_audit_log, tmp_path, monkeypatch):
         """explorer.exe with only MFT entry → INSTALLED_NEVER_RAN or NOT_FOUND."""
         monkeypatch.setenv("CASEFILE_EXAMINER", "test-fp")
         monkeypatch.delenv("CASEFILE_MEMORY_IMAGE", raising=False)
@@ -288,7 +290,8 @@ class TestCorrelateEvidenceBenign:
             f"Got: {result['verdict']}"
         )
 
-    def test_unknown_process_on_clean_corpus_is_not_found(self, tmp_path, monkeypatch):
+    @patch("mcp_server.tools.correlation.audit_log")
+    def test_unknown_process_on_clean_corpus_is_not_found(self, mock_audit_log, tmp_path, monkeypatch):
         """A process not in any clean fixture → NOT_FOUND verdict."""
         monkeypatch.setenv("CASEFILE_EXAMINER", "test-fp")
         monkeypatch.delenv("CASEFILE_MEMORY_IMAGE", raising=False)

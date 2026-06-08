@@ -252,6 +252,7 @@ def parse_hayabusa(
     # Resolve output path
     analysis_dir = _analysis_dir()
     csv_out = Path(output_path) if output_path else _default_output_path(analysis_dir)
+    _enforce_case_root(csv_out)
     csv_out.parent.mkdir(parents=True, exist_ok=True)
 
     stderr_excerpt = ""

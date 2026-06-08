@@ -25,7 +25,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from mcp_server.tools._shared import audit_log, PathConfinementError, _enforce_case_root
+from mcp_server.tools._shared import audit_log, run_tool, PathConfinementError, _enforce_case_root
 
 
 # ── Allowed plugins ─────────────────────────────────────────────────────────────
@@ -133,8 +133,12 @@ def _parse_volatility_text(stdout: str) -> list[dict[str, Any]]:
     Each row becomes a dict keyed by header column name.
     """
     lines = [ln for ln in stdout.splitlines() if ln.strip()]
-    # Skip Volatility framework banner lines
-    while lines and not lines[0].startswith(("PID", "Offset", "Process", "PPID", "ImageFileName")):
+    # Skip Volatility framework banner/header lines.
+    # Volatility3 emits: [Volatility banner], blank, header row (varies by plugin).
+    # Accept any tab-separated header that looks like column names.
+    while lines and "\t" not in lines[0] and not any(
+        lines[0].startswith(pfx) for pfx in ("PID", "Offset", "Process", "PPID", "ImageFileName")
+    ):
         lines.pop(0)
     if not lines:
         return []
@@ -284,15 +288,29 @@ def parse_memory(
             pass
 
     # ── Run Volatility ──
-    cmd = f"{VOL_BIN} -f {shlex.quote(str(image))} {plugin}"
+    cmd_line = [VOL_BIN, "-f", str(image), plugin]
+    cmd = shlex.join(cmd_line)
     try:
-        result = subprocess.run(
-            shlex.split(cmd),
-            capture_output=True,
-            text=True,
-            timeout=timeout_sec,
-            check=False,
+        result = run_tool(cmd, timeout=timeout_sec)
+    except RuntimeError as exc:
+        # run_tool raises RuntimeError on non-zero returncode — Volatility
+        # failures are handled with audit logging and MemoryToolError.
+        duration_ms = int((time.monotonic() - t_start) * 1000)
+        stderr_excerpt = str(exc)[:500]
+        audit_log(
+            tool="Volatility3",
+            invocation_id=invocation_id,
+            cmd=cmd,
+            returncode=1,
+            stdout_lines=0,
+            stderr_excerpt=stderr_excerpt,
+            parsed_record_count=0,
+            duration_ms=duration_ms,
+            extra={"plugin": plugin, "image_sha256": image_sha256},
         )
+        raise MemoryToolError(
+            f"Volatility failed: {stderr_excerpt}"
+        ) from exc
     except subprocess.TimeoutExpired as err:
         duration_ms = int((time.monotonic() - t_start) * 1000)
         audit_log(
@@ -323,24 +341,6 @@ def parse_memory(
                    "rejection_reason": "vol_binary_missing"},
         )
         raise MemoryToolError(f"Volatility binary not found at {VOL_BIN}: {err}") from err
-
-    if result.returncode != 0:
-        duration_ms = int((time.monotonic() - t_start) * 1000)
-        stderr_excerpt = (result.stderr or "")[:500]
-        audit_log(
-            tool="Volatility3",
-            invocation_id=invocation_id,
-            cmd=cmd,
-            returncode=result.returncode,
-            stdout_lines=result.stdout.count("\n") if result.stdout else 0,
-            stderr_excerpt=stderr_excerpt,
-            parsed_record_count=0,
-            duration_ms=duration_ms,
-            extra={"plugin": plugin, "image_sha256": image_sha256},
-        )
-        raise MemoryToolError(
-            f"Volatility exited {result.returncode}: {stderr_excerpt}"
-        )
 
     # ── Parse ──
     records = _parse_volatility_text(result.stdout)
