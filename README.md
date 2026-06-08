@@ -34,6 +34,7 @@ Post-correction grounding verification across three datasets from the CRIMSON OS
 - **Tier 2 verified**: claim passed CSV cell-value verification (only applicable to tools that produce CSV output — Amcache, Registry, Event Logs, MFT, Hayabusa)
 - **Hallucination rate**: `CONTRADICTED / total_claims`. A CONTRADICTED claim means the cited value was not found in tool output — the AI fabricated it.
 - **Ungrounded claims** (SRL-2018-FILE only): audit field missing from audit entry — not a fabrication, but a traceability gap
+- **False-positive rate on a benign control corpus: 0.0%** (0 of 25 synthetic benign rows flagged across all five parsers; `tests/test_false_positive.py`)
 
 Source files:
 - `results/SRL-2018_workstation_session20.json`

@@ -1,0 +1,6 @@
+HivePath,HiveType,Description,Category,KeyPath,ValueName,ValueData,ValueData2,ValueData3,Comment,Recursive,DeletedRecord,LastWriteTimestamp
+NTUSER.DAT,NTUser,Run key,run,Software\Microsoft\Windows\CurrentVersion\Run,SecurityHealth,C:\Windows\System32\SecurityHealthSystray.exe,,,Windows Defender Security Health,FALSE,FALSE,2024-06-01 08:00:00
+NTUSER.DAT,NTUser,Run key,run,Software\Microsoft\Windows\CurrentVersion\Run,OneDrive,C:\Program Files\Microsoft OneDrive\OneDrive.exe /background,,,Microsoft OneDrive,FALSE,FALSE,2024-06-01 08:00:00
+NTUSER.DAT,NTUser,UserAssist,userassist,Software\Microsoft\Windows\CurrentVersion\Explorer\UserAssist\{GUID}\Count,notepad.exe,RunCount: 15 | LastRun: 2024-06-07 14:30:00,,,Notepad usage,FALSE,FALSE,2024-06-07 14:30:00
+NTUSER.DAT,NTUser,UserAssist,userassist,Software\Microsoft\Windows\CurrentVersion\Explorer\UserAssist\{GUID}\Count,explorer.exe,RunCount: 320 | LastRun: 2024-06-08 09:55:00,,,Explorer usage,FALSE,FALSE,2024-06-08 09:55:00
+NTUSER.DAT,NTUser,UserAssist,userassist,Software\Microsoft\Windows\CurrentVersion\Explorer\UserAssist\{GUID}\Count,MicrosoftEdge.exe,RunCount: 42 | LastRun: 2024-06-08 07:00:00,,,Edge browser usage,FALSE,FALSE,2024-06-08 07:00:00

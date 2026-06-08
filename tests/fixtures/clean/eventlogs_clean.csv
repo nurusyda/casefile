@@ -1,0 +1,6 @@
+Channel,Computer,EventId,TimeCreated,UserId,UserName,MapDescription,PayloadData1,PayloadData2,PayloadData3,PayloadData4,PayloadData5,PayloadData6,ExecutableInfo,RemoteHost,Keywords,RecordNumber,SourceFile
+Security,WIN-CLEAN,4624,2024-06-08 08:00:00,S-1-5-18,SYSTEM,Logon success,LogonType: 5,SubjectUserName: SYSTEM,TargetUserName: SYSTEM,,,,,,,1001,Security.evtx
+Security,WIN-CLEAN,4624,2024-06-08 08:15:00,S-1-5-21-123456,jdoe,Logon success,LogonType: 2,SubjectUserName: jdoe,TargetUserName: jdoe,,,,,,,1002,Security.evtx
+Security,WIN-CLEAN,4688,2024-06-08 09:30:00,S-1-5-21-123456,jdoe,A new process has been created,ProcessName: notepad.exe,CommandLine: notepad.exe document.txt,,,,,,,,1003,Security.evtx
+Security,WIN-CLEAN,4624,2024-06-08 12:00:00,S-1-5-18,LOCAL SERVICE,Logon success,LogonType: 5,SubjectUserName: LOCAL SERVICE,TargetUserName: LOCAL SERVICE,,,,,,,1004,Security.evtx
+Security,WIN-CLEAN,4688,2024-06-08 13:00:00,S-1-5-21-123456,jdoe,A new process has been created,ProcessName: explorer.exe,CommandLine: C:\Windows\explorer.exe,,,,,,,,1005,Security.evtx

@@ -1,0 +1,6 @@
+Name,FullPath,SHA1,FileKeyLastWriteTimestamp,LinkDate,Size,Publisher,ProductName,FileDescription,ProgramId,FileId,Language
+csrss.exe,C:\Windows\System32\csrss.exe,0300c7833bfba831b67f9291097655cb162263fd,2024-06-01 08:00:00,2024-06-01 08:00:00,45056,Microsoft Corporation,Microsoft Windows Operating System,Client Server Runtime Process,{A001},,
+svchost.exe,C:\Windows\System32\svchost.exe,deadbeef1234567890abcdef1234567890abcdef12,2024-06-01 08:00:00,2024-06-01 08:00:00,61440,Microsoft Corporation,Microsoft Windows Operating System,Host Process for Windows Services,{A002},,
+explorer.exe,C:\Windows\explorer.exe,abcdef1234567890deadbeef1234567890abcdef12,2024-06-01 08:00:00,2024-06-01 08:00:00,3723264,Microsoft Corporation,Microsoft Windows Operating System,Windows Explorer,{A003},,
+notepad.exe,C:\Windows\System32\notepad.exe,aabbcc1122334455667788990011223344556677,2024-06-02 09:30:00,2024-06-02 09:30:00,245760,Microsoft Corporation,Microsoft Windows Operating System,Notepad,{A004},,
+winlogon.exe,C:\Windows\System32\winlogon.exe,bbccdd22334455667788990011223344556677aabb,2024-06-01 08:00:00,2024-06-01 08:00:00,765952,Microsoft Corporation,Microsoft Windows Operating System,Windows Logon Application,{A005},,

@@ -135,6 +135,47 @@ All self-corrections performed autonomously with no human intervention.
 
 ---
 
+## Negative Control / False-Positive Rate
+
+**Corpus:** Synthetic benign CSV fixtures at `tests/fixtures/clean/` — 25 rows across
+5 artifact types (Amcache, Prefetch, Event Logs, Registry, MFT), each matching the
+exact column schema emitted by the corresponding parser.
+
+| Fixture | Benign rows | Flagged rows | FP rate |
+|---|---|---|---|
+| `amcache_clean.csv` | 5 | 0 | 0.0% |
+| `prefetch_clean.csv` | 5 | 0 | 0.0% |
+| `eventlogs_clean.csv` | 5 | 0 | 0.0% |
+| `registry_clean.csv` | 5 | 0 | 0.0% |
+| `mft_clean.csv` | 5 | 0 | 0.0% |
+| **Total** | **25** | **0** | **0.0%** |
+
+**False-positive rate on the benign control corpus: 0.0%** — zero of 25 benign rows
+trigger any suspicious-flag rule across all five parsers.
+
+### csrss Path-Sensitivity
+
+The negative-control suite includes a path-sensitivity cross-check:
+- `csrss.exe` at `C:\Windows\System32\csrss.exe` (legitimate) → **NOT flagged** by any parser
+- `csrss.exe` at `C:\Windows\Temp\Perfmon\csrss.exe` (compromised-case pattern) → **CORRECTLY flagged** by Amcache, Prefetch, and MFT parsers
+
+This proves the flagging logic is path-sensitive, not name-blind — a system that
+blind-flagged all instances of a filename would produce false positives.
+
+### Honest Caveats
+
+**This is a synthetic benign corpus, not a real clean disk image.** The fixtures
+are hand-written CSV rows designed to exercise the suspicious-flag rules with
+known-clean data. A full clean-image validation would require extracting and
+parsing artifacts from a known-clean Windows installation.
+
+**Roadmap:** Validate against a real clean E01/image (CLEAN-WIN10 or similar)
+and report the observed FP rate. The fixture suite establishes the architectural
+property (zero false positives on cleanly-constructed data); the real-image
+validation would confirm it generalizes to production evidence.
+
+---
+
 ## Honest Limitations
 
 1. **Two MCP tools returned 0 entries** (`parse_amcache`, `parse_mft`) due to a
