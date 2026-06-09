@@ -380,10 +380,10 @@ def parse_mft(
             are returned (recommended for initial triage).
 
         include_all:
-            If True, returns all parsed entries (may be very large).
+            If True, returns all parsed entries.
             If False (default), returns only suspicious + timestomped entries
             unless filename_filter is provided, in which case returns filtered set.
-            Cap at 500 entries regardless.
+            Output capped at 500 entries regardless.
 
     Returns a dict with:
         invocation_id       — UUID (correlate with audit/mcp.jsonl)

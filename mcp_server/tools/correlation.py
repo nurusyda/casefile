@@ -15,7 +15,6 @@ Verdict logic is deterministic (no LLM):
 
 from __future__ import annotations
 
-import ntpath
 import os
 import sys
 import time
@@ -26,11 +25,13 @@ from typing import Any
 
 from pathlib import Path
 
-from mcp_server.tools._shared import audit_log, PathConfinementError, _enforce_case_root
+from mcp_server.tools._shared import audit_log, PathConfinementError, MemoryImageNotFoundError, _enforce_case_root, _discover_memory_image
 from mcp_server.tools.amcache import parse_amcache
 from mcp_server.tools.prefetch import parse_prefetch
 from mcp_server.tools.memory import parse_memory
-from mcp_server.tools.mft import parse_mft
+from mcp_server.tools.mft_safe import parse_mft
+from mcp_server.tools._shared import canonical_dir
+from mcp_server.tools.timeline_contradiction import detect_timeline_contradictions
 
 
 # --------------------------------------------------------------------------- #
@@ -102,6 +103,7 @@ class SourceResult:
     invocation_id: str = ""
     details: dict[str, Any] = field(default_factory=dict)
     error: str | None = None
+    _raw_result: dict[str, Any] = field(default_factory=dict, repr=False)
 
     def to_dict(self) -> dict[str, Any]:
         """Serialise for the return schema."""
@@ -244,6 +246,7 @@ def _call_parse_amcache(
                 present=False,
                 invocation_id=result.get("invocation_id", ""),
                 error=str(result["error"]),
+                _raw_result=result,
             )
 
         target = process_name.lower()
@@ -258,12 +261,14 @@ def _call_parse_amcache(
                         "full_path":     entry.get("full_path", ""),
                         "first_run_utc": entry.get("first_run_utc", ""),
                     },
+                    _raw_result=result,
                 )
 
         return SourceResult(
             source="amcache",
             present=False,
             invocation_id=result.get("invocation_id", ""),
+            _raw_result=result,
         )
     except Exception as exc:  # noqa: BLE001
         return SourceResult(source="amcache", present=False, error=str(exc))
@@ -293,6 +298,7 @@ def _call_parse_prefetch(
                 present=False,
                 invocation_id=result.get("invocation_id", ""),
                 error=str(result["error"]),
+                _raw_result=result,
             )
 
         target = process_name.lower()
@@ -308,23 +314,17 @@ def _call_parse_prefetch(
                         "run_count":       entry.get("run_count", 0),
                         "source_file":     entry.get("source_file", ""),
                     },
+                    _raw_result=result,
                 )
 
         return SourceResult(
             source="prefetch",
             present=False,
             invocation_id=result.get("invocation_id", ""),
+            _raw_result=result,
         )
     except Exception as exc:  # noqa: BLE001
         return SourceResult(source="prefetch", present=False, error=str(exc))
-
-
-def _require_within_case_root(path: Path) -> None:
-    """Raise CorrelationToolError if path escapes CASEFILE_CASE_ROOT (when set).
-
-    Delegates to _enforce_case_root — single implementation of confinement check.
-    """
-    _enforce_case_root(path)
 
 
 def _call_parse_memory(
@@ -345,39 +345,19 @@ def _call_parse_memory(
     returned as SourceResult with present=False and error set).
     """
     try:
-        # Memory image resolution -- explicit env var takes priority over glob.
-        # Set CASEFILE_MEMORY_IMAGE to the absolute path of the .img file so
-        # ralph.sh can point to the real image without relying on parent-dir layout.
+        # Memory image resolution — delegated to shared _discover_memory_image
+        # which handles CASEFILE_MEMORY_IMAGE env var and parent-directory glob.
         case_path = _resolve_case_dir(case_dir)
-        explicit_image = os.environ.get('CASEFILE_MEMORY_IMAGE')
-        if explicit_image:
-            image_file = Path(os.path.expanduser(explicit_image)).resolve()
-            _require_within_case_root(image_file)
-            if not image_file.is_file():
-                return SourceResult(
-                    source='memory',
-                    present=False,
-                    error=f"Memory image not found or not a regular file: {image_file}",
-                )
-            image_path = str(image_file)
-        else:
-            # Fallback: glob parent directory (SRL-2018 layout)
-            img_search_dir = case_path.parent
-            _require_within_case_root(img_search_dir)
-            _img_exts = ("img", "mem", "vmem", "raw", "dmp", "001")
-            images: list[Path] = []
-            for _ext in _img_exts:
-                images = sorted(
-                    p for p in img_search_dir.iterdir()
-                    if p.is_file() and p.suffix.lower() == f".{_ext}"
-                )
-                if images:
-                    break
-            if not images:
-                return SourceResult(source='memory', present=False)
-            image_file = images[0].resolve()
-            _require_within_case_root(image_file)
-            image_path = str(image_file)
+        try:
+            image_file = _discover_memory_image(case_path)
+        except MemoryImageNotFoundError as exc:
+            return SourceResult(
+                source='memory', present=False,
+                error=f"Memory image misconfigured: {exc}"
+            )
+        if image_file is None:
+            return SourceResult(source='memory', present=False)
+        image_path = str(image_file)
         result = parse_memory(image_path, plugin="windows.pslist")
 
         if result.get("error"):
@@ -386,6 +366,7 @@ def _call_parse_memory(
                 present=False,
                 invocation_id=result.get("invocation_id", ""),
                 error=str(result["error"]),
+                _raw_result=result,
             )
 
         target = process_name.lower()
@@ -406,12 +387,14 @@ def _call_parse_memory(
                         "ppid":           str(record.get("PPID", "")),
                         "image_filename": record.get("ImageFileName", ""),
                     },
+                    _raw_result=result,
                 )
 
         return SourceResult(
             source="memory",
             present=False,
             invocation_id=result.get("invocation_id", ""),
+            _raw_result=result,
         )
     except Exception as exc:  # noqa: BLE001
         return SourceResult(source="memory", present=False, error=str(exc))
@@ -441,27 +424,59 @@ def _call_parse_mft(
                 present=False,
                 invocation_id=result.get("invocation_id", ""),
                 error=str(result["error"]),
+                _raw_result=result,
             )
 
         target = process_name.lower()
         for entry in result.get("entries", []):
-            if entry.get("FileName", "").lower() == target:
+            # parse_mft() normalises keys: FileName→filename, InUse→is_deleted,
+            # Created0x10→si_created_utc, and constructs full_path.
+            # Check both raw (FileName) and normalised (filename) key names
+            # so that both real parse_mft output and mocked test data work.
+            entry_name = (
+                entry.get("filename", "")
+                or entry.get("FileName", "")
+            ).lower()
+            if entry_name == target:
+                # Resolve full_path: use normalised key first, then
+                # construct from ParentPath+FileName (raw keys) or
+                # parent_path+filename (normalised keys).
+                _full_path = entry.get("full_path", "")
+                if not _full_path:
+                    _parent = entry.get("parent_path", "") or entry.get("ParentPath", "")
+                    _fname = entry.get("filename", "") or entry.get("FileName", "")
+                    if _parent and _fname:
+                        _full_path = _parent.rstrip("\\/") + "\\" + _fname
+                # Resolve SI/FN timestamps: normalised keys first, raw CSV
+                # column names as fallback.
+                _si_utc = entry.get("si_created_utc", "") or entry.get("Created0x10", "")
+                _fn_utc = entry.get("fn_created_utc", "") or entry.get("Created0x30", "")
+                # Resolve is_deleted: normalised key first, InUse as fallback
+                # (InUse=="true" → not deleted; InUse missing/"false" → deleted).
+                _is_del = entry.get("is_deleted")
+                if _is_del is None:
+                    _inuse = entry.get("InUse", "true")
+                    _is_del = str(_inuse).lower() != "true"
+
                 return SourceResult(
                     source="mft",
                     present=True,
                     invocation_id=result.get("invocation_id", ""),
                     details={
-                        "file_path":      entry.get("ParentPath", ""),
-                        "si_created_utc": entry.get("Created0x10", ""),
-                        "fn_created_utc": entry.get("Created0x30", ""),
-                        "is_deleted":     str(entry.get("InUse", "true")).lower() == "false",
+                        "file_path":      _full_path,
+                        "full_path":      _full_path,
+                        "si_created_utc": _si_utc,
+                        "fn_created_utc": _fn_utc,
+                        "is_deleted":     _is_del,
                     },
+                    _raw_result=result,
                 )
 
         return SourceResult(
             source="mft",
             present=False,
             invocation_id=result.get("invocation_id", ""),
+            _raw_result=result,
         )
     except Exception as exc:  # noqa: BLE001
         return SourceResult(source="mft", present=False, error=str(exc))
@@ -528,14 +543,13 @@ def detect_contradictions(
         })
 
     # 3. Amcache path vs MFT path mismatch -> DLL sideloading / binary replacement
-    # MFT "file_path" holds the full file path — extract its parent directory.
-    # Amcache "full_path" is the full file path — extract its parent directory.
-    # Compare directory-to-directory.
+    # Use canonical_dir to strip drive letters / device prefixes before comparing
+    # so that c:\windows\... and \windows\... are treated as the same directory.
     ac_full = (amcache.details.get("full_path") or amcache.details.get("path", "")).lower() if amcache.present and amcache.details else ""
-    mft_full = (mft.details.get("file_path") or "").lower() if mft.present and mft.details else ""
-    ac_parent = ntpath.dirname(ac_full).rstrip("\\").lower() if ac_full else ""
-    mft_parent = ntpath.dirname(mft_full).rstrip("\\").lower() if mft_full else ""
-    if ac_parent and mft_parent and ac_parent != mft_parent:
+    mft_full = (mft.details.get("full_path") or "").lower() if mft.present and mft.details else ""
+    ac_dir = canonical_dir(ac_full) if ac_full else ""
+    mft_dir = canonical_dir(mft_full) if mft_full else ""
+    if ac_dir and mft_dir and ac_dir != mft_dir:
         contradictions.append({
             "name": "path_mismatch_amcache_mft",
             "sources": ["amcache", "mft"],
@@ -615,6 +629,20 @@ def correlate_evidence(
             for sr in (amcache, prefetch, memory, mft)
             if sr.present and sr.invocation_id
         ]
+        # --- Filter timeline contradictions to this process ----------------
+        _all_tcs = detect_timeline_contradictions(
+            memory_pslist=memory._raw_result.get("records", []) if not memory.error else [],
+            prefetch_entries=prefetch._raw_result.get("entries", []) if not prefetch.error else [],
+            amcache_entries=amcache._raw_result.get("entries", []) if not amcache.error else [],
+            mft_entries=mft._raw_result.get("entries", []) if not mft.error else [],
+        )
+        _tc_for_process = [
+            c for c in _all_tcs
+            if (c.get("process_name") or "").lower() == process_name.lower()
+        ]
+        # Surface parser errors that caused empty _raw_result slices —
+        # silent omission could hide anti-forensics evidence.
+        _entry_keys = {"memory": "records", "amcache": "entries", "prefetch": "entries", "mft": "entries"}
         # --- Build return schema --------------------------------------------
         result: dict[str, Any] = {
             "process_name": process_name,
@@ -625,6 +653,12 @@ def correlate_evidence(
             "verdict": verdict,
             "verdict_reasoning": verdict_reasoning,
             "contradictions": detect_contradictions(amcache, prefetch, memory, mft),
+            "timeline_contradictions": _tc_for_process,
+            "tc_data_gaps": [
+                f"{sr.source}: {sr.error}"
+                for sr in (amcache, prefetch, memory, mft)
+                if sr.error and not sr._raw_result.get(_entry_keys.get(sr.source, "entries"))
+            ] or None,
             "confidence": _VERDICT_CONFIDENCE[verdict],
             "supporting_invocation_ids": supporting_invocation_ids,
             "invocation_id": invocation_id,

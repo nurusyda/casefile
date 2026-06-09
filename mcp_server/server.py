@@ -14,13 +14,90 @@ import inspect
 import os
 from functools import wraps
 from pathlib import Path
+from typing import Any
+
+# ── GAP-1 closure: network import startup check ────────────────────────────
+# Static AST check — verifies at import time that no tool module contains
+# blocked network imports (socket, urllib, requests, etc.).  This makes the
+# "no network egress" claim architectural rather than environment-dependent.
+# Dynamic importlib.import_module() calls are not caught; the OS-level sandbox
+# remains the runtime backstop for those.
+import ast as _ast
+from pathlib import Path as _Path
+
+_BLOCKED_IMPORTS: frozenset[str] = frozenset({
+    "socket",
+    "urllib",
+    "urllib2",
+    "urllib3",
+    "requests",
+    "httpx",
+    "http.client",
+    "aiohttp",
+    "websockets",
+    "paramiko",
+    "ftplib",
+    "smtplib",
+    "imaplib",
+})
+
+# Submodules of blocked top-level packages that are safe (no network capability).
+# e.g. urllib.parse is a pure URL parser — blocking it is a false positive.
+_ALLOWED_IMPORTS: frozenset[str] = frozenset({
+    "urllib.parse",
+})
+
+
+def _check_no_network_imports(tools_dir: _Path) -> None:
+    """Parse every .py in mcp_server/tools/ and raise if a blocked network
+    import is found.
+
+    Uses AST parsing (not import execution) so it catches static imports
+    without executing tool code twice.  Dynamic imports (importlib.import_module
+    at runtime) are not caught — document this in SECURITY_MODEL.md GAP-1.
+
+    Raises:
+        RuntimeError: If any tool module contains a blocked import statement.
+    """
+    violations: list[str] = []
+    for py_file in sorted(tools_dir.glob("*.py")):
+        try:
+            tree = _ast.parse(py_file.read_text(encoding="utf-8"))
+        except SyntaxError:
+            continue
+        for node in _ast.walk(tree):
+            if isinstance(node, (_ast.Import, _ast.ImportFrom)):
+                if isinstance(node, _ast.Import):
+                    names = [alias.name for alias in node.names]
+                elif isinstance(node, _ast.ImportFrom):
+                    names = [node.module or ""] + [alias.name for alias in node.names]
+                for name in names:
+                    if name in _ALLOWED_IMPORTS:
+                        continue
+                    top = name.split(".")[0]
+                    if top in _BLOCKED_IMPORTS or name in _BLOCKED_IMPORTS:
+                        violations.append(f"{py_file.name}: imports '{name}'")
+
+    if violations:
+        raise RuntimeError(
+            "SECURITY VIOLATION — network import(s) found in tool modules:\n"
+            + "\n".join(f"  {v}" for v in violations)
+            + "\nCaseFile cannot start. Remove these imports."
+        )
+
+
+# Run at server startup — before mcp.run()
+_tools_dir = _Path(__file__).parent / "tools"
+_check_no_network_imports(_tools_dir)
+
+# ── End GAP-1 ─────────────────────────────────────────────────────────────
 
 from fastmcp import FastMCP
 from mcp_server.tools.amcache import parse_amcache
 from mcp_server.tools.prefetch import parse_prefetch
 from mcp_server.tools.event_logs import parse_event_logs
 from mcp_server.tools.registry import parse_registry
-from mcp_server.tools.mft import parse_mft
+from mcp_server.tools.mft_safe import parse_mft
 from mcp_server.tools.accuracy import generate_accuracy_report
 from mcp_server.tools.memory import parse_memory
 from mcp_server.tools.correlation import correlate_evidence, detect_host_type
@@ -30,8 +107,10 @@ from mcp_server.tools.hayabusa import parse_hayabusa
 from mcp_server.tools.export_findings import export_findings
 from mcp_server.tools.lnk import parse_lnk
 from mcp_server.tools.jumplists import parse_jumplists
+from mcp_server.tools.usn import parse_usn_journal
 from mcp_server.tools.vol_pslist import parse_volatility_pslist
 from mcp_server.tools.vol_netscan import parse_volatility_netscan
+from mcp_server.tools.timeline_check import check_timeline_contradictions
 from mcp_server.tools.findings import (
     record_finding,
     get_findings,
@@ -112,10 +191,11 @@ the same tool (e.g. parse_event_logs on Security vs System channels).
     amcache_path REQUIRED — path to Amcache.hve
     output_dir OPTIONAL — default: $CASEFILE_CASE_ROOT/analysis/amcache_out/
 
-- parse_mft(mft_path=..., output_dir=..., filename_filter=...)
+- parse_mft(mft_path=..., output_dir=..., filename_filter=..., max_parse_rows=...)
     mft_path REQUIRED — path to $MFT
     output_dir OPTIONAL — default: $CASEFILE_CASE_ROOT/analysis/mft_out/
     filename_filter OPTIONAL — list of filenames to filter for
+    max_parse_rows OPTIONAL — hard cap on entries read into memory (default 10 000)
 
 - parse_prefetch(prefetch_dir=..., output_dir=...)
     prefetch_dir REQUIRED — directory containing .pf files
@@ -153,30 +233,53 @@ with reasoning in the interpretation field.
 )
 
 # ── Register tools ────────────────────────────────────────────────────────────
-mcp.tool()(_with_default_output_dir(parse_amcache,    "amcache_out"))
-mcp.tool()(_with_default_output_dir(parse_prefetch,   "prefetch_csv"))
-mcp.tool()(_with_default_output_dir(parse_event_logs, "evtx_out"))
-mcp.tool()(_with_default_output_dir(parse_registry,   "registry_out"))
-mcp.tool()(_with_default_output_dir(parse_mft,        "mft_out"))
-# parse_memory uses an internal SHA256-based cache dir — no output_dir param;
-# wrapping it with _with_default_output_dir would raise TypeError.
-mcp.tool()(parse_memory)
+# ── Tool registration ──────────────────────────────────────────────────────
+# Single source-of-truth for both mcp.tool() registration and the GAP-2
+# startup check.  Adding a new tool here automatically includes it in the
+# BLOCKED_COMMANDS verification — no separate list to forget.
 
-mcp.tool()(record_finding)
-mcp.tool()(get_findings)
-mcp.tool()(record_timeline_event)
-mcp.tool()(generate_accuracy_report)
-mcp.tool()(correlate_evidence)
-mcp.tool()(detect_host_type)
-mcp.tool()(search_knowledge)
-mcp.tool()(get_knowledge_stats)
-mcp.tool()(parse_shellbags)
-mcp.tool()(parse_hayabusa)
-mcp.tool()(export_findings)
-mcp.tool()(parse_lnk)
-mcp.tool()(parse_jumplists)
-mcp.tool()(parse_volatility_pslist)
-mcp.tool()(parse_volatility_netscan)
+_TOOL_DEFS: list[tuple[Any, str | None]] = [
+    # (tool_fn, default_output_dir_subdir | None)
+    (parse_amcache,              "amcache_out"),
+    (parse_prefetch,             "prefetch_csv"),
+    (parse_event_logs,           "evtx_out"),
+    (parse_registry,             "registry_out"),
+    (parse_mft,                  "mft_out"),
+    (parse_memory,               None),  # uses internal SHA256 cache dir
+    (record_finding,             None),
+    (get_findings,               None),
+    (record_timeline_event,      None),
+    (generate_accuracy_report,   None),
+    (correlate_evidence,         None),
+    (detect_host_type,           None),
+    (search_knowledge,           None),
+    (get_knowledge_stats,        None),
+    (parse_shellbags,            None),
+    (parse_hayabusa,             None),
+    (export_findings,            None),
+    (parse_lnk,                  None),
+    (parse_jumplists,            None),
+    (parse_volatility_pslist,    None),
+    (parse_volatility_netscan,   None),
+    (parse_usn_journal,          None),
+    (check_timeline_contradictions, None),
+]
+
+for _tool_fn, _subdir in _TOOL_DEFS:
+    if _subdir is not None:
+        mcp.tool()(_with_default_output_dir(_tool_fn, _subdir))
+    else:
+        mcp.tool()(_tool_fn)
+
+# ── GAP-2 closure: enforce BLOCKED_COMMANDS at startup ────────────────────
+# Derives registered tool names from the same _TOOL_DEFS list used for
+# mcp.tool() registration above.  A new tool added to _TOOL_DEFS is
+# automatically included in the check — no separate list to maintain.
+from mcp_server.tools.findings import assert_blocked_commands_not_registered
+
+_registered_tools = [_fn.__name__ for _fn, _ in _TOOL_DEFS]
+assert_blocked_commands_not_registered(_registered_tools)
+# ── End GAP-2 ─────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
     mcp.run()

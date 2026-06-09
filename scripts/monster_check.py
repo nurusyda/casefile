@@ -161,7 +161,7 @@ def compile_check(mode: str) -> str:
 
 
 # --------------------------------------------------------------------------- #
-# Option A: full file content for modified files
+# Option A: full file content for modified files + their local dependencies
 # --------------------------------------------------------------------------- #
 def _secret_re() -> "re.Pattern":
     return re.compile(
@@ -173,17 +173,101 @@ def _secret_re() -> "re.Pattern":
     )
 
 
+def _discover_dependencies(changed_files: list[str]) -> list[str]:
+    """Scan changed files for local mcp_server imports and return those files too.
+
+    When a new tool imports from an existing parser (e.g. timeline_contradiction
+    imports from mft.py), the reviewer needs to see the parser to verify that
+    dict keys, function signatures, and return schemas actually match.  Without
+    this, the reviewer hallucinates key-name mismatches by pattern-matching raw
+    CSV column names found in docstrings.
+    """
+    _LOCAL_IMPORT = re.compile(
+        r"from\s+(mcp_server\.tools\.\w+)\s+import|"
+        r"import\s+(mcp_server\.tools\.\w+)",
+    )
+    deps: set[str] = set()
+    try:
+        repo_root = Path(
+            subprocess.run(
+                ["git", "rev-parse", "--show-toplevel"],
+                capture_output=True, text=True, check=True,
+            ).stdout.strip()
+        )
+    except (FileNotFoundError, subprocess.CalledProcessError):
+        return []  # no git, no dependency discovery
+    for f in changed_files:
+        fp = Path(f)
+        if not fp.exists() or not f.endswith(".py"):
+            continue
+        try:
+            content = fp.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        for m in _LOCAL_IMPORT.finditer(content):
+            mod_path = (m.group(1) or m.group(2)).replace(".", "/") + ".py"
+            candidate = repo_root / mod_path
+            if candidate.exists() and candidate.is_file():
+                deps.add(str(candidate.relative_to(repo_root)))
+    return sorted(deps - set(changed_files))
+
+
+def _extract_function_sigs(filepath: str) -> dict[str, str]:
+    """Extract public function signatures from a Python file.
+
+    Returns dict mapping function_name -> full signature string
+    (multi-line signatures collapsed to a single space-joined line).
+    Only includes functions that don't start with underscore.
+    """
+    try:
+        lines = Path(filepath).read_text(encoding="utf-8", errors="replace").splitlines()
+    except OSError:
+        return {}
+
+    sigs: dict[str, str] = {}
+    in_sig = False
+    sig_lines: list[str] = []
+    sig_name = ""
+
+    for line in lines:
+        stripped = line.strip()
+        if not in_sig:
+            m = re.match(r'^def\s+(\w+)\s*\(', stripped)
+            if m:
+                sig_name = m.group(1)
+                if sig_name.startswith("_"):
+                    continue
+                sig_lines = [stripped]
+                # Single-line: `def foo(x):` or `def foo(x) -> T:`
+                if stripped.endswith(":"):
+                    sigs[sig_name] = stripped
+                    sig_lines = []
+                else:
+                    in_sig = True
+        else:
+            sig_lines.append(stripped)
+            if stripped.endswith(":"):
+                sigs[sig_name] = " ".join(sig_lines)
+                sig_lines = []
+                in_sig = False
+
+    return sigs
+
+
 def full_file_context(mode: str, max_bytes_per_file: int = 40_000) -> str:
-    """Return full content of all modified files for LLM context."""
+    """Return full content of all modified files + their local dependencies."""
     changed = _changed_files(mode)
     if not changed:
         return ""
+    # Pull in parser/reference files that changed files import from
+    deps = _discover_dependencies(changed)
+    all_files = changed + deps
     _SECRET_RE = _secret_re()
     sections = [
         "FULL FILE CONTENT (use this to verify imports, function signatures, "
         "surrounding context  -  do not contradict what you see here):"
     ]
-    for f in changed:
+    for f in all_files:
         fp = Path(f)
         if not fp.exists():
             continue
@@ -197,6 +281,13 @@ def full_file_context(mode: str, max_bytes_per_file: int = 40_000) -> str:
             sections.append(f"\n### {f} ###\n{content}")
         except OSError as exc:
             sections.append(f"\n### {f} ### [unreadable: {exc}]")
+    if deps:
+        sections.insert(
+            1,
+            f"(auto-included {len(deps)} dependency file(s) "
+            f"so the reviewer can verify cross-file contracts: "
+            f"{', '.join(deps)})"
+        )
     return "\n".join(sections)
 
 
@@ -612,6 +703,21 @@ RULES
 - Every [SIMPLIFY] finding must include a concrete simpler version,
   not just a description of the problem.
 
+CROSS-FILE INFERENCE — preventing the #1 class of false positive:
+- You are reviewing a DIFF, not the full codebase. When a changed file
+  calls a function defined in a file that is NOT in the diff, you CANNOT
+  see its real parameter list.  Do NOT infer the signature from how other
+  call sites in the diff invoke it — they may omit optional kwargs.
+- If the VERIFIED context block includes function signatures from imported
+  modules, those ARE authoritative — use them.
+- If you cannot see the callee's definition and the verified context does
+  not include it, downgrade any parameter-mismatch finding from BLOCKER to
+  WARNING and add the note "(unable to verify — callee definition not
+  visible in diff; check the actual function signature before committing)."
+- This rule exists because the most common false positive this tool
+  produces is flagging `include_all=True` as an invalid kwarg when the
+  callee DOES accept it — the diff just doesn't show it.
+
 DIFF SHAPE  -  calibrate effort to the actual change:
 - A diff that is mostly file renames (R-status in the file list) with small
   content edits is a structural move. Focus on whether imports still resolve
@@ -728,18 +834,56 @@ def build_auto_context() -> str:
             for i, line in enumerate(text.splitlines(), 1)
             if rx.search(line)
         ]
+    # Tool registration — parse _TOOL_DEFS (single source of truth) instead
+    # of counting mcp.tool() call sites, since 22+ tools are registered in a
+    # 2-line loop.  The old heuristic counted 2-4 lines and missed the rest.
+    try:
+        server_text = Path(server_py).read_text(encoding="utf-8", errors="replace")
+    except OSError as exc:
+        facts.append(f"  [auto-context read failed: {server_py}: {exc}]")
+        server_text = ""
+    server_lines = server_text.splitlines()
+
+    # Extract function names from _TOOL_DEFS entries:  (func_name, ...)
+    _TOOL_DEFS_RE = re.compile(r"^\s*\((\w+),\s*(?:\"[^\"]*\"|None)")
+    tool_defs_names: list[str] = []
+    in_tool_defs = False
+    for line in server_lines:
+        if "_TOOL_DEFS" in line and "[" in line:
+            in_tool_defs = True
+            continue
+        if in_tool_defs:
+            if line.strip() in ("]", "],"):
+                break
+            m = _TOOL_DEFS_RE.match(line)
+            if m:
+                tool_defs_names.append(m.group(1))
+
+    if tool_defs_names:
+        facts.append(
+            f"MCP tools registered in {server_py}: "
+            f"{len(tool_defs_names)} tool(s) — parsed from _TOOL_DEFS"
+        )
+    else:
+        # Fallback: old heuristic for diffs that predate _TOOL_DEFS
         hits = find("mcp.tool", server_py)
         if hits:
-            facts.append(f"MCP tools registered in {server_py}: {len(hits)} tool(s)")
-        # Specific tools
-        try:
-            server_text = Path(server_py).read_text(encoding="utf-8", errors="replace")
-        except OSError as exc:
-            facts.append(f"  [auto-context read failed: {server_py}: {exc}]")
-            server_text = ""
-        server_lines = server_text.splitlines()
-        for tool in ["correlate_evidence", "parse_memory", "record_finding",
-                     "approve_finding"]:
+            facts.append(
+                f"MCP tools registered in {server_py}: "
+                f"{len(hits)} tool(s) [fallback count — _TOOL_DEFS not found]"
+            )
+
+    # Specific tools — check against _TOOL_DEFS names
+    for tool in ["correlate_evidence", "parse_memory", "record_finding",
+                 "approve_finding"]:
+        if tool in tool_defs_names:
+            facts.append(
+                f"  {tool}: registered in _TOOL_DEFS ({server_py})"
+            )
+        elif tool_defs_names:
+            facts.append(f"  {tool}: NOT registered in {server_py}")
+        else:
+            # Fallback: scan for decorator / mcp.tool()() patterns
             registered_at = [
                 i + 1
                 for i, line in enumerate(server_lines)
@@ -751,6 +895,7 @@ def build_auto_context() -> str:
                 facts.append(
                     f"  {tool}: registered at {server_py} line(s) "
                     + ", ".join(str(ln) for ln in registered_at)
+                    + " [fallback]"
                 )
             else:
                 facts.append(f"  {tool}: NOT registered in {server_py}")
@@ -799,6 +944,63 @@ def build_auto_context() -> str:
         if hits:
             _, sig_line = hits[0]
             facts.append(f"audit_log signature: {sig_line.strip()}")
+
+    # ── Imported-module function signatures ──────────────────────────────
+    # When a changed file imports from mcp_server.tools.*, extract the
+    # callee's function signature so DeepSeek can verify parameter names
+    # instead of guessing from call-site patterns.  This prevents the most
+    # common class of false positive: flagging a valid kwarg as invalid
+    # because no other caller in the diff uses it.
+    try:
+        _LOCAL_IMPORT_RX = re.compile(
+            r"from\s+(mcp_server\.tools\.\w+)\s+import|"
+            r"import\s+(mcp_server\.tools\.\w+)",
+        )
+        # Collect all modified Python files (staged + unstaged)
+        _mod_files: set[str] = set()
+        for _mode_args in (["--cached"], []):
+            _ns = subprocess.run(
+                ["git", "diff", *_mode_args, "--name-only"],
+                capture_output=True, text=True, check=False,
+            )
+            if _ns.returncode == 0:
+                for _f in _ns.stdout.splitlines():
+                    if _f.endswith(".py") and not any(
+                        seg in _f for seg in ("venv/", "__pycache__", "patch_")
+                    ):
+                        _mod_files.add(_f)
+        # Scan each modified file for local imports
+        _seen_sigs: set[str] = set()
+        for _f in sorted(_mod_files):
+            _fp = Path(_f)
+            if not _fp.exists():
+                continue
+            try:
+                _content = _fp.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                continue
+            for _m in _LOCAL_IMPORT_RX.finditer(_content):
+                _mod_path = (_m.group(1) or _m.group(2)).replace(".", "/") + ".py"
+                _candidate = Path(repo_root) / _mod_path
+                if not _candidate.exists():
+                    continue
+                _rel = str(_candidate.relative_to(repo_root))
+                if _rel in _seen_sigs:
+                    continue
+                _seen_sigs.add(_rel)
+                _sigs = _extract_function_sigs(str(_candidate))
+                if _sigs:
+                    _sig_lines = [
+                        f"  {name}: {sig}"
+                        for name, sig in sorted(_sigs.items())
+                    ]
+                    facts.append(
+                        f"Function signatures from {_rel} "
+                        f"(imported by changed files — use these to verify "
+                        f"kwarg names are real):\n" + "\n".join(_sig_lines)
+                    )
+    except Exception:
+        pass  # best-effort — must never block the review
 
     if not facts:
         return ""
@@ -916,12 +1118,13 @@ def main() -> None:
         help="Model id (default: deepseek-v4-pro).",
     )
     parser.add_argument(
-        "--max-diff-bytes", type=int, default=300_000,
-        help="Refuse to send diffs larger than this (default 300 KB).",
+        "--max-diff-bytes", type=int, default=800_000,
+        help="Refuse to send diffs larger than this (default 800 KB).",
     )
     parser.add_argument(
-        "--full-file-context", action="store_true",
-        help="Include full modified source files in the review payload (may transmit sensitive paths).",
+        "--diff-only", action="store_true",
+        help="Send ONLY the diff (no full files, no dependencies). "
+             "Default is to include full source files for accurate cross-file review.",
     )
     parser.add_argument(
         "--context", "-C", default="",
@@ -960,7 +1163,7 @@ def main() -> None:
     if "COMPILE ERROR" in compile_status:
         print(compile_status)
         die("Compile errors in modified .py files  -  fix before committing.")
-    file_contents = full_file_context(mode) if args.full_file_context else ""
+    file_contents = "" if args.diff_only else full_file_context(mode)
     combined_context = "\n".join(filter(None, [
         compile_status, auto_facts, file_contents, args.context or ""
     ]))

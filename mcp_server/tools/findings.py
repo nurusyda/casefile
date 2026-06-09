@@ -17,6 +17,47 @@ from mcp_server.tools.grounding import (
     validate_evidence_quotes,
 )
 
+# ── GAP-2 closure: BLOCKED_COMMANDS enforcement ────────────────────────────
+# Commands that must NEVER be registered as MCP tools.
+# Enforcement: assert_blocked_commands_not_registered() is called at startup
+# by server.py before the MCP server accepts any connections.
+BLOCKED_COMMANDS: frozenset[str] = frozenset({
+    "approve_finding",   # human-only gate — architectural exclusion
+    "rm",
+    "del",
+    "shred",
+    "wipe",
+    "format",
+    "dd",
+    "mkfs",
+    "fdisk",
+})
+
+
+def assert_blocked_commands_not_registered(registered_tool_names: list[str]) -> None:
+    """Raise RuntimeError if any BLOCKED_COMMANDS name appears in registered tools.
+
+    Call this from server.py BEFORE mcp.run() — makes the constraint
+    architectural (startup-time) rather than documentation-only.
+
+    Args:
+        registered_tool_names: List of tool names returned by mcp.list_tools()
+            or equivalent after all mcp.tool() registrations are complete.
+
+    Raises:
+        RuntimeError: If any blocked command is registered as a tool.
+
+    Security note: This check runs in the server process before accepting
+    any MCP connections.  It cannot be bypassed by prompt injection.
+    """
+    violations = BLOCKED_COMMANDS & set(registered_tool_names)
+    if violations:
+        raise RuntimeError(
+            f"SECURITY VIOLATION: Blocked command(s) registered as MCP tools: "
+            f"{sorted(violations)}. CaseFile cannot start. "
+            f"Remove these registrations from server.py."
+        )
+
 
 
 def _case_dir() -> Path:

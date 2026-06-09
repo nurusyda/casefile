@@ -8,6 +8,7 @@ run_tool()    — Runs a subprocess, captures stdout/stderr, logs the invocation
 """
 
 import json
+import ntpath
 import os
 import subprocess
 import shlex
@@ -22,6 +23,57 @@ EntryKeyFn = Callable[[dict[str, Any]], Any]
 
 class PathConfinementError(ValueError):
     """Raised when a path escapes CASEFILE_CASE_ROOT."""
+
+
+class MemoryImageNotFoundError(FileNotFoundError):
+    """Raised when CASEFILE_MEMORY_IMAGE is set but the file does not exist.
+
+    Distinct from the "no image configured" case so callers can differentiate
+    between "not set" (benign) and "set but invalid" (misconfiguration).
+    """
+
+
+def _discover_memory_image(case_path: Path) -> Optional[Path]:
+    """Discover the memory image file for a case directory.
+
+    Resolution order:
+      1. ``CASEFILE_MEMORY_IMAGE`` env var — absolute path, confined under
+         ``CASEFILE_CASE_ROOT`` when set.
+      2. First sorted ``*.img`` / ``*.mem`` / ``*.vmem`` / ``*.raw`` / ``*.dmp`` /
+         ``*.001`` (case-insensitive) found in ``case_path.parent``.
+
+    Returns:
+        Resolved ``Path`` to the memory image, or ``None`` if no image found.
+
+    Raises:
+        PathConfinementError: if the resolved path escapes CASEFILE_CASE_ROOT.
+    """
+    explicit_image = os.environ.get("CASEFILE_MEMORY_IMAGE")
+    if explicit_image:
+        image_path = Path(os.path.expanduser(explicit_image)).resolve()
+        _enforce_case_root(image_path)
+        if not image_path.is_file():
+            raise MemoryImageNotFoundError(
+                f"CASEFILE_MEMORY_IMAGE is set but the file does not exist: "
+                f"{image_path}"
+            )
+        return image_path
+
+    # Auto-discover from parent directory
+    _img_exts = (".img", ".mem", ".vmem", ".raw", ".dmp", ".001")
+    img_search_dir = case_path.parent
+    try:
+        for ext in _img_exts:
+            images = sorted(
+                p for p in img_search_dir.iterdir()
+                if p.is_file() and p.suffix.lower() == ext
+            )
+            if images:
+                _enforce_case_root(images[0])
+                return images[0]
+    except (PermissionError, OSError):
+        pass
+    return None
 
 
 def _enforce_case_root(path: Path) -> None:
@@ -42,6 +94,32 @@ def _enforce_case_root(path: Path) -> None:
         path.resolve().relative_to(root)
     except ValueError as exc:
         raise PathConfinementError(f"path escapes case root: {path}") from exc
+
+def canonical_dir(path: str) -> str:
+    """Normalise a Windows path for directory comparison.
+
+    Strips drive letters (``C:``), device prefixes
+    (``\\\\Device\\\\HarddiskVolume\\\\d+\\\\``), and leading separators so that
+    Amcache, Prefetch, and MFT paths are comparable.
+
+        Amcache:   c:\\\\windows\\\\system32\\\\csrss.exe  → windows\\\\system32
+        Prefetch:  \\\\Device\\\\HarddiskVolume1\\\\Windows\\\\System32\\\\csrss.exe
+                   → windows\\\\system32
+        MFT:       \\\\windows\\\\system32\\\\csrss.exe    → windows\\\\system32
+    """
+    if not path:
+        return ""
+    p = path.lower().replace("/", "\\")
+    # Strip \\\\Device\\\\HarddiskVolume\\\\d+\\\\
+    if p.startswith("\\device\\harddiskvolume"):
+        parts = p.split("\\", 3)
+        p = parts[3] if len(parts) > 3 else p
+    # Strip drive letter
+    if len(p) >= 2 and p[1] == ":":
+        p = p[2:]
+    # Extract parent directory and normalise
+    return ntpath.dirname(p).rstrip("\\").lstrip("\\")
+
 
 # Audit log location — follows CASEFILE_CASE_DIR if set, else repo root.
 # This allows ralph.sh to direct audit output to the active case directory.
