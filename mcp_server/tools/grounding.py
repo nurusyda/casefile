@@ -64,6 +64,9 @@ _TOOL_NAME_ALIASES: dict[str, str] = {
     "parse_mft":        "MFTECmd",
     "Volatility3-windows.pslist":  "Volatility3",
     "Volatility3-windows.netscan": "Volatility3",
+    "mcp__casefile__detect_host_type": "detect_host_type",
+    "mcp__casefile__correlate_evidence": "correlate_evidence",
+    "mcp__casefile__provenance_tag": "provenance_tag",
 }
 
 
