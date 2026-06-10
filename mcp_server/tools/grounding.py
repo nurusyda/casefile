@@ -62,6 +62,8 @@ _TOOL_NAME_ALIASES: dict[str, str] = {
     "parse_registry":   "RECmd",
     "parse_amcache":    "AmcacheParser",
     "parse_mft":        "MFTECmd",
+    "Volatility3-windows.pslist":  "Volatility3",
+    "Volatility3-windows.netscan": "Volatility3",
 }
 
 
