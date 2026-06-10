@@ -1,0 +1,9 @@
+{
+  "case_id": "SRL-2018-WKSTN",
+  "total_claims": 10,
+  "grounded": 6,
+  "ungrounded": 4,
+  "contradicted": 0,
+  "hallucination_rate": 0.0,
+  "tier2_verified": 3
+}

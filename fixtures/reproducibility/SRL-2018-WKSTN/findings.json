@@ -1,0 +1,229 @@
+[
+  {
+    "id": "F-sansforensics-001",
+    "status": "DRAFT",
+    "title": "subject_srv.exe (PID 12528) present in memory at acquisition \u2014 active network listener on TCP 3262",
+    "observation": "windows.netscan on /root/cases/SRL-2018-WKSTN/base-wkstn-01-memory.img returned 148 socket records. Multiple entries show Owner='subject_srv.ex' (Volatility3 truncates ImageFileName to 14 chars), PID=12528: TCPv4/TCPv6 LISTENING on local port 3262 (Created 2018-09-06 19:37:07 UTC), plus UDPv4/UDPv6 ephemeral sockets (Created 2018-09-06 19:37:06, 19:38:09, 19:38:10 UTC). All other process-tree plugins (windows.pslist, windows.pstree, windows.cmdline, windows.dlllist, windows.malfind) returned 0 records due to a PdbSignatureScanner kernel-symbol resolution failure on this image (instant ~530ms returns, no error string). correlate_evidence('subject_srv.exe', '/root/cases/SRL-2018-WKSTN/analysis') returned verdict='ERROR' because (a) memory-side pslist returned no records and (b) prefetch parsing failed \u2014 pyscca/libscca not installed.",
+    "interpretation": "Per CLAUDE.md confidence mapping, CONFIRMED may only be asserted when correlate_evidence() returns CONFIRMED_RUNNING/CONFIRMED_HISTORICAL/MEMORY_ONLY. Here correlate_evidence returned ERROR (tooling failure, not a negative finding), so this is recorded as INFERRED. The underlying netscan record is itself direct Volatility3 tool output (not a behavioral inference) and strongly supports that subject_srv.exe (PID 12528) was running and actively listening on TCP 3262 at the moment of memory acquisition (2018-09-06, ~19:37-19:38 UTC). T08 (correlate_evidence CONFIRMED_RUNNING) and T09 (pslist returns subject_srv.exe with PID/PPID) are NOT satisfied this session due to the symbol-resolution and pyscca blockers documented below.",
+    "confidence": "INFERRED",
+    "artifact_source": "/root/cases/SRL-2018-WKSTN/base-wkstn-01-memory.img",
+    "supporting_tool": "parse_memory",
+    "mitre_technique": "T1071",
+    "mitre_warning": null,
+    "examiner": "sansforensics",
+    "created_at": "2026-06-10T23:09:48.329785+00:00",
+    "approved_at": null,
+    "approved_by": null,
+    "evidence_quotes": [
+      {
+        "tool": "Volatility3",
+        "claim": "subject_srv.exe (PID 12528) listening on TCP 3262 at memory acquisition",
+        "invocation_id": "mem-75c13aff",
+        "exact_value": "subject_srv.ex",
+        "audit_field": "records[*].Owner",
+        "audit_expected": "subject_srv.ex"
+      }
+    ],
+    "claim_confidence": "MEDIUM"
+  },
+  {
+    "id": "F-sansforensics-002",
+    "status": "DRAFT",
+    "title": "Established inbound connection 172.16.5.50:56722 -> 172.16.7.11:3262 (subject_srv.exe's listening port)",
+    "observation": "windows.netscan record at offset 0x8702b325f810 shows Proto=TCPv4, LocalAddr=172.16.7.11, LocalPort=3262, ForeignAddr=172.16.5.50, ForeignPort=56722, State=ESTABLISHED, PID/Owner not resolved ('-'). Local port 3262 matches the LISTENING socket owned by subject_srv.ex (PID 12528, see prior finding).",
+    "interpretation": "HYPOTHESIS: The ESTABLISHED session on port 3262 likely belongs to subject_srv.exe given the matching local port of its LISTENING socket, suggesting an active inbound connection from host 172.16.5.50 to the malicious/subject service at the time of acquisition. PID attribution for this socket could not be confirmed (Owner/PID fields are '-' in netscan output, and pslist/pstree are unavailable due to the symbol-resolution failure noted above). This is unconfirmed and requires further investigation (e.g., re-running with corrected ISF symbols to attribute the socket to a PID, and checking 172.16.5.50 for corroborating outbound connection records).",
+    "confidence": "INFERRED",
+    "artifact_source": "/root/cases/SRL-2018-WKSTN/base-wkstn-01-memory.img",
+    "supporting_tool": "parse_memory",
+    "mitre_technique": "T1021",
+    "mitre_warning": null,
+    "examiner": "sansforensics",
+    "created_at": "2026-06-10T23:09:55.294324+00:00",
+    "approved_at": null,
+    "approved_by": null,
+    "evidence_quotes": [
+      {
+        "tool": "Volatility3",
+        "claim": "ESTABLISHED TCP connection from 172.16.5.50:56722 to 172.16.7.11:3262",
+        "invocation_id": "mem-75c13aff",
+        "exact_value": "172.16.5.50",
+        "audit_field": "records[*].ForeignAddr",
+        "audit_expected": "172.16.5.50"
+      }
+    ],
+    "claim_confidence": "MEDIUM"
+  },
+  {
+    "id": "F-sansforensics-003",
+    "status": "DRAFT",
+    "title": "Repeated outbound connections from 172.16.7.11 to 172.16.4.10:8080 (possible C2/proxy beaconing)",
+    "observation": "windows.netscan returned 6 distinct CLOSED TCPv4 connection records from LocalAddr=172.16.7.11 (this host) to ForeignAddr=172.16.4.10, ForeignPort=8080, on local ports 59511, 59703, 60001, 60085, 60117, 60167. PID/Owner are unresolved ('-') for all CLOSED entries.",
+    "interpretation": "HYPOTHESIS: Repeated short-lived connections to a non-standard HTTP-alt port (8080) on 172.16.4.10 from a sequential range of ephemeral local ports is consistent with periodic C2 beaconing or proxied traffic, but no process attribution is available (pslist/cmdline plugins failed \u2014 see tooling-blocker finding) and 172.16.4.10 / port 8080 does not appear in the known IOC list (known_iocs/suspicious_patterns in prd.json: stun.exe, msedge.exe, pssdnsvc.exe, atmfd.dll, 172.15.1.20, 172.16.6.12 \u2014 none match). This requires further investigation before any CONFIRMED/INFERRED malicious attribution.",
+    "confidence": "INFERRED",
+    "artifact_source": "/root/cases/SRL-2018-WKSTN/base-wkstn-01-memory.img",
+    "supporting_tool": "parse_memory",
+    "mitre_technique": "T1071.001",
+    "mitre_warning": null,
+    "examiner": "sansforensics",
+    "created_at": "2026-06-10T23:10:11.656998+00:00",
+    "approved_at": null,
+    "approved_by": null,
+    "evidence_quotes": [
+      {
+        "tool": "Volatility3",
+        "claim": "Repeated CLOSED connections from 172.16.7.11 to 172.16.4.10:8080",
+        "invocation_id": "mem-75c13aff",
+        "exact_value": "172.16.4.10",
+        "audit_field": "records[*].ForeignAddr",
+        "audit_expected": "172.16.4.10"
+      }
+    ],
+    "claim_confidence": "MEDIUM"
+  },
+  {
+    "id": "F-sansforensics-004",
+    "status": "DRAFT",
+    "title": "Tooling blockers prevent T08 (correlate_evidence) and T09 (pslist) satisfaction this session",
+    "observation": "Two concurrent tooling failures observed this session on /root/cases/SRL-2018-WKSTN/base-wkstn-01-memory.img: (1) windows.pslist, windows.pstree, windows.cmdline, windows.dlllist, and windows.malfind all return total_records=0 with error=null in ~530ms (instant, not a 30s timeout) \u2014 consistent with a Volatility3 PdbSignatureScanner kernel-symbol resolution failure, the same class of issue documented for the SRL-2018-DC memory image. (2) correlate_evidence('subject_srv.exe', case_dir='/root/cases/SRL-2018-WKSTN/analysis') returned verdict='ERROR' with prefetch error 'pyscca (libscca) not installed. Install with: sudo apt install libscca-python3', and memory.present=false because pslist returned no records.",
+    "interpretation": "HYPOTHESIS/gap note: detect_host_type classified this case as MEMORY_ONLY (only base-wkstn-01-memory.img present, no Amcache/Prefetch/MFT on disk), so amcache/prefetch/mft sources were correctly absent for correlate_evidence. The remaining blockers are: (a) install libscca-python3 to enable prefetch parsing (moot for this MEMORY_ONLY case but required by correlate_evidence's pipeline), and (b) resolve the PDB symbol issue for windows.pslist (per prior DC-case remediation: run a working symbol-resolving plugin to fetch the correct ISF for this image's Windows build, then retry pslist with corrected symbol table). Until (b) is resolved, T09 cannot be satisfied (pslist returns 0 records, not subject_srv.exe specifically) and T08 cannot return CONFIRMED_RUNNING.",
+    "confidence": "INFERRED",
+    "artifact_source": "/root/cases/SRL-2018-WKSTN/base-wkstn-01-memory.img",
+    "supporting_tool": "parse_memory",
+    "mitre_technique": null,
+    "mitre_warning": null,
+    "examiner": "sansforensics",
+    "created_at": "2026-06-10T23:10:24.458911+00:00",
+    "approved_at": null,
+    "approved_by": null,
+    "evidence_quotes": [
+      {
+        "tool": "Volatility3",
+        "claim": "windows.pslist returns 0 records on this image",
+        "invocation_id": "mem-7cb9d6ba",
+        "exact_value": "0",
+        "audit_field": "total_records",
+        "audit_expected": "0"
+      },
+      {
+        "tool": "correlate_evidence",
+        "claim": "correlate_evidence verdict ERROR due to pyscca missing and memory.present=false",
+        "invocation_id": "correlation_a0f50644ea2f",
+        "exact_value": "ERROR",
+        "audit_field": "verdict",
+        "audit_expected": "ERROR"
+      }
+    ],
+    "claim_confidence": "MEDIUM"
+  },
+  {
+    "id": "F-sansforensics-005",
+    "status": "DRAFT",
+    "title": "subject_srv.exe (PID 12528) present in memory at acquisition \u2014 active network listener on TCP 3262",
+    "observation": "windows.netscan on /root/cases/SRL-2018-WKSTN/base-wkstn-01-memory.img (this session, invocation_id dfb4846d-2e1a-42ab-84b2-5d23eeb90b58) returned 148 socket records. Entry at offset 0x8702b043d6a0 shows Owner='subject_srv.ex' (Volatility3 truncates ImageFileName to 14 chars), PID=12528, Proto=TCPv4/TCPv6, LocalPort=3262, State=LISTENING, Created=2018-09-06 19:37:07.000000 UTC. Additional UDPv4/UDPv6 sockets owned by PID 12528/subject_srv.ex created 2018-09-06 19:37:06 and 19:38:09/19:38:10 UTC. windows.pslist (this session, invocation_id ab071cf2-2d0d-4f1a-ba7c-d56c5a27b66e) returned total_entries=0 (PdbSignatureScanner kernel-symbol resolution failure on this image). correlate_evidence('subject_srv.exe', '/root/cases/SRL-2018-WKSTN/analysis') (this session, invocation_id correlation_fe15d3181c26) returned verdict='ERROR' because memory.present=false (pslist empty) and prefetch.present=false (pyscca/libscca not installed).",
+    "interpretation": "Per CLAUDE.md confidence mapping, CONFIRMED may only be asserted when correlate_evidence() returns CONFIRMED_RUNNING/CONFIRMED_HISTORICAL/MEMORY_ONLY. Here correlate_evidence returned ERROR (tooling failure, not a negative finding), so this is recorded as INFERRED. The underlying netscan record is itself direct Volatility3 tool output (not a behavioral inference) and strongly supports that subject_srv.exe (PID 12528) was running and actively listening on TCP 3262 at the moment of memory acquisition (2018-09-06, ~19:37-19:38 UTC). T08 (correlate_evidence CONFIRMED_RUNNING) and T09 (pslist returns subject_srv.exe with PID/PPID) remain NOT satisfied this session due to the symbol-resolution and pyscca blockers.",
+    "confidence": "INFERRED",
+    "artifact_source": "/root/cases/SRL-2018-WKSTN/base-wkstn-01-memory.img",
+    "supporting_tool": "parse_volatility_netscan",
+    "mitre_technique": "T1071",
+    "mitre_warning": null,
+    "examiner": "sansforensics",
+    "created_at": "2026-06-10T23:14:04.577059+00:00",
+    "approved_at": null,
+    "approved_by": null,
+    "evidence_quotes": [
+      {
+        "tool": "Volatility3-windows.netscan",
+        "claim": "subject_srv.exe (PID 12528) listening on TCP 3262 at memory acquisition",
+        "invocation_id": "dfb4846d-2e1a-42ab-84b2-5d23eeb90b58",
+        "exact_value": "subject_srv.ex",
+        "audit_field": "entries[*].Owner"
+      }
+    ],
+    "claim_confidence": "MEDIUM"
+  },
+  {
+    "id": "F-sansforensics-006",
+    "status": "DRAFT",
+    "title": "Established inbound connection 172.16.5.50:56722 -> 172.16.7.11:3262 (subject_srv.exe's listening port)",
+    "observation": "windows.netscan (this session, invocation_id dfb4846d-2e1a-42ab-84b2-5d23eeb90b58) record at offset 0x8702b325f810 shows Proto=TCPv4, LocalAddr=172.16.7.11, LocalPort=3262, ForeignAddr=172.16.5.50, ForeignPort=56722, State=ESTABLISHED, PID/Owner not resolved ('-'). Local port 3262 matches the LISTENING socket owned by subject_srv.ex (PID 12528, see prior finding, same invocation_id).",
+    "interpretation": "HYPOTHESIS: The ESTABLISHED session on port 3262 likely belongs to subject_srv.exe given the matching local port of its LISTENING socket, suggesting an active inbound connection from host 172.16.5.50 to the subject service at the time of acquisition. PID attribution for this socket could not be confirmed (Owner/PID fields are '-' in netscan output, and pslist/pstree are unavailable due to the symbol-resolution failure noted in the related finding). This is unconfirmed and requires further investigation (e.g., re-running with corrected ISF symbols to attribute the socket to a PID, and checking 172.16.5.50 for corroborating outbound connection records).",
+    "confidence": "INFERRED",
+    "artifact_source": "/root/cases/SRL-2018-WKSTN/base-wkstn-01-memory.img",
+    "supporting_tool": "parse_volatility_netscan",
+    "mitre_technique": "T1021",
+    "mitre_warning": null,
+    "examiner": "sansforensics",
+    "created_at": "2026-06-10T23:14:12.808724+00:00",
+    "approved_at": null,
+    "approved_by": null,
+    "evidence_quotes": [
+      {
+        "tool": "Volatility3-windows.netscan",
+        "claim": "ESTABLISHED TCP connection from 172.16.5.50:56722 to 172.16.7.11:3262",
+        "invocation_id": "dfb4846d-2e1a-42ab-84b2-5d23eeb90b58",
+        "exact_value": "172.16.5.50",
+        "audit_field": "entries[*].ForeignAddr"
+      }
+    ],
+    "claim_confidence": "MEDIUM"
+  },
+  {
+    "id": "F-sansforensics-007",
+    "status": "DRAFT",
+    "title": "Repeated outbound connections from 172.16.7.11 to 172.16.4.10:8080 (possible C2/proxy beaconing)",
+    "observation": "windows.netscan (this session, invocation_id dfb4846d-2e1a-42ab-84b2-5d23eeb90b58) returned 6 distinct CLOSED TCPv4 connection records from LocalAddr=172.16.7.11 (this host) to ForeignAddr=172.16.4.10, ForeignPort=8080, on local ports 59511, 59703, 60001, 60085, 60117, 60167. PID/Owner are unresolved ('-') for all CLOSED entries.",
+    "interpretation": "HYPOTHESIS: Repeated short-lived connections to a non-standard HTTP-alt port (8080) on 172.16.4.10 from a sequential range of ephemeral local ports is consistent with periodic C2 beaconing or proxied traffic, but no process attribution is available (pslist/cmdline plugins failed \u2014 see tooling-blocker finding) and 172.16.4.10 / port 8080 does not appear in the known IOC list (known_iocs/suspicious_patterns in prd.json: stun.exe, msedge.exe, pssdnsvc.exe, atmfd.dll, 172.15.1.20, 172.16.6.12 \u2014 none match). This requires further investigation before any CONFIRMED/INFERRED malicious attribution.",
+    "confidence": "INFERRED",
+    "artifact_source": "/root/cases/SRL-2018-WKSTN/base-wkstn-01-memory.img",
+    "supporting_tool": "parse_volatility_netscan",
+    "mitre_technique": "T1071.001",
+    "mitre_warning": null,
+    "examiner": "sansforensics",
+    "created_at": "2026-06-10T23:14:20.214324+00:00",
+    "approved_at": null,
+    "approved_by": null,
+    "evidence_quotes": [
+      {
+        "tool": "Volatility3-windows.netscan",
+        "claim": "Repeated CLOSED connections from 172.16.7.11 to 172.16.4.10:8080",
+        "invocation_id": "dfb4846d-2e1a-42ab-84b2-5d23eeb90b58",
+        "exact_value": "172.16.4.10",
+        "audit_field": "entries[*].ForeignAddr"
+      }
+    ],
+    "claim_confidence": "MEDIUM"
+  },
+  {
+    "id": "F-sansforensics-008",
+    "status": "DRAFT",
+    "title": "Tooling blockers prevent T08 (correlate_evidence) and T09 (pslist) satisfaction this session",
+    "observation": "Two concurrent tooling failures observed this session on /root/cases/SRL-2018-WKSTN/base-wkstn-01-memory.img: (1) windows.pslist (invocation_id ab071cf2-2d0d-4f1a-ba7c-d56c5a27b66e) returned total_entries=0, entries_returned=0, error=null in 0ms \u2014 consistent with a Volatility3 PdbSignatureScanner kernel-symbol resolution failure, the same class of issue documented for the SRL-2018-DC memory image. (2) correlate_evidence('subject_srv.exe', case_dir='/root/cases/SRL-2018-WKSTN/analysis') (invocation_id correlation_fe15d3181c26) returned verdict='ERROR' with prefetch error 'pyscca (libscca) not installed. Install with: sudo apt install libscca-python3', and memory.present=false because pslist returned no records.",
+    "interpretation": "HYPOTHESIS/gap note: detect_host_type previously classified this case as MEMORY_ONLY (only base-wkstn-01-memory.img present, no Amcache/Prefetch/MFT on disk), so amcache/prefetch/mft sources were correctly absent for correlate_evidence. The remaining blockers are: (a) install libscca-python3 to enable prefetch parsing (moot for this MEMORY_ONLY case but required by correlate_evidence's pipeline), and (b) resolve the PDB symbol issue for windows.pslist (per prior DC-case remediation: run a working symbol-resolving plugin to fetch the correct ISF for this image's Windows build, then retry pslist with corrected symbol table). Until (b) is resolved, T09 cannot be satisfied (pslist returns 0 records, not subject_srv.exe specifically) and T08 cannot return CONFIRMED_RUNNING.",
+    "confidence": "INFERRED",
+    "artifact_source": "/root/cases/SRL-2018-WKSTN/base-wkstn-01-memory.img",
+    "supporting_tool": "parse_volatility_pslist",
+    "mitre_technique": null,
+    "mitre_warning": null,
+    "examiner": "sansforensics",
+    "created_at": "2026-06-10T23:14:30.011612+00:00",
+    "approved_at": null,
+    "approved_by": null,
+    "evidence_quotes": [
+      {
+        "tool": "Volatility3-windows.pslist",
+        "claim": "windows.pslist returns 0 records on this image",
+        "invocation_id": "ab071cf2-2d0d-4f1a-ba7c-d56c5a27b66e",
+        "exact_value": "0",
+        "audit_field": "total_entries"
+      },
+      {
+        "tool": "correlate_evidence",
+        "claim": "correlate_evidence verdict ERROR due to pyscca missing and memory.present=false",
+        "invocation_id": "correlation_fe15d3181c26",
+        "exact_value": "ERROR",
+        "audit_field": "verdict"
+      }
+    ],
+    "claim_confidence": "MEDIUM"
+  }
+]
