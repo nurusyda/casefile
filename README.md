@@ -255,33 +255,72 @@ post-investigation to check every claim against tool output. The approve gate
 requires a human TTY and password — the AI cannot approve its own findings.
 
 ```mermaid
-graph TD
-    subgraph S["Approach 2 — Custom MCP Server"]
-    A[Claude Code] -->|MCP protocol| B[CaseFile MCP Server]
-    B --> C[parse_amcache]
-    B --> D[parse_prefetch]
-    B --> E[parse_event_logs]
-    B --> F[parse_registry]
-    B --> G[parse_mft]
-    B --> H["parse_memory (Volatility 3)"]
-    B --> I[correlate_evidence]
-    B --> J[record_finding]
-    B --> K["search_knowledge (260 records)"]
-    I -->|"Deterministic — no LLM"| L{Verdict Engine}
-    L --> M[findings.json]
-    J --> N["Tier 1: Tool attestation"]
-    N --> O["Tier 2: CSV value check"]
-    O -->|CONTRADICTED| P["Self-correction loop"]
-    O -->|GROUNDED| Q[claim_accuracy_report.json]
-    R["casefile-approve (Human TTY only)"] -->|Password required| M
+%%{init: {'theme':'default', 'themeVariables': {'fontFamily':'system-ui'}}}%%
+flowchart TB
+
+    subgraph PATTERN[" "]
+        direction TB
+
+        subgraph LLM["🔴 LLM-controlled (untrusted)"]
+            A([Claude Code])
+            CL[/"CLAUDE.md<br/>prompt-based laws"/]
+        end
+
+        subgraph MCPS["🟢 CaseFile MCP Server — 23 tools"]
+            direction TB
+            B[FastMCP entrypoint]
+            FP["Forensic parsers ×13<br/>amcache · prefetch · evtx<br/>registry · mft · memory<br/>shellbags · lnk · jumplists<br/>hayabusa · vol_pslist<br/>vol_netscan · usn"]
+            CE["correlate_evidence<br/>deterministic — no LLM"]
+            FW["Workflow tools ×9<br/>record_finding · get_findings<br/>record_timeline_event<br/>detect_host_type<br/>search_knowledge · export"]
+        end
+
+        subgraph VERIF["🔵 Deterministic verification (trusted)"]
+            direction TB
+            T1["Tier 1: Audit-log attestation<br/>invocation_id → audit/mcp.jsonl"]
+            T2["Tier 2: Verbatim CSV cell check<br/>exact_value in parser CSV"]
+            SC["Self-correction loop<br/>ralph.sh — up to 3 attempts"]
+        end
+
+        subgraph HUMAN["🟢 Human-controlled (trusted)"]
+            AP["casefile-approve<br/>TTY + getpass password<br/>NOT registered as MCP tool"]
+        end
+
+        subgraph DATA["📁 Data outputs (write-only)"]
+            direction LR
+            FJ[(findings.json)]
+            AR[(claim_accuracy_report.json)]
+        end
+
     end
-    style L fill:#2d5a27,color:#fff
-    style N fill:#1a3a5c,color:#fff
-    style O fill:#1a3a5c,color:#fff
-    style P fill:#5c1a1a,color:#fff
-    style R fill:#5c3d00,color:#fff
-    style S fill:#0f1419,color:#fff,stroke:#4a90e2,stroke-width:2px
+
+    A == "MCP JSON-RPC" ==> B
+    A -. reads .-> CL
+    B --> FP
+    B --> CE
+    B --> FW
+    CE --> FJ
+    FW --> FJ
+    FP --> T1
+    T1 --> T2
+    T2 == GROUNDED ==> AR
+    T2 == CONTRADICTED ==> SC
+    SC -. "targeted re-prompt" .-> A
+    AP == "writes SHA-256 hash" ==> FJ
+
+    classDef untrustedZone fill:#fde0e0,stroke:#d94a4a,stroke-width:2px,color:#000
+    classDef archZone fill:#d8efd8,stroke:#5fbf52,stroke-width:2px,color:#000
+    classDef determZone fill:#dbe9f5,stroke:#4a90d9,stroke-width:2px,color:#000
+    classDef dataZone fill:#f5f0d8,stroke:#d4a73a,stroke-width:2px,color:#000
+    classDef outerZone fill:transparent,stroke:#666,stroke-width:1.5px,color:#222,stroke-dasharray:4 4
+
+    class LLM untrustedZone
+    class MCPS,HUMAN archZone
+    class VERIF determZone
+    class DATA dataZone
+    class PATTERN outerZone
 ```
+
+> 🟢 **Green** = architectural guardrails (enforced in code, cannot be bypassed by the LLM) · 🟠 **Orange dashed** = prompt-based laws (CLAUDE.md) · 🔵 **Blue** = deterministic verification (no LLM in the decision path) · 🔴 **Red** = LLM-controlled / untrusted
 
 Full architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
@@ -341,7 +380,7 @@ Detailed comparison: [docs/COMPARISON.md](docs/COMPARISON.md).
 
 ---
 
-## MCP Tools (21 registered)
+## MCP Tools (23 registered)
 
 | Tool | Backend | Description |
 |---|---|---|
@@ -355,9 +394,11 @@ Detailed comparison: [docs/COMPARISON.md](docs/COMPARISON.md).
 | `parse_hayabusa()` | Hayabusa | Sigma rule detection (3,700+ rules) |
 | `parse_lnk()` | LECmd.dll | Shortcut file analysis |
 | `parse_jumplists()` | JLECmd.dll | Jump List analysis |
+| `parse_usn_journal()` | MFTECmd.dll ($J mode) | NTFS USN Change Journal — file change/delete history |
 | `parse_volatility_pslist()` | Volatility 3 | Dedicated process listing |
 | `parse_volatility_netscan()` | Volatility 3 | Dedicated network connections |
 | `correlate_evidence()` | Deterministic engine | 4-source cross-correlation verdict |
+| `check_timeline_contradictions()` | Deterministic engine | Cross-source timeline anomaly detection (T1–T6) |
 | `detect_host_type()` | Artifact layout | Host classification (workstation/DC/memory-only) |
 | `record_finding()` | — | Stage finding with evidence quotes |
 | `get_findings()` | — | Retrieve findings with status filter |
@@ -383,7 +424,7 @@ pytest tests/ -q
 ```
 casefile/
 ├── mcp_server/
-│   ├── server.py                # FastMCP server — 21 tools registered
+│   ├── server.py                # FastMCP server — 23 tools registered
 │   └── tools/
 │       ├── amcache.py           parse_amcache()
 │       ├── prefetch.py          parse_prefetch()
@@ -395,8 +436,10 @@ casefile/
 │       ├── hayabusa.py          parse_hayabusa()
 │       ├── lnk.py               parse_lnk()
 │       ├── jumplists.py         parse_jumplists()
+│       ├── usn.py               parse_usn_journal()
 │       ├── vol_pslist.py        parse_volatility_pslist()
 │       ├── vol_netscan.py       parse_volatility_netscan()
+│       ├── timeline_check.py    check_timeline_contradictions()
 │       ├── correlation.py       correlate_evidence() + detect_host_type()
 │       ├── findings.py          record_finding(), get_findings(), record_timeline_event()
 │       ├── grounding.py         Tier 1/2 verification
