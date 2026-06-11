@@ -107,7 +107,7 @@ verbatim value, parser CSV output, audit log invocation — is consistent and
 self-evident. No trust in the agent, the verifier, or the authors is required.
 
 The same check, performed mechanically by `scripts/grounding_verify.py` against all
-41 claims across all three cases, produces zero `CONTRADICTED`. The verifier isn't
+41 claims across all four cases, produces zero `CONTRADICTED`. The verifier isn't
 a black box — it's this three-step check, automated.
 
 ## Verify a different finding

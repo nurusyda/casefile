@@ -51,12 +51,14 @@ under five minutes — every claim below has a committed artifact and a one-comm
 
 Post-correction grounding verification across four datasets from the CRIMSON OSPREY case:
 
+Evidence types covered. Three disk + memory pairs (workstation BASE-RD-01, domain controller BASE-DC, file server BASE-FILE) plus one memory-only investigation (base-wkstn-01, on a clean SIFT OVA). All four cases were sourced from the same SRL-2018 CRIMSON OSPREY intrusion. The memory-only case demonstrates that CaseFile's grounding architecture works for live-acquisition forensics — not just disk artifacts — including transparent traceability gaps when Volatility3's symbol resolution fails on a specific Windows build.
+
 | Dataset | Host role | Findings | Claims | Grounded | Tier 2 verified | Hallucination | Self-corrections |
 |---|---|---|---|---|---|---|---|
 | SRL-2018 | Workstation (BASE-RD-01) | 5 | 10 | 10 (100%) | 7 | 0.0% | 1 |
 | SRL-2018-DC | Domain Controller (BASE-DC) | 6 | 12 | 12 (100%) | 3 | 0.0% | 3 |
 | SRL-2018-FILE | File Server (BASE-FILE) | 6 | 9 | 7 (77.8%) | 6 | 0.0% | 3 |
-| SRL-2018-WKSTN | Workstation re-run (live OVA) | 8 | 10 | 6 (60.0%) | 3 | 0.0% | 0 |
+| SRL-2018-WKSTN | Workstation memory only (`base-wkstn-01`) | 8 | 10 | 6 (60.0%) | 3 | 0.0% | 0 |
 
 - **Grounded claim**: invocation ID found in audit log AND exact value found in parser CSV output
 - **Tier 2 verified**: claim passed CSV cell-value verification (only applicable to tools that produce CSV output — Amcache, Registry, Event Logs, MFT, Hayabusa)
@@ -88,7 +90,7 @@ Everything a judge or reader might want to verify, linked in one place.
 | Workstation (BASE-RD-01) | [`reports/CRIMSON_OSPREY_findings.md`](reports/CRIMSON_OSPREY_findings.md) | [`results/SRL-2018_workstation_findings.json`](results/SRL-2018_workstation_findings.json) | [`results/SRL-2018_workstation_session20.json`](results/SRL-2018_workstation_session20.json) |
 | Domain Controller (BASE-DC) | [`reports/CRIMSON_OSPREY_DC_session19.md`](reports/CRIMSON_OSPREY_DC_session19.md) | [`results/SRL-2018-DC_findings.json`](results/SRL-2018-DC_findings.json) | [`results/SRL-2018-DC_session19.json`](results/SRL-2018-DC_session19.json) |
 | File Server (BASE-FILE) | findings in [`results/SRL-2018-FILE_findings.json`](results/SRL-2018-FILE_findings.json) | same | [`results/SRL-2018-FILE_session01.json`](results/SRL-2018-FILE_session01.json) |
-| Workstation re-run (live OVA) | findings in [`fixtures/reproducibility/SRL-2018-WKSTN/findings.json`](fixtures/reproducibility/SRL-2018-WKSTN/findings.json) | same | [`results/SRL-2018-WKSTN_audit_sample.jsonl`](results/SRL-2018-WKSTN_audit_sample.jsonl) |
+| base-wkstn-01 (memory only) | findings in [`fixtures/reproducibility/SRL-2018-WKSTN/findings.json`](fixtures/reproducibility/SRL-2018-WKSTN/findings.json) | same | [`results/SRL-2018-WKSTN_audit_sample.jsonl`](results/SRL-2018-WKSTN_audit_sample.jsonl) |
 
 #### Synthesis & methodology
 

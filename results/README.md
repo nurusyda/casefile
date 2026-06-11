@@ -11,7 +11,7 @@ against the SRL-2018 CRIMSON OSPREY case. These files are the primary evidence f
 | `SRL-2018_workstation_session20.json` | BASE-RD-01 (workstation) | Session 20, 2026-06-06 |
 | `SRL-2018-DC_session19.json` | BASE-DC (domain controller) | Session 19, 2026-06-06 |
 | `SRL-2018-FILE_session01.json` | BASE-FILE (file server) | Session 01, 2026-06-06 |
-| `SRL-2018-WKSTN_audit_sample.jsonl` | Workstation re-run (live SIFT OVA) | 2026-06-11 |
+| `SRL-2018-WKSTN_audit_sample.jsonl` | Workstation memory-only (base-wkstn-01) | 2026-06-11 |
 
 Each file is produced by `scripts/grounding_verify.py` after ralph.sh completes.
 It records every claim, whether it was grounded via Tier 1 (audit log match) or
