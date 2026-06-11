@@ -47,6 +47,36 @@ under five minutes — every claim below has a committed artifact and a one-comm
 
 ---
 
+## Development Honesty — what the verifier caught during build
+
+The grounding verifier caught real failures during development, not just synthetic
+ones. Two examples, both committed to git history:
+
+- **Tool-name aliasing**: Early DC and WKSTN runs flagged claims as CONTRADICTED
+  because Claude recorded the short tool name (`detect_host_type`) while the audit
+  log entry recorded the MCP-prefixed name (`mcp__casefile__detect_host_type`). The
+  verifier was doing exact-string matching. Fix: prefix-aware alias map in
+  `mcp_server/tools/grounding.py` (commit `891956b`). The self-correction loop
+  failed across 3 iterations on these runs — the architecture honestly refused to
+  certify and printed `Human review required`. After the fix landed, the same cases
+  re-ran clean in one self-correction iteration.
+
+- **Volatility3 sub-plugin names**: A related variant where
+  `Volatility3-windows.pslist` was treated as different from `Volatility3`. Same
+  fix pattern, same file (commit `92a447f`).
+
+Both issues are in the audit logs of the failed and clean runs
+(`results/SRL-2018-DC_session19.json`, `results/SRL-2018_workstation_session20.json`,
+etc.). The architecture worked exactly as designed: it refused to silently accept
+findings it couldn't verify, forced human investigation, and the fix went into code
+rather than into a special case for this demo.
+
+This isn't a demo where everything happened to work on the first try — this is a
+demo where the loop failed, the failure was real, the fix is in commit history, and
+the system is now stable on those classes of failure.
+
+---
+
 ## Results
 
 Post-correction grounding verification across four datasets from the CRIMSON OSPREY case:
