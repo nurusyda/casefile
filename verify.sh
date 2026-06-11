@@ -7,7 +7,7 @@
 #   - Every committed fixture reproduces its expected grounding numbers
 #     (total_claims, grounded, contradicted, hallucination_rate) from
 #     sanitized audit logs and findings — no raw evidence required.
-#   - All three cases (SRL-2018, SRL-2018-DC, SRL-2018-FILE) reproduce
+#   - All four cases (SRL-2018, SRL-2018-DC, SRL-2018-FILE, SRL-2018-WKSTN) reproduce
 #     full Tier 2 (CSV-backed exact_value verification) because minimal
 #     CSV fixtures are committed alongside the sanitized audit trail.
 #
@@ -197,7 +197,7 @@ echo ""
 if [ "$FAIL_COUNT" -eq 0 ]; then
     echo "✓ All $PASS_COUNT case(s) PASSED reproducibility check."
     echo ""
-    echo "  All three cases reproduce full Tier 1 + Tier 2 attestation."
+    echo "  All four cases reproduce full Tier 1 + Tier 2 attestation."
     exit 0
 else
     echo "✗ $FAIL_COUNT case(s) FAILED reproducibility check:"

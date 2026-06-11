@@ -16,7 +16,7 @@ stack that verifies every claim against actual tool output.
 
 CaseFile gives Claude Code structured access to:
 
-- **6 artifact parsers** -- Amcache, Prefetch, Event Logs, Registry, MFT, Memory (Volatility 3)
+- **13 artifact parsers** -- Amcache, Prefetch, Event Logs, Registry, MFT, Memory (Volatility 3), Shellbags, Hayabusa (Sigma rules), LNK, Jump Lists, USN Journal, Volatility Pslist, Volatility Netscan
 - **Correlation engine** -- Deterministic 4-source verdict, no LLM in decision path
 - **Grounding verification** -- Two-tier claim verification against tool output
 - **Forensic RAG** -- 260 curated records covering ATT&CK techniques, artifact guides, detection rules
@@ -26,8 +26,8 @@ CaseFile gives Claude Code structured access to:
 
 | Property | Value |
 |---|---|
-| Tests passing | 485 |
-| Accuracy checkpoints | 8/8 (self-assessed, CFA-Bench methodology) |
+| Tests passing | 672 |
+| Accuracy checkpoints | 6/6 (CFA-Bench methodology) |
 | Hallucination rate | 0.0% (post-correction) |
 | Self-corrections in live run | 19 contradicted claims corrected in 1 iteration |
 | Guardrail layers | 11 (9 architectural, 2 process) |

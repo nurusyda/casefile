@@ -3,7 +3,7 @@
 [![CI](https://github.com/nurusyda/casefile/actions/workflows/ci.yml/badge.svg)](https://github.com/nurusyda/casefile/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/nurusyda/casefile/blob/main/LICENSE)
 
-**Autonomous forensic investigation for Claude Code on SIFT Workstation — 0.0% hallucination rate across all three tested datasets.**
+**Autonomous forensic investigation for Claude Code on SIFT Workstation — 0.0% hallucination rate across all four tested datasets.**
 
 CaseFile gives Claude Code structured access to Windows forensic artifact parsers, a
 deterministic cross-source correlation engine, and a two-tier grounding verifier
@@ -11,8 +11,8 @@ that checks every claim against actual tool output — and self-corrects when ve
 fails.
 
 Built for the SANS Find Evil Hackathon 2026. Tested against the SRL-2018 CRIMSON OSPREY
-case across three host types: workstation (BASE-RD-01), domain controller (BASE-DC),
-and file server (BASE-FILE).
+case across four host types: workstation (BASE-RD-01), domain controller (BASE-DC),
+file server (BASE-FILE), and workstation re-run on a live SIFT OVA (SRL-2018-WKSTN).
 
 > **Important** — CaseFile is an autonomous investigation assistant, not a replacement
 > for examiner judgment. The AI accelerates analysis; the examiner must review and
@@ -27,7 +27,7 @@ under five minutes — every claim below has a committed artifact and a one-comm
 
 - **0.0% hallucination, judge-reproducible.** `bash verify.sh` re-runs grounding
   verification against committed sanitized fixtures (audit logs + trimmed parser CSVs)
-  and reprints the headline numbers per case and in aggregate. All three datasets
+  and reprints the headline numbers per case and in aggregate. All four datasets
   reproduce full Tier 1 + Tier 2 attestation. No raw evidence required.
   *Artifact:* [`verify.sh`](verify.sh), [`fixtures/reproducibility/`](fixtures/reproducibility).
 - **0.0% false-positive rate on a benign control corpus.** A 25-row synthetic
@@ -49,24 +49,55 @@ under five minutes — every claim below has a committed artifact and a one-comm
 
 ## Results
 
-Post-correction grounding verification across three datasets from the CRIMSON OSPREY case:
+Post-correction grounding verification across four datasets from the CRIMSON OSPREY case:
 
 | Dataset | Host role | Findings | Claims | Grounded | Tier 2 verified | Hallucination | Self-corrections |
 |---|---|---|---|---|---|---|---|
 | SRL-2018 | Workstation (BASE-RD-01) | 5 | 10 | 10 (100%) | 7 | 0.0% | 1 |
 | SRL-2018-DC | Domain Controller (BASE-DC) | 6 | 12 | 12 (100%) | 3 | 0.0% | 3 |
 | SRL-2018-FILE | File Server (BASE-FILE) | 6 | 9 | 7 (77.8%) | 6 | 0.0% | 3 |
+| SRL-2018-WKSTN | Workstation re-run (live OVA) | 8 | 10 | 6 (60.0%) | 3 | 0.0% | 0 |
 
 - **Grounded claim**: invocation ID found in audit log AND exact value found in parser CSV output
 - **Tier 2 verified**: claim passed CSV cell-value verification (only applicable to tools that produce CSV output — Amcache, Registry, Event Logs, MFT, Hayabusa)
 - **Hallucination rate**: `CONTRADICTED / total_claims`. A CONTRADICTED claim means the cited value was not found in tool output — the AI fabricated it.
-- **Ungrounded claims** (SRL-2018-FILE only): audit field missing from audit entry — not a fabrication, but a traceability gap
+- **Ungrounded claims** (SRL-2018-FILE: 2 claims, SRL-2018-WKSTN: 4 claims): audit field missing from audit entry — not a fabrication, but a traceability gap
 - **False-positive rate on a benign control corpus: 0.0%** (0 of 25 synthetic benign rows flagged across all five parsers; `tests/test_false_positive.py`)
 
 Source files:
 - `results/SRL-2018_workstation_session20.json`
 - `results/SRL-2018-DC_session19.json`
 - `results/SRL-2018-FILE_session01.json`
+- `results/SRL-2018-WKSTN_audit_sample.jsonl`
+
+### Evidence & Verification Index
+
+Everything a judge or reader might want to verify, linked in one place.
+
+#### Verify the accuracy numbers
+
+| Artifact | What it is |
+|---|---|
+| [`bash verify.sh`](verify.sh) | Re-runs the grounding verifier against all four committed fixtures. Exit 0 = our numbers reproduce. Under a minute, no evidence required. |
+| [`docs/manual_verification.md`](docs/manual_verification.md) | Walks one finding by hand in three shell commands — for readers who want to check the verifier itself. |
+
+#### Per-case findings (what the agent actually wrote)
+
+| Case | Findings (human-readable) | Findings (machine-readable) | Grounding report |
+|---|---|---|---|
+| Workstation (BASE-RD-01) | [`reports/CRIMSON_OSPREY_findings.md`](reports/CRIMSON_OSPREY_findings.md) | [`results/SRL-2018_workstation_findings.json`](results/SRL-2018_workstation_findings.json) | [`results/SRL-2018_workstation_session20.json`](results/SRL-2018_workstation_session20.json) |
+| Domain Controller (BASE-DC) | [`reports/CRIMSON_OSPREY_DC_session19.md`](reports/CRIMSON_OSPREY_DC_session19.md) | [`results/SRL-2018-DC_findings.json`](results/SRL-2018-DC_findings.json) | [`results/SRL-2018-DC_session19.json`](results/SRL-2018-DC_session19.json) |
+| File Server (BASE-FILE) | findings in [`results/SRL-2018-FILE_findings.json`](results/SRL-2018-FILE_findings.json) | same | [`results/SRL-2018-FILE_session01.json`](results/SRL-2018-FILE_session01.json) |
+| Workstation re-run (live OVA) | findings in [`fixtures/reproducibility/SRL-2018-WKSTN/findings.json`](fixtures/reproducibility/SRL-2018-WKSTN/findings.json) | same | [`results/SRL-2018-WKSTN_audit_sample.jsonl`](results/SRL-2018-WKSTN_audit_sample.jsonl) |
+
+#### Synthesis & methodology
+
+| Document | What it covers |
+|---|---|
+| [`docs/accuracy_report.md`](docs/accuracy_report.md) | Per-checkpoint CFA-Bench scoring, Protocol SIFT baseline comparison (2/6 vs 6/6), false-positive analysis. |
+| [`docs/SECURITY_MODEL.md`](docs/SECURITY_MODEL.md) | BYPASS-1 through BYPASS-9 matrix — architectural vs prompt-based guardrails, file-and-line references. |
+| [`docs/dataset.md`](docs/dataset.md) | Evidence provenance, SHA-256 hashes at ingest, per-host artifact coverage. |
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Full system diagram, claim → audit → CSV trace example. |
 
 ### Reproduce our numbers
 
@@ -81,9 +112,11 @@ claim-accuracy report against the committed expected values. Exit 0 only if ever
 reproduces its committed `total_claims`, `grounded`, `contradicted`, `hallucination_rate`,
 and `tier2_verified`.
 
-- **All three cases** reproduce full Tier 1 + Tier 2 attestation — minimal parser CSVs
+- **All four cases** reproduce full Tier 1 + Tier 2 attestation — minimal parser CSVs
   are committed alongside the sanitized audit log for every case, so exact-value CSV
   checks reproduce across the board.
+
+  Or walk a single finding by hand: [docs/manual_verification.md](docs/manual_verification.md). It's the artifact equivalent of showing your work on a math test — the answer was already correct, but seeing one example computed by hand makes the whole sheet land harder.
 
 ### vs. Protocol SIFT Baseline
 
@@ -107,7 +140,7 @@ names are parsed from CSV output and Tier 2 verified against the actual cell val
 CP5 timestamps carry invocation IDs linking to the parser run that produced them.
 CP6 traceability is enforced by the audit chain (claim → invocation_id → audit/mcp.jsonl → CSV cell).
 
-CaseFile's measured hallucination rate across 31 claims on three datasets: **0.0%** (0 contradicted).
+CaseFile's measured hallucination rate across 41 claims on four datasets: **0.0%** (0 contradicted).
 
 Source: [`reports/protocol_sift_baseline.json`](reports/protocol_sift_baseline.json) (baseline established April 2026)
 
@@ -214,7 +247,7 @@ us enforce architectural anti-hallucination guarantees (registered-tool gating,
 read-only evidence paths, TTY-only approval) that a prompt-layer extension cannot
 provide.
 
-CaseFile wraps 21 MCP tools (13 forensic parsers plus correlation, findings, RAG,
+CaseFile wraps 23 MCP tools (13 forensic parsers plus correlation, findings, RAG,
 and accuracy workflow tools) as typed, structured Python functions. Claude Code
 calls these tools over the MCP protocol — it never sees raw shell output. Every
 tool call is logged to an append-only audit trail. The grounding verifier runs
@@ -262,14 +295,14 @@ fundamentally different approaches:
 
 - **CaseFile** compresses the examiner loop: autonomous investigation with
   post-hoc grounding verification of every claim against actual tool output.
-  Measured hallucination rate: 0.0% across three datasets. Strength is depth
+  Measured hallucination rate: 0.0% across four datasets. Strength is depth
   of verification, not breadth of tool coverage.
 - **Valhuntir** provides breadth and human-in-the-loop discipline: 15 parsers,
   Hayabusa Sigma rules, OpenSearch indexing, RAG with 22,000+ records, multi-VM
   architecture, and a browser-based Examiner Portal. Strength is production
   readiness and comprehensive artifact coverage.
 
-CaseFile has 21 MCP-registered tools vs. Valhuntir's broader tool suite. CaseFile
+CaseFile has 23 MCP-registered tools vs. Valhuntir's broader tool suite. CaseFile
 prioritizes anti-hallucination architecture; Valhuntir prioritizes workflow
 completeness. They're different shapes of solution — not head-to-head competitors.
 
@@ -340,7 +373,7 @@ Detailed comparison: [docs/COMPARISON.md](docs/COMPARISON.md).
 
 ```bash
 pytest tests/ -q
-# 626 passed
+# 672 passed
 ```
 
 ---
@@ -384,7 +417,7 @@ casefile/
 │   ├── DEPLOY.md
 │   ├── CASE_WALKTHROUGH.md
 │   └── COMPARISON.md
-├── tests/                       626 tests
+├── tests/                       672 tests
 └── LICENSE                      MIT
 ```
 
