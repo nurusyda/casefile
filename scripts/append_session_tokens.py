@@ -3,18 +3,13 @@
 append_session_tokens.py — Append a token entry to a session tokens JSON file.
 
 Reads an existing session tokens file, appends a new iteration entry,
-recomputes totals across all iterations, and writes back atomically.
+recomputes token totals and the API-equivalent cost across all iterations,
+and writes back atomically.
 
 Usage:
     python3 scripts/append_session_tokens.py <token_entry_json> <tokens_file>
 
-Arguments:
-    token_entry_json : JSON string representing a single iteration's token usage
-    tokens_file      : Path to the session tokens JSON file (created if absent)
-
-Exit codes:
-    0 — success
-    1 — error (details printed to stderr)
+Exit codes: 0 success, 1 error.
 """
 
 import json
@@ -23,49 +18,55 @@ import sys
 import tempfile
 from pathlib import Path
 
+# Public Anthropic API pricing for Claude Sonnet 4.5 / 4.6 (identical pricing),
+# per 1M tokens, sourced from https://www.anthropic.com/pricing.
+# This submission ran under Claude Code on a flat-rate Pro subscription,
+# so the figure below is the pay-as-you-go API equivalent, NOT what was
+# actually paid. We compute and report it so judges can see what an
+# autonomous CaseFile investigation would cost at the API rate card.
+PRICING_MODEL = "claude-sonnet-4.6"
+PRICE_INPUT_PER_MTOK = 3.00
+PRICE_OUTPUT_PER_MTOK = 15.00
+PRICE_CACHE_READ_PER_MTOK = 0.30
+PRICE_CACHE_CREATION_PER_MTOK = 3.75
+
 
 def compute_cost(input_tokens: int, output_tokens: int,
                  cache_read_tokens: int = 0,
                  cache_creation_tokens: int = 0) -> float:
-    """Compute approximate cost in USD using Claude Opus pricing.
-
-    Pricing (per 1M tokens, as of 2025):
-        input:             $15.00
-        output:            $75.00
-        cache_read:         $1.50
-        cache_creation:    $18.75
-    """
+    """Return the API-equivalent cost in USD at current Sonnet rates."""
     cost = 0.0
-    cost += (input_tokens / 1_000_000) * 15.00
-    cost += (output_tokens / 1_000_000) * 75.00
-    cost += (cache_read_tokens / 1_000_000) * 1.50
-    cost += (cache_creation_tokens / 1_000_000) * 18.75
+    cost += (input_tokens / 1_000_000) * PRICE_INPUT_PER_MTOK
+    cost += (output_tokens / 1_000_000) * PRICE_OUTPUT_PER_MTOK
+    cost += (cache_read_tokens / 1_000_000) * PRICE_CACHE_READ_PER_MTOK
+    cost += (cache_creation_tokens / 1_000_000) * PRICE_CACHE_CREATION_PER_MTOK
     return round(cost, 6)
 
 
 def recompute_totals(iterations: list) -> dict:
-    """Compute aggregate totals across all iterations."""
-    total_in = 0
-    total_out = 0
-    total_cache_read = 0
-    total_cache_creation = 0
-    total_cost = 0.0
-
+    """Aggregate token totals and API-equivalent cost across all iterations."""
+    total_in = total_out = total_cache_read = total_cache_creation = 0
     for it in iterations:
         total_in += it.get("input_tokens", 0)
         total_out += it.get("output_tokens", 0)
         total_cache_read += it.get("cache_read_input_tokens", 0)
         total_cache_creation += it.get("cache_creation_input_tokens", 0)
-
-    total_cost = compute_cost(total_in, total_out, total_cache_read, total_cache_creation)
-
     return {
         "input_tokens": total_in,
         "output_tokens": total_out,
         "cache_read_input_tokens": total_cache_read,
         "cache_creation_input_tokens": total_cache_creation,
-        "total_cost_usd": total_cost,
         "iterations_count": len(iterations),
+        "pricing_model": PRICING_MODEL,
+        "total_cost_usd_api_equivalent": compute_cost(
+            total_in, total_out, total_cache_read, total_cache_creation),
+        "billing_note": (
+            "total_cost_usd_api_equivalent uses public Anthropic API rates for "
+            "Claude Sonnet 4.6 ($3 input / $15 output / $0.30 cache_read / "
+            "$3.75 cache_creation per 1M tokens). This investigation ran on a "
+            "flat-rate Claude Pro subscription via Claude Code, so the figure "
+            "is the pay-as-you-go API equivalent — not what was actually paid."
+        ),
     }
 
 
@@ -74,17 +75,12 @@ def main():
         print("Usage: append_session_tokens.py <token_entry_json> <tokens_file>",
               file=sys.stderr)
         sys.exit(1)
-
-    token_entry_json = sys.argv[1]
-    tokens_file = sys.argv[2]
-
+    token_entry_json, tokens_file = sys.argv[1], sys.argv[2]
     try:
         entry = json.loads(token_entry_json)
     except json.JSONDecodeError as exc:
         print(f"ERROR: invalid JSON for token_entry: {exc}", file=sys.stderr)
         sys.exit(1)
-
-    # Read existing file or start fresh
     data = {}
     tokens_path = Path(tokens_file)
     if tokens_path.exists():
@@ -95,18 +91,8 @@ def main():
             print(f"ERROR: cannot read tokens file {tokens_file}: {exc}",
                   file=sys.stderr)
             sys.exit(1)
-
-    # Ensure iterations list exists
-    if "iterations" not in data:
-        data["iterations"] = []
-
-    # Append entry
-    data["iterations"].append(entry)
-
-    # Recompute totals
+    data.setdefault("iterations", []).append(entry)
     data["totals"] = recompute_totals(data["iterations"])
-
-    # Write atomically: write to temp file, then replace
     try:
         tmp_fd, tmp_path = tempfile.mkstemp(
             dir=tokens_path.parent,
@@ -118,19 +104,16 @@ def main():
                 json.dump(data, fh, indent=2)
                 fh.write("\n")
         except Exception:
-            # Clean up temp file on write failure
             try:
                 os.unlink(tmp_path)
             except OSError:
                 pass
             raise
-
         os.replace(tmp_path, tokens_path)
     except Exception as exc:
         print(f"ERROR: cannot write tokens file {tokens_file}: {exc}",
               file=sys.stderr)
         sys.exit(1)
-
     sys.exit(0)
 
 

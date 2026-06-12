@@ -1,0 +1,29 @@
+{
+  "case": "SRL-2018-RD01",
+  "captured_from": "claude_code_ralph_loop",
+  "note": "Token usage captured via ralph.sh Claude Code loop.",
+  "iterations": [
+    {
+      "case": "SRL-2018-RD01",
+      "iteration": 1,
+      "is_correction": false,
+      "captured_at": "2026-06-12T22:43:52.864097+00:00",
+      "transcript_file": "7bcd9c2d-b66e-46ee-920e-5ea59ce575bc.jsonl",
+      "input_tokens": 130,
+      "output_tokens": 111642,
+      "cache_read_input_tokens": 5132555,
+      "cache_creation_input_tokens": 505932,
+      "num_turns": 65
+    }
+  ],
+  "totals": {
+    "input_tokens": 130,
+    "output_tokens": 111642,
+    "cache_read_input_tokens": 5132555,
+    "cache_creation_input_tokens": 505932,
+    "iterations_count": 1,
+    "pricing_model": "claude-sonnet-4.6",
+    "total_cost_usd_api_equivalent": 5.112032,
+    "billing_note": "total_cost_usd_api_equivalent uses public Anthropic API rates for Claude Sonnet 4.6 ($3 input / $15 output / $0.30 cache_read / $3.75 cache_creation per 1M tokens). This investigation ran on a flat-rate Claude Pro subscription via Claude Code, so the figure is the pay-as-you-go API equivalent \u2014 not what was actually paid."
+  }
+}
