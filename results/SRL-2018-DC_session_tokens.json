@@ -1,5 +1,54 @@
 {
   "case": "SRL-2018-DC",
-  "captured_from": "not_recoverable",
-  "note": "Token usage not captured for this run. Claude Code session transcripts exist under ~/.claude/projects/-home-sansproject-casefile/ but cannot be definitively attributed to the specific ralph.sh iteration that produced the committed results/SRL-2018-DC_session19.json — the result file does not store a transcript session ID, and multiple sessions reference SRL-2018-DC case paths. Future ralph.sh runs capture token usage automatically."
+  "captured_from": "claude_code_ralph_loop",
+  "note": "Token usage captured via ralph.sh Claude Code loop.",
+  "iterations": [
+    {
+      "case": "SRL-2018-DC",
+      "iteration": 1,
+      "is_correction": false,
+      "captured_at": "2026-06-12T23:19:36.762718+00:00",
+      "transcript_file": "214bd44b-e5ad-4005-8471-bd869f87e1c5.jsonl",
+      "input_tokens": 122,
+      "output_tokens": 46678,
+      "cache_read_input_tokens": 2835543,
+      "cache_creation_input_tokens": 347920,
+      "num_turns": 61
+    },
+    {
+      "case": "SRL-2018-DC",
+      "iteration": 2,
+      "is_correction": false,
+      "captured_at": "2026-06-12T23:24:08.662810+00:00",
+      "transcript_file": "7645df37-0950-46d1-b5f0-7f6e5dd36fc6.jsonl",
+      "input_tokens": 82,
+      "output_tokens": 53399,
+      "cache_read_input_tokens": 1730080,
+      "cache_creation_input_tokens": 214954,
+      "num_turns": 41
+    },
+    {
+      "case": "SRL-2018-DC",
+      "iteration": 2,
+      "is_correction": true,
+      "captured_at": "2026-06-12T23:26:48.832308+00:00",
+      "transcript_file": "22cc1eb6-7997-421e-b688-fe7f9f1488f6.jsonl",
+      "input_tokens": 62,
+      "output_tokens": 37954,
+      "cache_read_input_tokens": 1166086,
+      "cache_creation_input_tokens": 152149,
+      "num_turns": 31,
+      "correction_iteration": 1
+    }
+  ],
+  "totals": {
+    "input_tokens": 266,
+    "output_tokens": 138031,
+    "cache_read_input_tokens": 5731709,
+    "cache_creation_input_tokens": 715023,
+    "iterations_count": 3,
+    "pricing_model": "claude-sonnet-4.6",
+    "total_cost_usd_api_equivalent": 6.472112,
+    "billing_note": "total_cost_usd_api_equivalent uses public Anthropic API rates for Claude Sonnet 4.6 ($3 input / $15 output / $0.30 cache_read / $3.75 cache_creation per 1M tokens). This investigation ran on a flat-rate Claude Pro subscription via Claude Code, so the figure is the pay-as-you-go API equivalent \u2014 not what was actually paid."
+  }
 }
