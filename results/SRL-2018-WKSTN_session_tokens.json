@@ -1,0 +1,5 @@
+{
+  "case": "SRL-2018-WKSTN",
+  "captured_from": "not_recoverable",
+  "note": "Token usage not captured for this run. No Claude Code session transcript under ~/.claude/projects/-home-sansproject-casefile/ matches the ralph.sh investigation prompt pattern for SRL-2018-WKSTN. This case used a memory-only investigation on base-wkstn-01; the session may have been cleaned or the prompt pattern differed. Future ralph.sh runs capture token usage automatically."
+}

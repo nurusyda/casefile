@@ -1,0 +1,5 @@
+{
+  "case": "SRL-2018-FILE",
+  "captured_from": "not_recoverable",
+  "note": "Token usage not captured for this run. A single Claude Code session transcript under ~/.claude/projects/-home-sansproject-casefile/ matches SRL-2018-FILE patterns (5c95dfe1-3e16-42a1-8904-074804ebb097.jsonl), but without a session_id stored in the committed results/SRL-2018-FILE_session01.json, the attribution cannot be verified. Future ralph.sh runs capture token usage automatically."
+}

@@ -1,0 +1,5 @@
+{
+  "case": "SRL-2018-DC",
+  "captured_from": "not_recoverable",
+  "note": "Token usage not captured for this run. Claude Code session transcripts exist under ~/.claude/projects/-home-sansproject-casefile/ but cannot be definitively attributed to the specific ralph.sh iteration that produced the committed results/SRL-2018-DC_session19.json — the result file does not store a transcript session ID, and multiple sessions reference SRL-2018-DC case paths. Future ralph.sh runs capture token usage automatically."
+}

@@ -203,6 +203,83 @@ validation would confirm it generalizes to production evidence.
 
 ---
 
+## Evidence Integrity
+
+CaseFile's evidence integrity guarantees are enforced architecturally — in code, not
+in the agent's prompt. Five layers provide defense-in-depth against spoliation:
+
+1. **Prompt-layer reminder.** Law 1 in `CLAUDE.md` states evidence is read-only. The
+   agent never writes to evidence paths (`/cases/`, `/mnt/`, `/media/`, `/evidence/`,
+   `*.E01`, `*.img`, `*.vmem`). This is prompt-based and is NOT relied upon as the sole
+   defense — it reinforces the architectural layers below.
+
+2. **Tool-surface enforcement.** Every parser accepts evidence paths as input
+   arguments only. All write paths are constrained to the case's `analysis/`
+   directory via `_enforce_case_root()` in `mcp_server/tools/_shared.py:79-96`, which
+   raises `PathConfinementError` on any path that escapes `CASEFILE_CASE_ROOT`. The
+   LLM cannot route tool output outside the case root because the constraint is in
+   the server, not in the prompt.
+
+3. **Capability absence.** Destructive commands (`rm`, `dd`, `shred`, `wipe`,
+   `format`, `mkfs`, `fdisk`) and approval (`approve_finding`) are NOT registered as
+   MCP tools. `BLOCKED_COMMANDS` in `mcp_server/tools/findings.py:24-34` documents
+   the frozenset, and `assert_blocked_commands_not_registered()` (line 37) raises
+   `RuntimeError` at server startup if any blocked name is registered.
+   `casefile-approve` is a separate CLI at `mcp_server/tools/findings.py:494-518`
+   requiring a real TTY (`sys.stdin.isatty()`) and `getpass()` password entry. The
+   AI cannot approve its own findings because the capability does not exist in its
+   tool surface.
+
+4. **Bypass-validation matrix.** `docs/SECURITY_MODEL.md` documents nine bypass tests
+   (BYPASS-1 through BYPASS-9), each with `file:line` references, classified as
+   Architectural or Environmental. BYPASS-1 through BYPASS-6 test spoliation
+   resistance: path traversal, symlink escape, command injection, audit log
+   tampering, and findings overwrite. Two Environmental GAPs are honestly documented:
+   network egress (BYPASS-7 / GAP-1) and `BLOCKED_COMMANDS` enforcement scope
+   (BYPASS-8 / GAP-2), both now closed with architectural fixes.
+   See `tests/test_security_boundaries.py` (38 tests, all passing).
+
+5. **Evidence-borne prompt injection (BYPASS-9).** Six tests in
+   `tests/test_security_boundaries.py` prove that adversarial instructions embedded
+   in evidence content (filenames, registry values, event-log fields, finding text)
+   cannot escalate the agent's privileges, because destructive and approval
+   capabilities are not registered as MCP tools. Injection can bias reasoning; it
+   cannot reach action. The reasoning channel is caught downstream by the grounding
+   verifier.
+
+---
+
+## Hallucinations caught during testing
+
+The grounding verifier caught real failures during development, not just synthetic
+ones. Two examples, both committed to git history. Honesty valued over perfection.
+
+- **Tool-name aliasing.** Early DC and WKSTN runs recorded the short tool name
+  `detect_host_type` in evidence claims while the audit log entry recorded the
+  MCP-prefixed name `mcp__casefile__detect_host_type`. The verifier's exact-string
+  match flagged these claims `CONTRADICTED` — the loop failed across all 3
+  iterations and the architecture honestly printed `Human review required` rather
+  than certifying findings it could not verify. The fix: a prefix-aware alias map
+  in `mcp_server/tools/grounding.py` (commit `891956b`) that resolves logical tool
+  names to canonical audit names before comparison. Both the DC and workstation
+  cases re-ran clean in one self-correction iteration after the fix landed.
+
+- **Volatility3 sub-plugin variant.** A related bug where
+  `Volatility3-windows.pslist` was treated as different from `Volatility3` in the
+  audit log. Same fix pattern — the alias map in
+  `mcp_server/tools/grounding.py:65-66` now maps both
+  `Volatility3-windows.pslist` and `Volatility3-windows.netscan` to the canonical
+  `Volatility3` name. Commit `92a447f`.
+
+Both failures and their corrections are recorded in the audit logs of the affected
+runs (`results/SRL-2018-DC_session19.json`,
+`results/SRL-2018_workstation_session20.json`). The architecture worked exactly as
+designed: it refused to silently accept findings it could not verify, forced human
+investigation, and the fix went into code rather than into a special case for the
+demo.
+
+---
+
 ## Methodology Notes
 
 - **Evidence source:** SRL-2018 starter case, base-rd-01-cdrive.E01

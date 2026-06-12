@@ -190,7 +190,9 @@ evidence integrity (read-only), MCP-first tool routing (never raw shell), heartb
 rule (OOM detection and recovery), epistemology (CONFIRMED/INFERRED/HYPOTHESIS
 labeling), autonomous execution (no human-in-the-loop questions), completion promise
 (structured output block), and tool call logging (every invocation recorded to
-`audit/mcp.jsonl`).
+`audit/mcp.jsonl`). The live `audit/mcp.jsonl` is generated at runtime; committed
+sanitized copies for each case live in `fixtures/reproducibility/<CASE>/audit/mcp.jsonl`
+and the `results/` directory.
 
 ### Tier 2 Verification
 
@@ -202,6 +204,13 @@ citing a SHA1 hash that does not exist in the Amcache CSV. Tier 2 fires for all
 tools that produce CSV output (Amcache, Registry, Event Logs, MFT, Hayabusa);
 Prefetch and memory are Tier 1 only. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 for the full design.
+
+**Token usage.** Per-iteration token counts and `total_cost_usd` from Claude Code are
+recorded to `results/<CASE>_session_tokens.json`. Past runs are populated from Claude
+Code's session transcripts under `~/.claude/projects/`. The per-tool audit log
+(`audit/mcp.jsonl`) records forensic parser invocations only — those are deterministic
+Python functions that consume zero LLM tokens; token usage is a session-level
+property and is logged separately.
 
 ---
 

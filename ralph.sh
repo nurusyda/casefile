@@ -36,6 +36,49 @@ cd "${SCRIPT_DIR}" || { log "ERROR: Cannot cd to ${SCRIPT_DIR}"; exit 1; }
 # ── Dependency check ──
 command -v jq >/dev/null 2>&1 || { log "ERROR: jq is required but not installed. Run: sudo apt-get install jq"; exit 1; }
 
+# ── Token tracking ──
+CASE_NAME=$(basename "${CASE_DIR}")
+SESSION_TOKENS_FILE="${SCRIPT_DIR}/results/${CASE_NAME}_session_tokens.json"
+mkdir -p "${SCRIPT_DIR}/results"
+
+# Initialize or load session tokens file
+_init_session_tokens() {
+    if [ ! -f "${SESSION_TOKENS_FILE}" ]; then
+        jq -n --arg case "${CASE_NAME}" '{
+          "case": $case,
+          "captured_from": "claude_code_ralph_loop",
+          "note": "Token usage captured via ralph.sh Claude Code loop.",
+          "iterations": [],
+          "totals": {}
+        }' > "${SESSION_TOKENS_FILE}"
+    fi
+}
+
+# Append a single iteration's token data to session_tokens.json
+_capture_tokens() {
+    local iter_num="$1"
+    local correction_flag="${2:-}"
+    local capture_args=("${CASE_NAME}" "${iter_num}")
+    if [ -n "${correction_flag}" ]; then
+        capture_args+=("--correction" "${correction_flag}")
+    fi
+    local token_entry
+    token_entry=$(python3 "${SCRIPT_DIR}/scripts/capture_tokens.py" "${capture_args[@]}" 2>/dev/null) || true
+    if [ -z "${token_entry}" ]; then
+        log "Token capture: no transcript found for iteration ${iter_num}"
+        return 0
+    fi
+    # Guard against error entries (e.g. {"error": "no_transcript_found"})
+    if ! echo "$token_entry" | jq -e '.input_tokens != null' >/dev/null 2>&1; then
+        log "Token capture produced error entry, skipping append"
+        return 0
+    fi
+    # Append to iterations array and recompute totals atomically
+    python3 "${SCRIPT_DIR}/scripts/append_session_tokens.py" \
+        "$token_entry" "$SESSION_TOKENS_FILE"
+    log "Token usage captured for iteration ${iter_num}"
+}
+
 # ── Generate .mcp.json with correct CASEFILE_CASE_DIR (jq avoids shell injection) ──
 generate_mcp_json() {
     jq -n         --arg case_dir "${CASEFILE_CASE_DIR}"         --arg examiner "${CASEFILE_EXAMINER:-casefile}"         --arg script_dir "${SCRIPT_DIR}"         '{
@@ -79,6 +122,7 @@ log "PRD file: ${PRD_FILE}"
 # ─── ITERATION LOOP ────────────────────────────────────────────────────────────
 iteration=0
 last_output=""
+_init_session_tokens
 
 while [ "${iteration}" -lt "${MAX_ITER}" ]; do
     iteration=$((iteration + 1))
@@ -136,6 +180,9 @@ PROMPT_EOF
         exit 1
     fi
     last_output="${CLAUDE_OUTPUT}"
+
+    # Capture token usage for this iteration
+    _capture_tokens "${iteration}"
 
     # Log output summary
     log "Claude output length: ${#CLAUDE_OUTPUT} chars"
@@ -237,6 +284,9 @@ PYEOF
                 generate_mcp_json
                 CLAUDE_OUTPUT=$(printf '%s' "${CORRECTION_PROMPT}" | claude -p --mcp-config "${SCRIPT_DIR}/.mcp.json" 2>&1) || true
                 log "Correction ${CORRECTION_ITER} output length: ${#CLAUDE_OUTPUT} chars"
+
+                # Capture token usage for this correction iteration
+                _capture_tokens "${iteration}" "${CORRECTION_ITER}"
 
                 set +e
                 CASE_DIR="${CASE_DIR}" \
