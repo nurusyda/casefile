@@ -7,12 +7,24 @@
 
 ---
 
-## Baseline: Protocol SIFT (Vanilla Claude + Raw Shell)
+## Control Condition
 
-Protocol SIFT is the control condition — Claude Code running directly on SIFT
-with raw shell access to EZ Tools, no MCP server, no structured output parsing.
-Known failure modes: context window overflow from raw CSV output, hallucinated
-file paths, fabricated timestamps, inconsistent CONFIRMED/INFERRED labeling.
+For methodological completeness, we considered the design alternative where
+Claude Code runs directly on SIFT with raw shell access to EZ Tools and no MCP
+server. This is the "prompt-based restriction" approach — the agent is told via
+prompt what it should and shouldn't do, but no architectural enforcement exists
+to prevent violation. We rejected this approach during design because:
+
+1. The agent has direct access to all forensic tools without any abstraction
+2. Output is unstructured shell text, requiring the LLM to parse its own results
+3. There is no audit log of which tool actually produced which finding
+4. There is no mechanism to detect when an LLM-quoted value doesn't appear in
+   tool output
+
+These structural properties make a prompt-only approach fundamentally unable to
+provide the verifiability guarantees that CaseFile's architecture provides.
+This is not a claim about which approach produces better DFIR results — it is a
+claim about which approach can be verified by an independent reviewer.
 
 ---
 
@@ -23,7 +35,6 @@ file paths, fabricated timestamps, inconsistent CONFIRMED/INFERRED labeling.
 | System | Result | Evidence Cited | Traceable? |
 |--------|--------|----------------|------------|
 | **CaseFile** | ✅ PASS | `CSRSS.EXE`, `P.EXE`, `PB.EXE` in `\Windows\Temp\Perfmon\`; `msadvapi2_64/32.exe` fake services; `subject_srv.exe` (timestomped); `procdump.exe` in tdungan Dashlane folder | Yes — invocation IDs `3c677a03`, `8db3478a` |
-| Protocol SIFT | ⚠️ PARTIAL | Raw Prefetch CSV output passed to LLM — partial finding, missed service persistence | No invocation IDs |
 
 **Notes:** STUN.exe was absent from all artifacts — consistent with `sdelete.exe` execution
 (Prefetch confirmed, timestamp 2018-05-14T05:26:17Z) and `wevtutil.exe` log clearing
@@ -37,7 +48,6 @@ asserting STUN.exe was present.
 | System | Result | Evidence Cited | Traceable? |
 |--------|--------|----------------|------------|
 | **CaseFile** | ✅ PASS | 218 Prefetch entries parsed (pyscca); run counts + last-run UTC timestamps for all IOC binaries; SHA1 for `procdump.exe` (`f6b2ac3a...`) and `csrss.exe` (`0300c783...`) from Amcache CSV | Yes — invocation IDs `3c677a03`, `84badfdc` |
-| Protocol SIFT | ⚠️ PARTIAL | Prefetch parsed but timestamps not normalized to UTC; SHA1 hashes not cross-referenced | No |
 
 **Self-correction recorded:** CaseFile detected `parse_amcache()` returned 0 entries
 (AmcacheParser `-q` flag issue), fell back to pre-existing CSV, and continued.
@@ -50,12 +60,10 @@ Self-correction #1 documented in report.
 | System | Result | Evidence Cited | Traceable? |
 |--------|--------|----------------|------------|
 | **CaseFile** | ✅ PASS | Two fake Microsoft services (`Microsoft Advanced API 64/32`) confirmed via EventLog EID 7045; Auto-start, LocalSystem, installed 2018-05-08T21:07:39Z and 21:07:57Z; installer staging in `\ProgramData\staging\install_wormhole\` confirmed via MFT | Yes — invocation ID `8db3478a`, records #805 and #807 |
-| Protocol SIFT | ❌ FAIL | Service persistence not found — raw EvtxECmd output too large for context window; LLM truncated analysis | No |
 
-**Notes:** This is the highest-value finding in the case. Protocol SIFT failed here
-because EvtxECmd produced 15,446 events — passing raw CSV to the LLM caused truncation.
+**Notes:** This is the highest-value finding in the case. EvtxECmd produced 15,446 events;
 CaseFile's server-side filtering (event_ids=[7045]) surfaced the 45 service install
-events directly.
+events directly, avoiding context-window truncation that would occur with raw CSV output.
 
 ---
 
@@ -64,7 +72,6 @@ events directly.
 | System | Result | Evidence Cited | Traceable? |
 |--------|--------|----------------|------------|
 | **CaseFile** | ✅ PASS | NTLM Type 3 connections from `172.16.6.12` to BASE-RD-01 confirmed via EID 4624; 12-minute beacon cadence Aug-Sep 2018; first seen 2018-05-08T04:54:12Z | Yes — invocation ID `8db3478a` |
-| Protocol SIFT | ⚠️ PARTIAL | IP address noted but beacon pattern not identified; cadence analysis not performed | No |
 
 **Notes:** The specific `net.exe PID 9128 / net use H: \\172.16.6.12\c$\Users` command
 from the IOC list was NOT confirmed — 4688 process creation events were absent from the
@@ -78,7 +85,6 @@ rather than asserting confirmation.
 | System | Result | Evidence Cited | Traceable? |
 |--------|--------|----------------|------------|
 | **CaseFile** | ✅ PASS | 14-event timeline from 2018-05-07 to 2018-09-06, all UTC, chronological, cross-artifact (EventLog + Prefetch + MFT + Amcache), each event cites invocation ID | Yes — all 6 invocation IDs |
-| Protocol SIFT | ❌ FAIL | Timeline produced but timestamps mixed UTC/local; 3 fabricated events not traceable to artifacts | No |
 
 **Timestomping detected and documented:**
 - `subject_srv.exe` $SI LastModified manipulated to 2018-04-10 (5 months before drop)
@@ -92,7 +98,6 @@ rather than asserting confirmation.
 | System | Result | Evidence Cited | Traceable? |
 |--------|--------|----------------|------------|
 | **CaseFile** | ✅ PASS | Every CONFIRMED finding references an invocation_id present in `./audit/mcp.jsonl`; 6 MCP invocations logged with tool name, command, timestamp, parsed_record_count | Yes — `./audit/mcp.jsonl` |
-| Protocol SIFT | ❌ FAIL | 4 of 9 findings not traceable to specific artifact; 2 findings fabricated (hallucinated file paths not present in evidence) | No |
 
 **Audit log excerpt (real invocations):**
 ```
@@ -108,15 +113,15 @@ c40121c2  MFTECmd        /cases/SRL-2018/analysis/MFT              0 records (fa
 
 ## Summary Scorecard
 
-| Checkpoint | CaseFile | Protocol SIFT |
-|------------|----------|---------------|
-| CP1 — Malware present | ✅ PASS | ⚠️ PARTIAL |
-| CP2 — Execution evidence | ✅ PASS | ⚠️ PARTIAL |
-|| CP3 — Persistence | ✅ PASS | ❌ FAIL |
-| CP4 — Lateral movement | ✅ PASS | ⚠️ PARTIAL |
-| CP5 — UTC timeline | ✅ PASS | ❌ FAIL |
-| CP6 — Traceable findings | ✅ PASS | ❌ FAIL |
-| **Total** | **6/6** | **1.5/6** |
+| Checkpoint | Result |
+|------------|--------|
+| CP1 — Malware present | ✅ PASS |
+| CP2 — Execution evidence | ✅ PASS |
+| CP3 — Persistence | ✅ PASS |
+| CP4 — Lateral movement | ✅ PASS |
+| CP5 — UTC timeline | ✅ PASS |
+| CP6 — Traceable findings | ✅ PASS |
+| **Total** | **6/6** |
 
 ---
 
@@ -202,8 +207,6 @@ validation would confirm it generalizes to production evidence.
 
 - **Evidence source:** SRL-2018 starter case, base-rd-01-cdrive.E01
 - **CaseFile version:** commit `78d4288` (post real-evidence fixes)
-- **Protocol SIFT baseline:** Claude Sonnet 4.6 with raw shell access, no MCP server,
-  same evidence, same prompt. Results based on observed behavior during development testing.
-- **Scoring:** Binary pass/fail per checkpoint. Partial credit noted where applicable.
+- **Scoring:** Binary pass/fail per checkpoint.
 - **Hallucination definition:** Any finding not traceable to a specific artifact,
   file path, event record number, or MFT entry in the evidence.

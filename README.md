@@ -126,7 +126,7 @@ Everything a judge or reader might want to verify, linked in one place.
 
 | Document | What it covers |
 |---|---|
-| [`docs/accuracy_report.md`](docs/accuracy_report.md) | Per-checkpoint CFA-Bench scoring, Protocol SIFT baseline comparison (2/6 vs 6/6), false-positive analysis. |
+| [`docs/accuracy_report.md`](docs/accuracy_report.md) | Per-checkpoint CFA-Bench scoring, false-positive analysis, grounding verification methodology. |
 | [`docs/SECURITY_MODEL.md`](docs/SECURITY_MODEL.md) | BYPASS-1 through BYPASS-9 matrix — architectural vs prompt-based guardrails, file-and-line references. |
 | [`docs/dataset.md`](docs/dataset.md) | Evidence provenance, SHA-256 hashes at ingest, per-host artifact coverage. |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Full system diagram, claim → audit → CSV trace example. |
@@ -150,31 +150,18 @@ and `tier2_verified`.
 
   Or walk a single finding by hand: [docs/manual_verification.md](docs/manual_verification.md). It's the artifact equivalent of showing your work on a math test — the answer was already correct, but seeing one example computed by hand makes the whole sheet land harder.
 
-### vs. Protocol SIFT Baseline
+### Architectural enforcement vs prompt-based restriction
 
-To establish why architectural anti-hallucination matters, we ran Protocol SIFT on the
-same SRL-2018 evidence and scored its output manually using CFA-Bench (6 investigation
-checkpoints). Three of six answers contained fabricated details:
-
-| Checkpoint | Question | Protocol SIFT | Failure mode |
-|---|---|---|---|
-| CP1 | Malware present on host? | ✅ Correct | — |
-| CP2 | Execution evidence found? | ❌ Hallucinated | Execution time fabricated — not in artifact |
-| CP3 | Persistence mechanism identified? | ❌ Hallucinated | Service name guessed, not parsed from registry |
-| CP4 | Lateral movement confirmed? | ✅ Not detected | — |
-| CP5 | Coherent UTC timeline produced? | ❌ Hallucinated | Timestamps not sourced from artifacts |
-| CP6 | All findings traceable to artifacts? | ⚠️ No tracing | No invocation ID or tool citation produced |
-
-**Protocol SIFT score: 2/6 correct, 3 hallucinated (50%)**
-
-CaseFile addresses each failure mode architecturally: CP2/CP3 timestamps and service
-names are parsed from CSV output and Tier 2 verified against the actual cell values.
-CP5 timestamps carry invocation IDs linking to the parser run that produced them.
-CP6 traceability is enforced by the audit chain (claim → invocation_id → audit/mcp.jsonl → CSV cell).
+**Architectural enforcement vs prompt-based restriction.** The defining design
+choice in CaseFile is that every protective guarantee is enforced in code, not in
+the agent's prompt. The agent cannot fabricate an approved finding because the
+approve capability is not registered as an MCP tool. The agent cannot modify
+evidence because the MCP server only exposes read paths into the evidence
+directory. The agent cannot bypass the grounding verifier because the verifier
+runs as a separate, deterministic post-investigation step that exits non-zero on
+any contradicted claim.
 
 CaseFile's measured hallucination rate across 41 claims on four datasets: **0.0%** (0 contradicted).
-
-Source: [`reports/protocol_sift_baseline.json`](reports/protocol_sift_baseline.json) (baseline established April 2026)
 
 > **Note on SRL-2018-FILE grounding (77.8%):** Two claims are marked UNGROUNDED because
 > the audit entry lacked a `csv_files` field — the Amcache and MFT parsers produced 0
@@ -273,9 +260,8 @@ Full setup instructions: [docs/DEPLOY.md](docs/DEPLOY.md).
 ## Architecture
 
 **Architectural pattern: Approach 2 — Custom MCP Server** (per the *Find Evil!* 2026
-hackathon brief's four supported approaches). CaseFile is a parallel MCP server, not
-an extension of Protocol SIFT. The choice was deliberate: a typed tool surface lets
-us enforce architectural anti-hallucination guarantees (registered-tool gating,
+hackathon brief's four supported approaches). CaseFile is a parallel MCP server. The choice was deliberate: a typed tool surface
+lets us enforce architectural anti-hallucination guarantees (registered-tool gating,
 read-only evidence paths, TTY-only approval) that a prompt-layer extension cannot
 provide.
 
