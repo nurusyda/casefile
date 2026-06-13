@@ -9,14 +9,15 @@ POST-CORRECTION GROUNDING VERIFICATION (across all five datasets)
 | SRL-2018-RD01  | `base-rd-01` (workstation, live run 2026-06-12) | 14 | 14 (100%) | — | 0.0% |
 | SRL-2018-FILE (live) | File Server (memory-only, 2026-06-13) | 15 | 3 (20.0%) | 0 | 0.0% |
 | SRL-2018-WKSTN (live) | Workstation (memory-only, 2026-06-13) | 12 | 8 (66.7%) | 0 | 0.0% |
-| **Aggregate**  |                                 | **82** | **60 (73.2%)** | **19**          | **0.0%**      |
+| SRL-2018 (live) | Workstation (disk + memory, 2026-06-13) | 14 | 14 (100%) | 0 | 0.0% |
+| **Aggregate**  |                                 | **96** | **74 (77.1%)** | **19**          | **0.0%**      |
 
 CaseFile uses two-tier grounding verification:
 
 - **Tier 1 (attestation)**: the claim's tool was actually called with a non-zero record count, verified against the append-only audit log via `invocation_id`.
 - **Tier 2 (literal value)**: in addition to Tier 1, the `exact_value` cited in the claim's `evidence_quote` appears as a literal cell in the tool's CSV output.
 
-Hallucination rate = CONTRADICTED claims / total claims. **Zero contradicted across 82 claims, all seven datasets.**
+Hallucination rate = CONTRADICTED claims / total claims. **Zero contradicted across 96 claims, all eight datasets.**
 
 The two ungrounded claims on the file-server case are transparent traceability gaps — the live MFT parser returned 0 entries against a corrupt `$MFT`, so no `csv_files` were available for Tier 2 verification. The grounding verifier correctly refused to label these as CONFIRMED rather than fabricating evidence — exactly the failure mode the architecture is designed to make impossible.
 

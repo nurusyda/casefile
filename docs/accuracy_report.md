@@ -225,7 +225,8 @@ In every case the architecture refused to certify rather than fabricating values
 | SRL-2018-RD01  | `base-rd-01` (workstation, live run 2026-06-12) | 14 | 14 (100%) | — | 0.0% |
 | SRL-2018-FILE (live) | File Server (memory-only, 2026-06-13) | 15 | 3 (20.0%) | 0 | 0.0% |
 | SRL-2018-WKSTN (live) | Workstation (memory-only, 2026-06-13) | 12 | 8 (66.7%) | 0 | 0.0% |
-| **Aggregate**  |                                 | **82** | **60 (73.2%)** | **19**          | **0.0%**      |
+| SRL-2018 (live) | Workstation (disk + memory, 2026-06-13) | 14 | 14 (100%) | 0 | 0.0% |
+| **Aggregate**  |                                 | **96** | **74 (77.1%)** | **19**          | **0.0%**      |
 
 - **Grounded claim**: invocation ID found in audit log AND exact value found in parser CSV output
 - **Tier 2 verified**: claim passed CSV cell-value verification (only applicable to tools that produce CSV output — Amcache, Registry, Event Logs, MFT, Hayabusa)
@@ -446,6 +447,7 @@ Across the five committed cases, zero CONTRADICTED claims were ever certified as
   completed on a clean SIFT OVA on 2026-06-13 to capture real token usage and
   self-correction evidence (commits `07022bc` and later). The current repository
   aggregate across all seven datasets (4 fixtures + 3 live re-runs) is
-  **82 claims / 60 grounded (73.2%) / 0 contradicted / 0.0% hallucination**.
+  **96 claims / 74 grounded (77.1%) / 0 contradicted / 0.0% hallucination**.
   `bash verify.sh` output (41/35) matches the video exactly; the accuracy report
-  table above reflects the full seven-dataset state.
+  table above reflects the full eight-dataset state (4 fixtures + 4 live re-runs
+  across three SIFT OVA sessions on 2026-06-12 and 2026-06-13).
