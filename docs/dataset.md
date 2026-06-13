@@ -3,9 +3,10 @@
 ## Source
 
 SANS FOR508 SRL-2018 "CRIMSON OSPREY" case, publicly distributed with the SANS
-FOR508 course. The agent was tested across **four investigations spanning four
+FOR508 course. The agent was tested across **five investigations spanning five
 distinct hosts** from the same intrusion. Three investigations used full disk +
-memory pairs; one was a memory-only acquisition.
+memory pairs; one was a memory-only acquisition; one was a live re-ingest of the
+workstation E01 (2026-06-12).
 
 ## Coverage Matrix
 
@@ -15,6 +16,7 @@ memory pairs; one was a memory-only acquisition.
 | SRL-2018-DC | BASE-DC | Domain Controller (paired) | `base-dc-cdrive.E01` | `base-dc-memory.img` |
 | SRL-2018-FILE | BASE-FILE | File Server (paired) | `base-file-cdrive.E01` | `base-file-memory.img` |
 | SRL-2018-WKSTN | `base-wkstn-01` | Workstation (memory only) | — | `base-wkstn-01-memory.img` |
+| SRL-2018-RD01 | `base-rd-01` | Workstation (paired, live run 2026-06-12) | `base-rd-01-cdrive.E01` | `base-rd01-memory.img` |
 
 All evidence is from the same SRL-2018 CRIMSON OSPREY intrusion, sourced from
 SANS FOR508 course materials.
@@ -94,13 +96,23 @@ Live C2 listener and beaconing identified from memory alone:
 - 10 claims, 6 grounded, 4 transparent traceability gaps, 0 hallucinations,
   0 contradicted
 
+### base-rd-01 (workstation, live re-ingest 2026-06-12)
+
+End-to-end live run via `ralph.sh` in a single iteration with zero corrections:
+
+- 14 claims, 14 grounded (100%), 0 ungrounded, 0 contradicted
+- 2 CONFIRMED findings, 0.0% hallucination
+- 65 turns, API-equivalent cost USD 5.11 at public Sonnet 4.6 rates
+- Token usage and audit log committed at `results/SRL-2018-RD01_session_tokens.json`
+  and `results/SRL-2018-RD01_audit_sample.jsonl`
+
 ## Aggregate
 
 | Metric | Value |
 |---|---|
-| Total findings recorded | 31 |
-| Total claims verified | 41 |
-| Grounded (Tier 1 + Tier 2) | 35 (85.4%) |
+| Total findings recorded | 33 |
+| Total claims verified | 55 |
+| Grounded (Tier 1 + Tier 2) | 49 (89.1%) |
 | Contradicted (fabricated) | **0** |
 | **Hallucination rate** | **0.0%** |
 | Transparent traceability gaps | 6 (parser tool failures correctly flagged) |

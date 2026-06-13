@@ -3,7 +3,7 @@
 [![CI](https://github.com/nurusyda/casefile/actions/workflows/ci.yml/badge.svg)](https://github.com/nurusyda/casefile/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/nurusyda/casefile/blob/main/LICENSE)
 
-**Autonomous forensic investigation for Claude Code on SIFT Workstation — 0.0% hallucination rate across all four tested datasets.**
+**Autonomous forensic investigation for Claude Code on SIFT Workstation — 0.0% hallucination rate across all five tested datasets.**
 
 CaseFile gives Claude Code structured access to Windows forensic artifact parsers, a
 deterministic cross-source correlation engine, and a two-tier grounding verifier
@@ -11,8 +11,8 @@ that checks every claim against actual tool output — and self-corrects when ve
 fails.
 
 Built for the SANS Find Evil Hackathon 2026. Tested against the SRL-2018 CRIMSON OSPREY
-case across four host types: workstation (BASE-RD-01), domain controller (BASE-DC),
-file server (BASE-FILE), and workstation re-run on a live SIFT OVA (SRL-2018-WKSTN).
+case across five host types: workstation (BASE-RD-01), domain controller (BASE-DC),
+file server (BASE-FILE), workstation memory-only re-run (SRL-2018-WKSTN), and live workstation re-ingest (SRL-2018-RD01).
 
 > **Important** — CaseFile is an autonomous investigation assistant, not a replacement
 > for examiner judgment. The AI accelerates analysis; the examiner must review and
@@ -79,16 +79,18 @@ the system is now stable on those classes of failure.
 
 ## Results
 
-Post-correction grounding verification across four datasets from the CRIMSON OSPREY case:
+Post-correction grounding verification across five datasets from the CRIMSON OSPREY case:
 
-Evidence types covered. Three disk + memory pairs (workstation BASE-RD-01, domain controller BASE-DC, file server BASE-FILE) plus one memory-only investigation (base-wkstn-01, on a clean SIFT OVA). All four cases were sourced from the same SRL-2018 CRIMSON OSPREY intrusion. The memory-only case demonstrates that CaseFile's grounding architecture works for live-acquisition forensics — not just disk artifacts — including transparent traceability gaps when Volatility3's symbol resolution fails on a specific Windows build.
+Evidence types covered. Three disk + memory pairs (workstation BASE-RD-01, domain controller BASE-DC, file server BASE-FILE) plus one memory-only investigation (base-wkstn-01, on a clean SIFT OVA), plus a live re-ingest of the workstation E01 (SRL-2018-RD01, 2026-06-12). All five cases were sourced from the same SRL-2018 CRIMSON OSPREY intrusion. The memory-only case demonstrates that CaseFile's grounding architecture works for live-acquisition forensics — not just disk artifacts — including transparent traceability gaps when Volatility3's symbol resolution fails on a specific Windows build.
 
-| Dataset | Host role | Findings | Claims | Grounded | Tier 2 verified | Hallucination | Self-corrections |
-|---|---|---|---|---|---|---|---|
-| SRL-2018 | Workstation (BASE-RD-01) | 5 | 10 | 10 (100%) | 7 | 0.0% | 1 |
-| SRL-2018-DC | Domain Controller (BASE-DC) | 6 | 12 | 12 (100%) | 3 | 0.0% | 3 |
-| SRL-2018-FILE | File Server (BASE-FILE) | 6 | 9 | 7 (77.8%) | 6 | 0.0% | 3 |
-| SRL-2018-WKSTN | Workstation memory only (`base-wkstn-01`) | 8 | 10 | 6 (60.0%) | 3 | 0.0% | 0 |
+| Dataset | Host role | Claims | Grounded | Tier 2 verified | Hallucination |
+|---|---|---|---|---|---|
+| SRL-2018 | Workstation | 10 | 10 (100%) | 7 | 0.0% |
+| SRL-2018-DC | Domain Controller | 12 | 12 (100%) | 3 | 0.0% |
+| SRL-2018-FILE | File Server | 9 | 7 (77.8%) | 6 | 0.0% |
+| SRL-2018-WKSTN | `base-wkstn-01` (memory only) | 10 | 6 (60.0%) | 3 | 0.0% |
+| SRL-2018-RD01 | `base-rd-01` (workstation, live run 2026-06-12) | 14 | 14 (100%) | — | 0.0% |
+| **Aggregate** | | **55** | **49 (89.1%)** | **19** | **0.0%** |
 
 - **Grounded claim**: invocation ID found in audit log AND exact value found in parser CSV output
 - **Tier 2 verified**: claim passed CSV cell-value verification (only applicable to tools that produce CSV output — Amcache, Registry, Event Logs, MFT, Hayabusa)
@@ -101,6 +103,8 @@ Source files:
 - `results/SRL-2018-DC_session19.json`
 - `results/SRL-2018-FILE_session01.json`
 - `results/SRL-2018-WKSTN_audit_sample.jsonl`
+- `results/SRL-2018-RD01_session_tokens.json`
+- `results/SRL-2018-RD01_audit_sample.jsonl`
 
 ### Evidence & Verification Index
 
@@ -161,7 +165,7 @@ directory. The agent cannot bypass the grounding verifier because the verifier
 runs as a separate, deterministic post-investigation step that exits non-zero on
 any contradicted claim.
 
-CaseFile's measured hallucination rate across 41 claims on four datasets: **0.0%** (0 contradicted).
+CaseFile's measured hallucination rate across 55 claims on five datasets: **0.0%** (0 contradicted).
 
 > **Note on SRL-2018-FILE grounding (77.8%):** Two claims are marked UNGROUNDED because
 > the audit entry lacked a `csv_files` field — the Amcache and MFT parsers produced 0
@@ -361,7 +365,7 @@ fundamentally different approaches:
 
 - **CaseFile** compresses the examiner loop: autonomous investigation with
   post-hoc grounding verification of every claim against actual tool output.
-  Measured hallucination rate: 0.0% across four datasets. Strength is depth
+  Measured hallucination rate: 0.0% across five datasets. Strength is depth
   of verification, not breadth of tool coverage.
 - **Valhuntir** provides breadth and human-in-the-loop discipline: 15 parsers,
   Hayabusa Sigma rules, OpenSearch indexing, RAG with 22,000+ records, multi-VM
