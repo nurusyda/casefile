@@ -1,0 +1,176 @@
+{
+  "total_claims": 12,
+  "grounded": 8,
+  "ungrounded": 2,
+  "contradicted": 0,
+  "inferred_labeled": 2,
+  "grounding_rate": 0.6667,
+  "hallucination_rate": 0.0,
+  "all_passed": true,
+  "tier2_verified": 0,
+  "findings": [
+    {
+      "finding_id": "F-sansforensics-001",
+      "total_claims": 2,
+      "grounded": 2,
+      "ungrounded": 0,
+      "contradicted": 0,
+      "inferred_labeled": 0,
+      "grounding_rate": 1.0,
+      "hallucination_rate": 0.0,
+      "passed": true,
+      "claims": [
+        {
+          "claim_text": "tool='Volatility3' claim='subject_srv.exe (PID 12528) listening on TCP 3262 at 2018-09-06 19:37:07 UTC' inv_id='mem-3762128b'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "mem-3762128b",
+          "note": "Tool 'Volatility3' attested in audit log (invocation_id='mem-3762128b', parsed_record_count=148). exact_value supplied but no valid csv_files in audit entry \u2014 Tier 2 skipped, Tier 1 attestation only."
+        },
+        {
+          "claim_text": "tool='Volatility3' claim='Listening port 3262 matches F-Response Subject agent configuration' inv_id='mem-3762128b'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "mem-3762128b",
+          "note": "Tool 'Volatility3' attested in audit log (invocation_id='mem-3762128b', parsed_record_count=148). exact_value supplied but no valid csv_files in audit entry \u2014 Tier 2 skipped, Tier 1 attestation only."
+        }
+      ]
+    },
+    {
+      "finding_id": "F-sansforensics-002",
+      "total_claims": 2,
+      "grounded": 1,
+      "ungrounded": 1,
+      "contradicted": 0,
+      "inferred_labeled": 0,
+      "grounding_rate": 0.5,
+      "hallucination_rate": 0.0,
+      "passed": true,
+      "claims": [
+        {
+          "claim_text": "tool='correlate_evidence' claim='correlate_evidence returned ERROR for subject_srv.exe due to missing pyscca and empty pslist' inv_id='correlation_8bdc2c309e18' audit_field='verdict'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "correlation_8bdc2c309e18",
+          "note": "Tool attested and field check passed: verdict = 'ERROR' contains 'ERROR'"
+        },
+        {
+          "claim_text": "tool='Volatility3' claim='windows.pslist returned 0 records (fresh, non-cached run) for base-wkstn-01-memory.img' inv_id='mem-1079ad2e' audit_field='total_records'",
+          "status": "UNGROUNDED",
+          "supporting_invocation_id": "mem-1079ad2e",
+          "note": "Cannot verify \u2014 Field 'total_records' not found in audit entry. Top-level keys: ['cache_file', 'cached', 'cmd', 'duration_ms', 'examiner', 'image_path', 'image_sha256', 'invocation_id', 'parsed_record_count', 'plugin', 'returncode', 'stderr_excerpt', 'stdout_lines', 'tool', 'ts']"
+        }
+      ]
+    },
+    {
+      "finding_id": "F-sansforensics-003",
+      "total_claims": 2,
+      "grounded": 2,
+      "ungrounded": 0,
+      "contradicted": 0,
+      "inferred_labeled": 0,
+      "grounding_rate": 1.0,
+      "hallucination_rate": 0.0,
+      "passed": true,
+      "claims": [
+        {
+          "claim_text": "tool='Volatility3' claim='Six CLOSED TCP sessions from 172.16.7.11 to 172.16.4.10:8080 with unresolved PID' inv_id='mem-3762128b'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "mem-3762128b",
+          "note": "Tool 'Volatility3' attested in audit log (invocation_id='mem-3762128b', parsed_record_count=148). exact_value supplied but no valid csv_files in audit entry \u2014 Tier 2 skipped, Tier 1 attestation only."
+        },
+        {
+          "claim_text": "tool='Volatility3' claim='Destination port 8080 recurring across all six sessions' inv_id='mem-3762128b'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "mem-3762128b",
+          "note": "Tool 'Volatility3' attested in audit log (invocation_id='mem-3762128b', parsed_record_count=148). exact_value supplied but no valid csv_files in audit entry \u2014 Tier 2 skipped, Tier 1 attestation only."
+        }
+      ]
+    },
+    {
+      "finding_id": "F-sansforensics-004",
+      "total_claims": 2,
+      "grounded": 2,
+      "ungrounded": 0,
+      "contradicted": 0,
+      "inferred_labeled": 0,
+      "grounding_rate": 1.0,
+      "hallucination_rate": 0.0,
+      "passed": true,
+      "claims": [
+        {
+          "claim_text": "tool='Volatility3' claim='ESTABLISHED session 172.16.7.11:56150 to 172.16.5.21:5985' inv_id='mem-3762128b'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "mem-3762128b",
+          "note": "Tool 'Volatility3' attested in audit log (invocation_id='mem-3762128b', parsed_record_count=148). exact_value supplied but no valid csv_files in audit entry \u2014 Tier 2 skipped, Tier 1 attestation only."
+        },
+        {
+          "claim_text": "tool='Volatility3' claim='Destination port 5985 (WinRM) for established and prior CLOSED sessions' inv_id='mem-3762128b'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "mem-3762128b",
+          "note": "Tool 'Volatility3' attested in audit log (invocation_id='mem-3762128b', parsed_record_count=148). exact_value supplied but no valid csv_files in audit entry \u2014 Tier 2 skipped, Tier 1 attestation only."
+        }
+      ]
+    },
+    {
+      "finding_id": "F-sansforensics-005",
+      "total_claims": 2,
+      "grounded": 1,
+      "ungrounded": 1,
+      "contradicted": 0,
+      "inferred_labeled": 0,
+      "grounding_rate": 0.5,
+      "hallucination_rate": 0.0,
+      "passed": true,
+      "claims": [
+        {
+          "claim_text": "tool='Volatility3' claim='No process owner in netscan matches prd.json known_iocs (stun.exe, msedge.exe, pssdnsvc.exe, atmfd.dll)' inv_id='mem-3762128b'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "mem-3762128b",
+          "note": "Tool 'Volatility3' attested in audit log (invocation_id='mem-3762128b', parsed_record_count=148). exact_value supplied but no valid csv_files in audit entry \u2014 Tier 2 skipped, Tier 1 attestation only."
+        },
+        {
+          "claim_text": "tool='Volatility3' claim='windows.pslist returned 0 records, preventing process-list IOC matching' inv_id='mem-1079ad2e' audit_field='total_records'",
+          "status": "UNGROUNDED",
+          "supporting_invocation_id": "mem-1079ad2e",
+          "note": "Cannot verify \u2014 Field 'total_records' not found in audit entry. Top-level keys: ['cache_file', 'cached', 'cmd', 'duration_ms', 'examiner', 'image_path', 'image_sha256', 'invocation_id', 'parsed_record_count', 'plugin', 'returncode', 'stderr_excerpt', 'stdout_lines', 'tool', 'ts']"
+        }
+      ]
+    },
+    {
+      "finding_id": "F-sansforensics-006",
+      "total_claims": 1,
+      "grounded": 0,
+      "ungrounded": 0,
+      "contradicted": 0,
+      "inferred_labeled": 1,
+      "grounding_rate": 0.0,
+      "hallucination_rate": 0.0,
+      "passed": true,
+      "claims": [
+        {
+          "claim_text": "(no evidence_quotes \u2014 INFERRED finding)",
+          "status": "INFERRED_LABELED",
+          "supporting_invocation_id": null,
+          "note": "Finding labeled INFERRED with no evidence_quotes. Acceptable \u2014 inference is documented. Consider adding audit_field checks for stronger grounding."
+        }
+      ]
+    },
+    {
+      "finding_id": "F-sansforensics-007",
+      "total_claims": 1,
+      "grounded": 0,
+      "ungrounded": 0,
+      "contradicted": 0,
+      "inferred_labeled": 1,
+      "grounding_rate": 0.0,
+      "hallucination_rate": 0.0,
+      "passed": true,
+      "claims": [
+        {
+          "claim_text": "(no evidence_quotes \u2014 INFERRED finding)",
+          "status": "INFERRED_LABELED",
+          "supporting_invocation_id": null,
+          "note": "Finding labeled INFERRED with no evidence_quotes. Acceptable \u2014 inference is documented. Consider adding audit_field checks for stronger grounding."
+        }
+      ]
+    }
+  ]
+}

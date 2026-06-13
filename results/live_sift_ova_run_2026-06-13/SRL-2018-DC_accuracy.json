@@ -1,0 +1,196 @@
+{
+  "total_claims": 11,
+  "grounded": 3,
+  "ungrounded": 5,
+  "contradicted": 0,
+  "inferred_labeled": 3,
+  "grounding_rate": 0.2727,
+  "hallucination_rate": 0.0,
+  "all_passed": true,
+  "tier2_verified": 0,
+  "findings": [
+    {
+      "finding_id": "F-sansforensics-001",
+      "total_claims": 3,
+      "grounded": 0,
+      "ungrounded": 3,
+      "contradicted": 0,
+      "inferred_labeled": 0,
+      "grounding_rate": 0.0,
+      "hallucination_rate": 0.0,
+      "passed": true,
+      "claims": [
+        {
+          "claim_text": "tool='Volatility3' claim='windows.pslist returned 0 records for base-dc-memory.img' inv_id='mem-6dca014e' audit_field='total_records'",
+          "status": "UNGROUNDED",
+          "supporting_invocation_id": "mem-6dca014e",
+          "note": "Cannot verify \u2014 Field 'total_records' not found in audit entry. Top-level keys: ['cache_file', 'cached', 'cmd', 'duration_ms', 'examiner', 'image_path', 'image_sha256', 'invocation_id', 'parsed_record_count', 'plugin', 'returncode', 'stderr_excerpt', 'stdout_lines', 'tool', 'ts']"
+        },
+        {
+          "claim_text": "tool='Volatility3' claim='windows.dlllist returned 0 records for base-dc-memory.img' inv_id='mem-d9626cd6' audit_field='total_records'",
+          "status": "UNGROUNDED",
+          "supporting_invocation_id": "mem-d9626cd6",
+          "note": "Cannot verify \u2014 Field 'total_records' not found in audit entry. Top-level keys: ['cache_file', 'cached', 'cmd', 'duration_ms', 'examiner', 'image_path', 'image_sha256', 'invocation_id', 'parsed_record_count', 'plugin', 'returncode', 'stderr_excerpt', 'stdout_lines', 'tool', 'ts']"
+        },
+        {
+          "claim_text": "tool='Volatility3' claim='windows.handles returned 0 records for base-dc-memory.img' inv_id='mem-344777b2' audit_field='total_records'",
+          "status": "UNGROUNDED",
+          "supporting_invocation_id": "mem-344777b2",
+          "note": "Cannot verify \u2014 Field 'total_records' not found in audit entry. Top-level keys: ['cache_file', 'cached', 'cmd', 'duration_ms', 'examiner', 'image_path', 'image_sha256', 'invocation_id', 'parsed_record_count', 'plugin', 'returncode', 'stderr_excerpt', 'stdout_lines', 'tool', 'ts']"
+        }
+      ]
+    },
+    {
+      "finding_id": "F-sansforensics-002",
+      "total_claims": 1,
+      "grounded": 1,
+      "ungrounded": 0,
+      "contradicted": 0,
+      "inferred_labeled": 0,
+      "grounding_rate": 1.0,
+      "hallucination_rate": 0.0,
+      "passed": true,
+      "claims": [
+        {
+          "claim_text": "tool='detect_host_type' claim='SRL-2018-DC classified as MEMORY_ONLY' inv_id='012c4885-1c1e-4ac9-913a-12e64c5fcb00' audit_field='host_type'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "012c4885-1c1e-4ac9-913a-12e64c5fcb00",
+          "note": "Tool attested and field check passed: host_type = 'MEMORY_ONLY' contains 'MEMORY_ONLY'"
+        }
+      ]
+    },
+    {
+      "finding_id": "F-sansforensics-003",
+      "total_claims": 1,
+      "grounded": 0,
+      "ungrounded": 1,
+      "contradicted": 0,
+      "inferred_labeled": 0,
+      "grounding_rate": 0.0,
+      "hallucination_rate": 0.0,
+      "passed": true,
+      "claims": [
+        {
+          "claim_text": "tool='Volatility3' claim='All 7 allowlisted Volatility3 plugins returned 0 records for base-dc-memory.img' inv_id='mem-6dca014e' audit_field='total_records'",
+          "status": "UNGROUNDED",
+          "supporting_invocation_id": "mem-6dca014e",
+          "note": "Cannot verify \u2014 Field 'total_records' not found in audit entry. Top-level keys: ['cache_file', 'cached', 'cmd', 'duration_ms', 'examiner', 'image_path', 'image_sha256', 'invocation_id', 'parsed_record_count', 'plugin', 'returncode', 'stderr_excerpt', 'stdout_lines', 'tool', 'ts']"
+        }
+      ]
+    },
+    {
+      "finding_id": "F-sansforensics-004",
+      "total_claims": 1,
+      "grounded": 1,
+      "ungrounded": 0,
+      "contradicted": 0,
+      "inferred_labeled": 0,
+      "grounding_rate": 1.0,
+      "hallucination_rate": 0.0,
+      "passed": true,
+      "claims": [
+        {
+          "claim_text": "tool='detect_host_type' claim='SRL-2018-DC classified as MEMORY_ONLY this session' inv_id='936865c1-c0e4-4570-a62d-3f3c444d25e1' audit_field='host_type'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "936865c1-c0e4-4570-a62d-3f3c444d25e1",
+          "note": "Tool attested and field check passed: host_type = 'MEMORY_ONLY' contains 'MEMORY_ONLY'"
+        }
+      ]
+    },
+    {
+      "finding_id": "F-sansforensics-005",
+      "total_claims": 1,
+      "grounded": 0,
+      "ungrounded": 1,
+      "contradicted": 0,
+      "inferred_labeled": 0,
+      "grounding_rate": 0.0,
+      "hallucination_rate": 0.0,
+      "passed": true,
+      "claims": [
+        {
+          "claim_text": "tool='Volatility3' claim='windows.pslist returned 0 records for base-dc-memory.img (fresh run, this session)' inv_id='mem-ff347495' audit_field='total_records'",
+          "status": "UNGROUNDED",
+          "supporting_invocation_id": "mem-ff347495",
+          "note": "Cannot verify \u2014 Field 'total_records' not found in audit entry. Top-level keys: ['cache_file', 'cached', 'cmd', 'duration_ms', 'examiner', 'image_path', 'image_sha256', 'invocation_id', 'parsed_record_count', 'plugin', 'returncode', 'stderr_excerpt', 'stdout_lines', 'tool', 'ts']"
+        }
+      ]
+    },
+    {
+      "finding_id": "F-sansforensics-006",
+      "total_claims": 1,
+      "grounded": 1,
+      "ungrounded": 0,
+      "contradicted": 0,
+      "inferred_labeled": 0,
+      "grounding_rate": 1.0,
+      "hallucination_rate": 0.0,
+      "passed": true,
+      "claims": [
+        {
+          "claim_text": "tool='correlate_evidence' claim='subject_srv.exe correlation verdict for SRL-2018-DC is ERROR (not CONFIRMED_RUNNING)' inv_id='correlation_42e429e8f16e' audit_field='verdict'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "correlation_42e429e8f16e",
+          "note": "Tool attested and field check passed: verdict = 'ERROR' contains 'ERROR'"
+        }
+      ]
+    },
+    {
+      "finding_id": "F-sansforensics-007",
+      "total_claims": 1,
+      "grounded": 0,
+      "ungrounded": 0,
+      "contradicted": 0,
+      "inferred_labeled": 1,
+      "grounding_rate": 0.0,
+      "hallucination_rate": 0.0,
+      "passed": true,
+      "claims": [
+        {
+          "claim_text": "(no evidence_quotes \u2014 INFERRED finding)",
+          "status": "INFERRED_LABELED",
+          "supporting_invocation_id": null,
+          "note": "Finding labeled INFERRED with no evidence_quotes. Acceptable \u2014 inference is documented. Consider adding audit_field checks for stronger grounding."
+        }
+      ]
+    },
+    {
+      "finding_id": "F-sansforensics-008",
+      "total_claims": 1,
+      "grounded": 0,
+      "ungrounded": 0,
+      "contradicted": 0,
+      "inferred_labeled": 1,
+      "grounding_rate": 0.0,
+      "hallucination_rate": 0.0,
+      "passed": true,
+      "claims": [
+        {
+          "claim_text": "(no evidence_quotes \u2014 INFERRED finding)",
+          "status": "INFERRED_LABELED",
+          "supporting_invocation_id": null,
+          "note": "Finding labeled INFERRED with no evidence_quotes. Acceptable \u2014 inference is documented. Consider adding audit_field checks for stronger grounding."
+        }
+      ]
+    },
+    {
+      "finding_id": "F-sansforensics-009",
+      "total_claims": 1,
+      "grounded": 0,
+      "ungrounded": 0,
+      "contradicted": 0,
+      "inferred_labeled": 1,
+      "grounding_rate": 0.0,
+      "hallucination_rate": 0.0,
+      "passed": true,
+      "claims": [
+        {
+          "claim_text": "(no evidence_quotes \u2014 INFERRED finding)",
+          "status": "INFERRED_LABELED",
+          "supporting_invocation_id": null,
+          "note": "Finding labeled INFERRED with no evidence_quotes. Acceptable \u2014 inference is documented. Consider adding audit_field checks for stronger grounding."
+        }
+      ]
+    }
+  ]
+}

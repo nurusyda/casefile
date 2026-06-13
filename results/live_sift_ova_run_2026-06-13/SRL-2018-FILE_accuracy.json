@@ -1,0 +1,220 @@
+{
+  "total_claims": 15,
+  "grounded": 3,
+  "ungrounded": 12,
+  "contradicted": 0,
+  "inferred_labeled": 0,
+  "grounding_rate": 0.2,
+  "hallucination_rate": 0.0,
+  "all_passed": true,
+  "tier2_verified": 0,
+  "findings": [
+    {
+      "finding_id": "F-sansforensics-001",
+      "total_claims": 2,
+      "grounded": 0,
+      "ungrounded": 2,
+      "contradicted": 0,
+      "inferred_labeled": 0,
+      "grounding_rate": 0.0,
+      "hallucination_rate": 0.0,
+      "passed": true,
+      "claims": [
+        {
+          "claim_text": "tool='Volatility3' claim='subject_srv.exe (PID 6160) has an ESTABLISHED connection to 172.16.5.50:44262 at memory capture' inv_id='051087f3-dea3-40c6-8806-492cebc989cc' audit_field='State'",
+          "status": "UNGROUNDED",
+          "supporting_invocation_id": "051087f3-dea3-40c6-8806-492cebc989cc",
+          "note": "Cannot verify \u2014 Field 'State' not found in audit entry. Top-level keys: ['cached', 'cmd', 'csv_files', 'duration_ms', 'examiner', 'image_path', 'invocation_id', 'output_dir', 'parsed_record_count', 'returncode', 'stderr_excerpt', 'stdout_lines', 'suspicious_count', 'tool', 'ts']"
+        },
+        {
+          "claim_text": "tool='Volatility3' claim='subject_srv.exe (PID 6160) listening on TCP/UDP port 3262' inv_id='051087f3-dea3-40c6-8806-492cebc989cc' audit_field='State'",
+          "status": "UNGROUNDED",
+          "supporting_invocation_id": "051087f3-dea3-40c6-8806-492cebc989cc",
+          "note": "Cannot verify \u2014 Field 'State' not found in audit entry. Top-level keys: ['cached', 'cmd', 'csv_files', 'duration_ms', 'examiner', 'image_path', 'invocation_id', 'output_dir', 'parsed_record_count', 'returncode', 'stderr_excerpt', 'stdout_lines', 'suspicious_count', 'tool', 'ts']"
+        }
+      ]
+    },
+    {
+      "finding_id": "F-sansforensics-002",
+      "total_claims": 1,
+      "grounded": 0,
+      "ungrounded": 1,
+      "contradicted": 0,
+      "inferred_labeled": 0,
+      "grounding_rate": 0.0,
+      "hallucination_rate": 0.0,
+      "passed": true,
+      "claims": [
+        {
+          "claim_text": "tool='Volatility3' claim='subject_srv.exe (PID 6160) had a historical CLOSED connection to 172.16.5.25:5682' inv_id='051087f3-dea3-40c6-8806-492cebc989cc' audit_field='State'",
+          "status": "UNGROUNDED",
+          "supporting_invocation_id": "051087f3-dea3-40c6-8806-492cebc989cc",
+          "note": "Cannot verify \u2014 Field 'State' not found in audit entry. Top-level keys: ['cached', 'cmd', 'csv_files', 'duration_ms', 'examiner', 'image_path', 'invocation_id', 'output_dir', 'parsed_record_count', 'returncode', 'stderr_excerpt', 'stdout_lines', 'suspicious_count', 'tool', 'ts']"
+        }
+      ]
+    },
+    {
+      "finding_id": "F-sansforensics-003",
+      "total_claims": 2,
+      "grounded": 0,
+      "ungrounded": 2,
+      "contradicted": 0,
+      "inferred_labeled": 0,
+      "grounding_rate": 0.0,
+      "hallucination_rate": 0.0,
+      "passed": true,
+      "claims": [
+        {
+          "claim_text": "tool='Volatility3' claim='ngentask.exe (PID 7092) connected to 172.16.4.10:8080' inv_id='051087f3-dea3-40c6-8806-492cebc989cc' audit_field='ForeignPort'",
+          "status": "UNGROUNDED",
+          "supporting_invocation_id": "051087f3-dea3-40c6-8806-492cebc989cc",
+          "note": "Cannot verify \u2014 Field 'ForeignPort' not found in audit entry. Top-level keys: ['cached', 'cmd', 'csv_files', 'duration_ms', 'examiner', 'image_path', 'invocation_id', 'output_dir', 'parsed_record_count', 'returncode', 'stderr_excerpt', 'stdout_lines', 'suspicious_count', 'tool', 'ts']"
+        },
+        {
+          "claim_text": "tool='Volatility3' claim='powershell.exe (PID 4072 / PID 3164) connected to 172.16.4.10:8080' inv_id='051087f3-dea3-40c6-8806-492cebc989cc' audit_field='ForeignPort'",
+          "status": "UNGROUNDED",
+          "supporting_invocation_id": "051087f3-dea3-40c6-8806-492cebc989cc",
+          "note": "Cannot verify \u2014 Field 'ForeignPort' not found in audit entry. Top-level keys: ['cached', 'cmd', 'csv_files', 'duration_ms', 'examiner', 'image_path', 'invocation_id', 'output_dir', 'parsed_record_count', 'returncode', 'stderr_excerpt', 'stdout_lines', 'suspicious_count', 'tool', 'ts']"
+        }
+      ]
+    },
+    {
+      "finding_id": "F-sansforensics-004",
+      "total_claims": 2,
+      "grounded": 2,
+      "ungrounded": 0,
+      "contradicted": 0,
+      "inferred_labeled": 0,
+      "grounding_rate": 1.0,
+      "hallucination_rate": 0.0,
+      "passed": true,
+      "claims": [
+        {
+          "claim_text": "tool='Volatility3' claim='No entry in the 145-entry netscan table references STUN.exe, msedge.exe, pssdnsvc.exe, atmfd.dll, 172.15.1.20, or 172.16.6.12' inv_id='051087f3-dea3-40c6-8806-492cebc989cc'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "051087f3-dea3-40c6-8806-492cebc989cc",
+          "note": "Tool 'Volatility3' attested in audit log (invocation_id='051087f3-dea3-40c6-8806-492cebc989cc', parsed_record_count=145). No exact_value supplied \u2014 Tier 1 attestation only."
+        },
+        {
+          "claim_text": "tool='correlate_evidence' claim='STUN.exe correlate_evidence returned verdict=ERROR, all sources present=false' inv_id='correlation_61778f8ba1b7'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "correlation_61778f8ba1b7",
+          "note": "Tool 'correlate_evidence' attested in audit log (invocation_id='correlation_61778f8ba1b7', parsed_record_count=0). No exact_value supplied \u2014 Tier 1 attestation only."
+        }
+      ]
+    },
+    {
+      "finding_id": "F-sansforensics-005",
+      "total_claims": 2,
+      "grounded": 1,
+      "ungrounded": 1,
+      "contradicted": 0,
+      "inferred_labeled": 0,
+      "grounding_rate": 0.5,
+      "hallucination_rate": 0.0,
+      "passed": true,
+      "claims": [
+        {
+          "claim_text": "tool='Volatility3' claim='windows.pslist returned total_records=0' inv_id='mem-38574e73' audit_field='total_records'",
+          "status": "UNGROUNDED",
+          "supporting_invocation_id": "mem-38574e73",
+          "note": "Cannot verify \u2014 Field 'total_records' not found in audit entry. Top-level keys: ['cache_file', 'cached', 'cmd', 'duration_ms', 'examiner', 'image_path', 'image_sha256', 'invocation_id', 'parsed_record_count', 'plugin', 'returncode', 'stderr_excerpt', 'stdout_lines', 'tool', 'ts']"
+        },
+        {
+          "claim_text": "tool='correlate_evidence' claim='subject_srv.exe correlate_evidence returned verdict=ERROR' inv_id='correlation_a88cf39d10f0'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "correlation_a88cf39d10f0",
+          "note": "Tool 'correlate_evidence' attested in audit log (invocation_id='correlation_a88cf39d10f0', parsed_record_count=0). No exact_value supplied \u2014 Tier 1 attestation only."
+        }
+      ]
+    },
+    {
+      "finding_id": "F-sansforensics-006",
+      "total_claims": 2,
+      "grounded": 0,
+      "ungrounded": 2,
+      "contradicted": 0,
+      "inferred_labeled": 0,
+      "grounding_rate": 0.0,
+      "hallucination_rate": 0.0,
+      "passed": true,
+      "claims": [
+        {
+          "claim_text": "tool='Volatility3' claim='subject_srv.exe (PID 6160) has an ESTABLISHED connection to 172.16.5.50:44262 at memory capture' inv_id='5814ec35-56db-4220-bd06-d8da4866d714' audit_field='State'",
+          "status": "UNGROUNDED",
+          "supporting_invocation_id": "5814ec35-56db-4220-bd06-d8da4866d714",
+          "note": "Cannot verify \u2014 Field 'State' not found in audit entry. Top-level keys: ['cached', 'cmd', 'csv_files', 'duration_ms', 'examiner', 'image_path', 'invocation_id', 'output_dir', 'parsed_record_count', 'returncode', 'stderr_excerpt', 'stdout_lines', 'suspicious_count', 'tool', 'ts']"
+        },
+        {
+          "claim_text": "tool='Volatility3' claim='subject_srv.exe (PID 6160) listening on TCP/UDP port 3262' inv_id='5814ec35-56db-4220-bd06-d8da4866d714' audit_field='State'",
+          "status": "UNGROUNDED",
+          "supporting_invocation_id": "5814ec35-56db-4220-bd06-d8da4866d714",
+          "note": "Cannot verify \u2014 Field 'State' not found in audit entry. Top-level keys: ['cached', 'cmd', 'csv_files', 'duration_ms', 'examiner', 'image_path', 'invocation_id', 'output_dir', 'parsed_record_count', 'returncode', 'stderr_excerpt', 'stdout_lines', 'suspicious_count', 'tool', 'ts']"
+        }
+      ]
+    },
+    {
+      "finding_id": "F-sansforensics-007",
+      "total_claims": 1,
+      "grounded": 0,
+      "ungrounded": 1,
+      "contradicted": 0,
+      "inferred_labeled": 0,
+      "grounding_rate": 0.0,
+      "hallucination_rate": 0.0,
+      "passed": true,
+      "claims": [
+        {
+          "claim_text": "tool='Volatility3' claim='subject_srv.exe (PID 6160) had a historical CLOSED connection to 172.16.5.25:5682' inv_id='5814ec35-56db-4220-bd06-d8da4866d714' audit_field='State'",
+          "status": "UNGROUNDED",
+          "supporting_invocation_id": "5814ec35-56db-4220-bd06-d8da4866d714",
+          "note": "Cannot verify \u2014 Field 'State' not found in audit entry. Top-level keys: ['cached', 'cmd', 'csv_files', 'duration_ms', 'examiner', 'image_path', 'invocation_id', 'output_dir', 'parsed_record_count', 'returncode', 'stderr_excerpt', 'stdout_lines', 'suspicious_count', 'tool', 'ts']"
+        }
+      ]
+    },
+    {
+      "finding_id": "F-sansforensics-008",
+      "total_claims": 2,
+      "grounded": 0,
+      "ungrounded": 2,
+      "contradicted": 0,
+      "inferred_labeled": 0,
+      "grounding_rate": 0.0,
+      "hallucination_rate": 0.0,
+      "passed": true,
+      "claims": [
+        {
+          "claim_text": "tool='Volatility3' claim='ngentask.exe (PID 7092) connected to 172.16.4.10:8080' inv_id='5814ec35-56db-4220-bd06-d8da4866d714' audit_field='ForeignPort'",
+          "status": "UNGROUNDED",
+          "supporting_invocation_id": "5814ec35-56db-4220-bd06-d8da4866d714",
+          "note": "Cannot verify \u2014 Field 'ForeignPort' not found in audit entry. Top-level keys: ['cached', 'cmd', 'csv_files', 'duration_ms', 'examiner', 'image_path', 'invocation_id', 'output_dir', 'parsed_record_count', 'returncode', 'stderr_excerpt', 'stdout_lines', 'suspicious_count', 'tool', 'ts']"
+        },
+        {
+          "claim_text": "tool='Volatility3' claim='powershell.exe (PID 4072 / PID 3164) connected to 172.16.4.10:8080' inv_id='5814ec35-56db-4220-bd06-d8da4866d714' audit_field='ForeignPort'",
+          "status": "UNGROUNDED",
+          "supporting_invocation_id": "5814ec35-56db-4220-bd06-d8da4866d714",
+          "note": "Cannot verify \u2014 Field 'ForeignPort' not found in audit entry. Top-level keys: ['cached', 'cmd', 'csv_files', 'duration_ms', 'examiner', 'image_path', 'invocation_id', 'output_dir', 'parsed_record_count', 'returncode', 'stderr_excerpt', 'stdout_lines', 'suspicious_count', 'tool', 'ts']"
+        }
+      ]
+    },
+    {
+      "finding_id": "F-sansforensics-009",
+      "total_claims": 1,
+      "grounded": 0,
+      "ungrounded": 1,
+      "contradicted": 0,
+      "inferred_labeled": 0,
+      "grounding_rate": 0.0,
+      "hallucination_rate": 0.0,
+      "passed": true,
+      "claims": [
+        {
+          "claim_text": "tool='Volatility3' claim='windows.pslist returned total_entries=0 (no process records recoverable from this image)' inv_id='424289f4-b943-42f2-a553-105e86779652' audit_field='total_entries'",
+          "status": "UNGROUNDED",
+          "supporting_invocation_id": "424289f4-b943-42f2-a553-105e86779652",
+          "note": "Cannot verify \u2014 Field 'total_entries' not found in audit entry. Top-level keys: ['cached', 'cmd', 'csv_files', 'duration_ms', 'examiner', 'image_path', 'invocation_id', 'output_dir', 'parsed_record_count', 'returncode', 'stderr_excerpt', 'stdout_lines', 'suspicious_count', 'tool', 'ts']"
+        }
+      ]
+    }
+  ]
+}

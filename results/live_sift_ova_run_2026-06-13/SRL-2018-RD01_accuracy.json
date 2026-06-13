@@ -1,0 +1,176 @@
+{
+  "total_claims": 14,
+  "grounded": 14,
+  "ungrounded": 0,
+  "contradicted": 0,
+  "inferred_labeled": 0,
+  "grounding_rate": 1.0,
+  "hallucination_rate": 0.0,
+  "all_passed": true,
+  "tier2_verified": 0,
+  "findings": [
+    {
+      "finding_id": "F-sansforensics-001",
+      "total_claims": 3,
+      "grounded": 3,
+      "ungrounded": 0,
+      "contradicted": 0,
+      "inferred_labeled": 0,
+      "grounding_rate": 1.0,
+      "hallucination_rate": 0.0,
+      "passed": true,
+      "claims": [
+        {
+          "claim_text": "tool='Volatility3' claim='subject_srv.exe (PID 1096, PPID 740) running with anomalous path C:\\\\windows\\\\subject_srv.exe' inv_id='mem-dc4e0201'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "mem-dc4e0201",
+          "note": "Tool 'Volatility3' attested in audit log (invocation_id='mem-dc4e0201', parsed_record_count=129). exact_value supplied but no valid csv_files in audit entry \u2014 Tier 2 skipped, Tier 1 attestation only."
+        },
+        {
+          "claim_text": "tool='Volatility3' claim='subject_srv.exe command line shows F-Response Subject agent calling back to base-hunt.shieldbase.lan:5682, listening on 3262' inv_id='mem-e8975db8'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "mem-e8975db8",
+          "note": "Tool 'Volatility3' attested in audit log (invocation_id='mem-e8975db8', parsed_record_count=129). exact_value supplied but no valid csv_files in audit entry \u2014 Tier 2 skipped, Tier 1 attestation only."
+        },
+        {
+          "claim_text": "tool='correlate_evidence' claim='correlate_evidence verdict=ERROR due to pyscca/libscca missing, not absence of subject_srv.exe' inv_id='correlation_3ec5367ec9c1'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "correlation_3ec5367ec9c1",
+          "note": "Tool 'correlate_evidence' attested in audit log (invocation_id='correlation_3ec5367ec9c1', parsed_record_count=1). exact_value supplied but no valid csv_files in audit entry \u2014 Tier 2 skipped, Tier 1 attestation only."
+        }
+      ]
+    },
+    {
+      "finding_id": "F-sansforensics-002",
+      "total_claims": 2,
+      "grounded": 2,
+      "ungrounded": 0,
+      "contradicted": 0,
+      "inferred_labeled": 0,
+      "grounding_rate": 1.0,
+      "hallucination_rate": 0.0,
+      "passed": true,
+      "claims": [
+        {
+          "claim_text": "tool='Volatility3' claim='subject_srv.ex listening on TCP 3262' inv_id='mem-3fb6abd0'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "mem-3fb6abd0",
+          "note": "Tool 'Volatility3' attested in audit log (invocation_id='mem-3fb6abd0', parsed_record_count=129). exact_value supplied but no valid csv_files in audit entry \u2014 Tier 2 skipped, Tier 1 attestation only."
+        },
+        {
+          "claim_text": "tool='Volatility3' claim='Active session from 172.16.5.50:39372 to 172.16.6.11:3262' inv_id='mem-3fb6abd0'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "mem-3fb6abd0",
+          "note": "Tool 'Volatility3' attested in audit log (invocation_id='mem-3fb6abd0', parsed_record_count=129). exact_value supplied but no valid csv_files in audit entry \u2014 Tier 2 skipped, Tier 1 attestation only."
+        }
+      ]
+    },
+    {
+      "finding_id": "F-sansforensics-003",
+      "total_claims": 3,
+      "grounded": 3,
+      "ungrounded": 0,
+      "contradicted": 0,
+      "inferred_labeled": 0,
+      "grounding_rate": 1.0,
+      "hallucination_rate": 0.0,
+      "passed": true,
+      "claims": [
+        {
+          "claim_text": "tool='Volatility3' claim='p.exe (PID 8260) launched from c:\\\\windows\\\\temp\\\\perfmon\\\\p.exe' inv_id='mem-e8975db8'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "mem-e8975db8",
+          "note": "Tool 'Volatility3' attested in audit log (invocation_id='mem-e8975db8', parsed_record_count=129). exact_value supplied but no valid csv_files in audit entry \u2014 Tier 2 skipped, Tier 1 attestation only."
+        },
+        {
+          "claim_text": "tool='Volatility3' claim='p.exe created 2018-08-30 22:15:18 UTC, no ExitTime (still running at capture)' inv_id='mem-dc4e0201'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "mem-dc4e0201",
+          "note": "Tool 'Volatility3' attested in audit log (invocation_id='mem-dc4e0201', parsed_record_count=129). exact_value supplied but no valid csv_files in audit entry \u2014 Tier 2 skipped, Tier 1 attestation only."
+        },
+        {
+          "claim_text": "tool='Volatility3' claim='rundll32.exe (PID 7552) child of p.exe, short-lived, created 2018-09-06 17:26:32 UTC' inv_id='mem-dc4e0201'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "mem-dc4e0201",
+          "note": "Tool 'Volatility3' attested in audit log (invocation_id='mem-dc4e0201', parsed_record_count=129). exact_value supplied but no valid csv_files in audit entry \u2014 Tier 2 skipped, Tier 1 attestation only."
+        }
+      ]
+    },
+    {
+      "finding_id": "F-sansforensics-004",
+      "total_claims": 2,
+      "grounded": 2,
+      "ungrounded": 0,
+      "contradicted": 0,
+      "inferred_labeled": 0,
+      "grounding_rate": 1.0,
+      "hallucination_rate": 0.0,
+      "passed": true,
+      "claims": [
+        {
+          "claim_text": "tool='Volatility3' claim='powershell.exe (PID 5848) launched with -s -NoLogo -NoProfile, consistent with a remote/headless session' inv_id='mem-e8975db8'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "mem-e8975db8",
+          "note": "Tool 'Volatility3' attested in audit log (invocation_id='mem-e8975db8', parsed_record_count=129). exact_value supplied but no valid csv_files in audit entry \u2014 Tier 2 skipped, Tier 1 attestation only."
+        },
+        {
+          "claim_text": "tool='Volatility3' claim='rundll32.exe (PID 6768) child of powershell.exe PID 5848, created 2018-08-30 18:31:04 UTC' inv_id='mem-dc4e0201'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "mem-dc4e0201",
+          "note": "Tool 'Volatility3' attested in audit log (invocation_id='mem-dc4e0201', parsed_record_count=129). exact_value supplied but no valid csv_files in audit entry \u2014 Tier 2 skipped, Tier 1 attestation only."
+        }
+      ]
+    },
+    {
+      "finding_id": "F-sansforensics-005",
+      "total_claims": 1,
+      "grounded": 1,
+      "ungrounded": 0,
+      "contradicted": 0,
+      "inferred_labeled": 0,
+      "grounding_rate": 1.0,
+      "hallucination_rate": 0.0,
+      "passed": true,
+      "claims": [
+        {
+          "claim_text": "tool='Volatility3' claim='Repeated connections from 172.16.6.11 to 172.16.4.10:8080' inv_id='mem-3fb6abd0'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "mem-3fb6abd0",
+          "note": "Tool 'Volatility3' attested in audit log (invocation_id='mem-3fb6abd0', parsed_record_count=129). exact_value supplied but no valid csv_files in audit entry \u2014 Tier 2 skipped, Tier 1 attestation only."
+        }
+      ]
+    },
+    {
+      "finding_id": "F-sansforensics-006",
+      "total_claims": 3,
+      "grounded": 3,
+      "ungrounded": 0,
+      "contradicted": 0,
+      "inferred_labeled": 0,
+      "grounding_rate": 1.0,
+      "hallucination_rate": 0.0,
+      "passed": true,
+      "claims": [
+        {
+          "claim_text": "tool='Volatility3' claim='CLOSED RDP connection 172.16.6.11 -> 172.16.4.5:3389' inv_id='mem-3fb6abd0'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "mem-3fb6abd0",
+          "note": "Tool 'Volatility3' attested in audit log (invocation_id='mem-3fb6abd0', parsed_record_count=129). exact_value supplied but no valid csv_files in audit entry \u2014 Tier 2 skipped, Tier 1 attestation only."
+        },
+        {
+          "claim_text": "tool='Volatility3' claim='CLOSED WinRM connection 172.16.6.11 -> 172.16.5.21:5985' inv_id='mem-3fb6abd0'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "mem-3fb6abd0",
+          "note": "Tool 'Volatility3' attested in audit log (invocation_id='mem-3fb6abd0', parsed_record_count=129). exact_value supplied but no valid csv_files in audit entry \u2014 Tier 2 skipped, Tier 1 attestation only."
+        },
+        {
+          "claim_text": "tool='Volatility3' claim='Inbound SMB ESTABLISHED from 172.16.6.14 to 172.16.6.11:445' inv_id='mem-3fb6abd0'",
+          "status": "GROUNDED",
+          "supporting_invocation_id": "mem-3fb6abd0",
+          "note": "Tool 'Volatility3' attested in audit log (invocation_id='mem-3fb6abd0', parsed_record_count=129). exact_value supplied but no valid csv_files in audit entry \u2014 Tier 2 skipped, Tier 1 attestation only."
+        }
+      ]
+    }
+  ],
+  "generated_at": "2026-06-12T22:43:52.992592+00:00"
+}

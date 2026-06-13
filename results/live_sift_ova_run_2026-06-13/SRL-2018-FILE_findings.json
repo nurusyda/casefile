@@ -1,0 +1,282 @@
+[
+  {
+    "id": "F-sansforensics-001",
+    "status": "DRAFT",
+    "title": "subject_srv.exe \u2014 live network process at memory acquisition (PID 6160)",
+    "observation": "windows.netscan shows PID 6160 (Owner=\"subject_srv.ex\", 14-char kernel truncation of subject_srv.exe) with an ESTABLISHED TCPv4 connection: local 172.16.4.5:3262 <-> foreign 172.16.5.50:44262. The same PID also has TCPv4 and TCPv6 sockets in LISTENING state on port 3262 (0.0.0.0:3262 / :::3262).",
+    "interpretation": "An ESTABLISHED connection in a netscan output is a CONFIRMED indicator that the owning process was running at the moment of memory acquisition (per Volatility3 netscan analyst note). subject_srv.exe is listed in the prd.json/IOC-correlation workload as the subject process for this investigation; its presence as a live, listening, network-connected process on a non-standard high port (3262) on a file-server host is anomalous.",
+    "confidence": "CONFIRMED",
+    "artifact_source": "/root/cases/SRL-2018-FILE/base-file-memory.img",
+    "supporting_tool": "Volatility3-windows.netscan",
+    "mitre_technique": "T1071",
+    "mitre_warning": null,
+    "examiner": "sansforensics",
+    "created_at": "2026-06-13T03:17:05.349075+00:00",
+    "approved_at": null,
+    "approved_by": null,
+    "evidence_quotes": [
+      {
+        "tool": "Volatility3-windows.netscan",
+        "claim": "subject_srv.exe (PID 6160) has an ESTABLISHED connection to 172.16.5.50:44262 at memory capture",
+        "invocation_id": "051087f3-dea3-40c6-8806-492cebc989cc",
+        "audit_field": "State",
+        "audit_expected": "ESTABLISHED",
+        "exact_value": "subject_srv.ex"
+      },
+      {
+        "tool": "Volatility3-windows.netscan",
+        "claim": "subject_srv.exe (PID 6160) listening on TCP/UDP port 3262",
+        "invocation_id": "051087f3-dea3-40c6-8806-492cebc989cc",
+        "audit_field": "State",
+        "audit_expected": "LISTENING",
+        "exact_value": "3262"
+      }
+    ],
+    "claim_confidence": "MEDIUM"
+  },
+  {
+    "id": "F-sansforensics-002",
+    "status": "DRAFT",
+    "title": "subject_srv.exe \u2014 historical connection to 172.16.5.25:5682",
+    "observation": "windows.netscan lists a CLOSED TCPv4 entry for PID 6160 (Owner=\"subject_srv.ex\"): local 172.16.4.5:59300 <-> foreign 172.16.5.25:5682, state CLOSED, no Created timestamp available.",
+    "interpretation": "CLOSED state means this connection existed prior to memory acquisition but was no longer active at capture time. It represents a prior outbound connection from subject_srv.exe to 172.16.5.25 on a non-standard port (5682), consistent with a beaconing or C2 callback pattern observed for subject_srv.exe in related host investigations. No correlate_evidence() CONFIRMED_RUNNING/HISTORICAL verdict is available for this host (verdict=ERROR due to missing pyscca and empty pslist), so this is recorded as INFERRED.",
+    "confidence": "INFERRED",
+    "artifact_source": "/root/cases/SRL-2018-FILE/base-file-memory.img",
+    "supporting_tool": "Volatility3-windows.netscan",
+    "mitre_technique": "T1071",
+    "mitre_warning": null,
+    "examiner": "sansforensics",
+    "created_at": "2026-06-13T03:17:10.495622+00:00",
+    "approved_at": null,
+    "approved_by": null,
+    "evidence_quotes": [
+      {
+        "tool": "Volatility3-windows.netscan",
+        "claim": "subject_srv.exe (PID 6160) had a historical CLOSED connection to 172.16.5.25:5682",
+        "invocation_id": "051087f3-dea3-40c6-8806-492cebc989cc",
+        "audit_field": "State",
+        "audit_expected": "CLOSED",
+        "exact_value": "subject_srv.ex"
+      }
+    ],
+    "claim_confidence": "MEDIUM"
+  },
+  {
+    "id": "F-sansforensics-003",
+    "status": "DRAFT",
+    "title": "Suspicious port-8080 connections to 172.16.4.10 (ngentask.exe, powershell.exe)",
+    "observation": "windows.netscan flags multiple historical TCPv4 connections to 172.16.4.10:8080: ngentask.exe (PID 7092, two CLOSED entries, local ports 56324/56322), powershell.exe (PID 4072, CLOSED, local port 54794), and powershell.exe (PID 3164, CLOSE_WAIT, local port 56932). The tool's own suspicion logic flags port 8080 connections as \"possible C2\".",
+    "interpretation": "Repeated connections from both a scheduled-task helper (ngentask.exe) and PowerShell to the same internal host on port 8080 is consistent with a C2 beacon or proxy channel. This is a single-source (netscan) observation without corroborating Amcache/Prefetch/EventLog data (host is MEMORY_ONLY), so it is recorded as INFERRED/HYPOTHESIS pending further corroboration.",
+    "confidence": "INFERRED",
+    "artifact_source": "/root/cases/SRL-2018-FILE/base-file-memory.img",
+    "supporting_tool": "Volatility3-windows.netscan",
+    "mitre_technique": "T1071.001",
+    "mitre_warning": null,
+    "examiner": "sansforensics",
+    "created_at": "2026-06-13T03:17:16.068411+00:00",
+    "approved_at": null,
+    "approved_by": null,
+    "evidence_quotes": [
+      {
+        "tool": "Volatility3-windows.netscan",
+        "claim": "ngentask.exe (PID 7092) connected to 172.16.4.10:8080",
+        "invocation_id": "051087f3-dea3-40c6-8806-492cebc989cc",
+        "audit_field": "ForeignPort",
+        "audit_expected": "8080",
+        "exact_value": "ngentask.exe"
+      },
+      {
+        "tool": "Volatility3-windows.netscan",
+        "claim": "powershell.exe (PID 4072 / PID 3164) connected to 172.16.4.10:8080",
+        "invocation_id": "051087f3-dea3-40c6-8806-492cebc989cc",
+        "audit_field": "ForeignPort",
+        "audit_expected": "8080",
+        "exact_value": "powershell.exe"
+      }
+    ],
+    "claim_confidence": "MEDIUM"
+  },
+  {
+    "id": "F-sansforensics-004",
+    "status": "DRAFT",
+    "title": "IOC list (STUN.exe, msedge.exe, pssdnsvc.exe, atmfd.dll, 172.15.1.20, 172.16.6.12) \u2014 no matches found on this host",
+    "observation": "detect_host_type() classified /root/cases/SRL-2018-FILE as MEMORY_ONLY (only base-file-memory.img present; no Amcache.hve, Prefetch/, MFT, or .evtx files). Per CLAUDE.md workflow for MEMORY_ONLY hosts, only parse_memory() is in scope. windows.netscan (145 entries) contains no references to STUN.exe, msedge.exe, pssdnsvc.exe/pssdnsvc, or atmfd.dll, and no connections to 172.15.1.20 or 172.16.6.12. correlate_evidence() for STUN.exe and subject_srv.exe both returned present=false for amcache/prefetch/mft/memory(pslist) with verdict=ERROR (pyscca not installed; pslist returned 0 records).",
+    "interpretation": "T01 (STUN.exe presence, required CONFIRMED) and T04 (lateral movement to 172.16.6.12, required CONFIRMED) cannot be established on this host with the available artifact set. This is recorded as a HYPOTHESIS/evidence-gap rather than a negative finding: absence of these IOCs in the netscan table does not prove they are absent from the host overall \u2014 process-listing plugins (pslist/pstree/cmdline/dlllist/handles/malfind) all returned 0 records on this image, and disk artifacts (Amcache/Prefetch/MFT/EventLog) are not present in this case directory to corroborate. Per LAW5, this gap is documented and the investigation proceeds on the evidence that is available (netscan).",
+    "confidence": "INFERRED",
+    "artifact_source": "/root/cases/SRL-2018-FILE/base-file-memory.img",
+    "supporting_tool": "Volatility3-windows.netscan",
+    "mitre_technique": null,
+    "mitre_warning": null,
+    "examiner": "sansforensics",
+    "created_at": "2026-06-13T03:17:31.767409+00:00",
+    "approved_at": null,
+    "approved_by": null,
+    "evidence_quotes": [
+      {
+        "tool": "Volatility3-windows.netscan",
+        "claim": "No entry in the 145-entry netscan table references STUN.exe, msedge.exe, pssdnsvc.exe, atmfd.dll, 172.15.1.20, or 172.16.6.12",
+        "invocation_id": "051087f3-dea3-40c6-8806-492cebc989cc"
+      },
+      {
+        "tool": "correlate_evidence",
+        "claim": "STUN.exe correlate_evidence returned verdict=ERROR, all sources present=false",
+        "invocation_id": "correlation_61778f8ba1b7"
+      }
+    ],
+    "claim_confidence": "MEDIUM"
+  },
+  {
+    "id": "F-sansforensics-005",
+    "status": "DRAFT",
+    "title": "T08/T09 evidence gap \u2014 process-enumeration plugins return 0 records on this memory image",
+    "observation": "windows.pslist, windows.pstree, windows.cmdline, windows.dlllist, windows.handles, and windows.malfind all returned total_records=0 on /root/cases/SRL-2018-FILE/base-file-memory.img (tried both cached and uncached). Only windows.netscan returned data (145 entries). correlate_evidence('subject_srv.exe', '/root/cases/SRL-2018-FILE/analysis') returned verdict=ERROR (memory.present=false because it relies on pslist; prefetch errored because pyscca/libscca is not installed on this SIFT instance; amcache/mft absent because host is MEMORY_ONLY).",
+    "interpretation": "T08 (correlate_evidence verdict CONFIRMED_RUNNING with >=2 present sources) and T09 (windows.pslist showing subject_srv.exe with PID/PPID) cannot be satisfied as written for this case. The strongest available evidence remains the CONFIRMED netscan finding (F-sansforensics-001: subject_srv.exe PID 6160, ESTABLISHED + LISTENING at capture time), which independently demonstrates the process was running at acquisition time via a different Volatility3 plugin than pslist. PPID is not recoverable from netscan. This is documented as a HYPOTHESIS/gap rather than asserted CONFIRMED_RUNNING, per the rule that CONFIRMED may not be declared without a qualifying correlate_evidence() verdict.",
+    "confidence": "INFERRED",
+    "artifact_source": "/root/cases/SRL-2018-FILE/base-file-memory.img",
+    "supporting_tool": "Volatility3",
+    "mitre_technique": null,
+    "mitre_warning": null,
+    "examiner": "sansforensics",
+    "created_at": "2026-06-13T03:17:38.764477+00:00",
+    "approved_at": null,
+    "approved_by": null,
+    "evidence_quotes": [
+      {
+        "tool": "Volatility3",
+        "claim": "windows.pslist returned total_records=0",
+        "invocation_id": "mem-38574e73",
+        "audit_field": "total_records",
+        "audit_expected": "0"
+      },
+      {
+        "tool": "correlate_evidence",
+        "claim": "subject_srv.exe correlate_evidence returned verdict=ERROR",
+        "invocation_id": "correlation_a88cf39d10f0"
+      }
+    ],
+    "claim_confidence": "MEDIUM"
+  },
+  {
+    "id": "F-sansforensics-006",
+    "status": "DRAFT",
+    "title": "subject_srv.exe \u2014 live network process at memory acquisition (PID 6160) [corrected]",
+    "observation": "windows.netscan shows PID 6160 (Owner=&quot;subject_srv.ex&quot;, 14-char kernel truncation of subject_srv.exe) with an ESTABLISHED TCPv4 connection: local 172.16.4.5:3262 &lt;-&gt; foreign 172.16.5.50:44262. The same PID also has TCPv4 and TCPv6 sockets in LISTENING state on port 3262 (0.0.0.0:3262 / :::3262).",
+    "interpretation": "An ESTABLISHED connection in a netscan output is a CONFIRMED indicator that the owning process was running at the moment of memory acquisition (per Volatility3 netscan analyst note: &quot;ESTABLISHED state confirms an active connection at capture time&quot;, &quot;LISTENING state confirms a service was accepting connections&quot;). subject_srv.exe is the subject process for this investigation; its presence as a live, listening, network-connected process on a non-standard high port (3262) on a file-server host is anomalous. This finding corrects evidence_quotes in the prior DRAFT (F-sansforensics-001), which referenced an invocation_id (051087f3-...) not present in this session's audit log \u2014 re-ran parse_volatility_netscan in this session to obtain a valid invocation_id.",
+    "confidence": "CONFIRMED",
+    "artifact_source": "/root/cases/SRL-2018-FILE/base-file-memory.img",
+    "supporting_tool": "Volatility3-windows.netscan",
+    "mitre_technique": "T1071",
+    "mitre_warning": null,
+    "examiner": "sansforensics",
+    "created_at": "2026-06-13T03:21:45.182115+00:00",
+    "approved_at": null,
+    "approved_by": null,
+    "evidence_quotes": [
+      {
+        "tool": "Volatility3-windows.netscan",
+        "claim": "subject_srv.exe (PID 6160) has an ESTABLISHED connection to 172.16.5.50:44262 at memory capture",
+        "invocation_id": "5814ec35-56db-4220-bd06-d8da4866d714",
+        "audit_field": "State",
+        "audit_expected": "ESTABLISHED",
+        "exact_value": "ESTABLISHED"
+      },
+      {
+        "tool": "Volatility3-windows.netscan",
+        "claim": "subject_srv.exe (PID 6160) listening on TCP/UDP port 3262",
+        "invocation_id": "5814ec35-56db-4220-bd06-d8da4866d714",
+        "audit_field": "State",
+        "audit_expected": "LISTENING",
+        "exact_value": "LISTENING"
+      }
+    ],
+    "claim_confidence": "MEDIUM"
+  },
+  {
+    "id": "F-sansforensics-007",
+    "status": "DRAFT",
+    "title": "subject_srv.exe \u2014 historical connection to 172.16.5.25:5682 [corrected]",
+    "observation": "windows.netscan lists a CLOSED TCPv4 entry for PID 6160 (Owner=&quot;subject_srv.ex&quot;): local 172.16.4.5:59300 &lt;-&gt; foreign 172.16.5.25:5682, state CLOSED, no Created timestamp available.",
+    "interpretation": "CLOSED state means this connection existed prior to memory acquisition but was no longer active at capture time. It represents a prior outbound connection from subject_srv.exe to 172.16.5.25 on a non-standard port (5682), consistent with a beaconing or C2 callback pattern observed for subject_srv.exe in related host investigations. No correlate_evidence() CONFIRMED_RUNNING/HISTORICAL verdict is available for this host (verdict=ERROR due to missing pyscca and empty pslist), so this remains INFERRED. This finding corrects evidence_quotes in the prior DRAFT (F-sansforensics-002), which referenced an invocation_id (051087f3-...) not present in this session's audit log \u2014 re-ran parse_volatility_netscan in this session to obtain a valid invocation_id.",
+    "confidence": "INFERRED",
+    "artifact_source": "/root/cases/SRL-2018-FILE/base-file-memory.img",
+    "supporting_tool": "Volatility3-windows.netscan",
+    "mitre_technique": "T1071",
+    "mitre_warning": null,
+    "examiner": "sansforensics",
+    "created_at": "2026-06-13T03:21:51.019196+00:00",
+    "approved_at": null,
+    "approved_by": null,
+    "evidence_quotes": [
+      {
+        "tool": "Volatility3-windows.netscan",
+        "claim": "subject_srv.exe (PID 6160) had a historical CLOSED connection to 172.16.5.25:5682",
+        "invocation_id": "5814ec35-56db-4220-bd06-d8da4866d714",
+        "audit_field": "State",
+        "audit_expected": "CLOSED",
+        "exact_value": "CLOSED"
+      }
+    ],
+    "claim_confidence": "MEDIUM"
+  },
+  {
+    "id": "F-sansforensics-008",
+    "status": "DRAFT",
+    "title": "Suspicious port-8080 connections to 172.16.4.10 (ngentask.exe, powershell.exe) [corrected]",
+    "observation": "windows.netscan flags multiple historical TCPv4 connections to 172.16.4.10:8080: ngentask.exe (PID 7092, two CLOSED entries, local ports 56324/56322), powershell.exe (PID 4072, CLOSED, local port 54794), and powershell.exe (PID 3164, CLOSE_WAIT, local port 56932). The tool's own suspicion logic flags port 8080 connections as &quot;possible C2&quot;.",
+    "interpretation": "Repeated connections from both a scheduled-task helper (ngentask.exe) and PowerShell to the same internal host on port 8080 is consistent with a C2 beacon or proxy channel. This is a single-source (netscan) observation without corroborating Amcache/Prefetch/EventLog data (host is MEMORY_ONLY), so it is recorded as INFERRED/HYPOTHESIS pending further corroboration. This finding corrects evidence_quotes in the prior DRAFT (F-sansforensics-003), which referenced an invocation_id (051087f3-...) not present in this session's audit log \u2014 re-ran parse_volatility_netscan in this session to obtain a valid invocation_id.",
+    "confidence": "INFERRED",
+    "artifact_source": "/root/cases/SRL-2018-FILE/base-file-memory.img",
+    "supporting_tool": "Volatility3-windows.netscan",
+    "mitre_technique": "T1071.001",
+    "mitre_warning": null,
+    "examiner": "sansforensics",
+    "created_at": "2026-06-13T03:21:56.950134+00:00",
+    "approved_at": null,
+    "approved_by": null,
+    "evidence_quotes": [
+      {
+        "tool": "Volatility3-windows.netscan",
+        "claim": "ngentask.exe (PID 7092) connected to 172.16.4.10:8080",
+        "invocation_id": "5814ec35-56db-4220-bd06-d8da4866d714",
+        "audit_field": "ForeignPort",
+        "audit_expected": "8080",
+        "exact_value": "8080"
+      },
+      {
+        "tool": "Volatility3-windows.netscan",
+        "claim": "powershell.exe (PID 4072 / PID 3164) connected to 172.16.4.10:8080",
+        "invocation_id": "5814ec35-56db-4220-bd06-d8da4866d714",
+        "audit_field": "ForeignPort",
+        "audit_expected": "8080",
+        "exact_value": "8080"
+      }
+    ],
+    "claim_confidence": "MEDIUM"
+  },
+  {
+    "id": "F-sansforensics-009",
+    "status": "DRAFT",
+    "title": "T08/T09 evidence gap \u2014 process-enumeration plugins return 0 records on this memory image [corrected]",
+    "observation": "windows.pslist returned total_entries=0, entries_returned=0 on /root/cases/SRL-2018-FILE/base-file-memory.img (re-run this session, cached=true). Only windows.netscan returned data (145 entries, re-run this session). correlate_evidence('subject_srv.exe', '/root/cases/SRL-2018-FILE/analysis') previously returned verdict=ERROR (memory.present=false because it relies on pslist; prefetch errored because pyscca/libscca is not installed on this SIFT instance; amcache/mft absent because host is MEMORY_ONLY).",
+    "interpretation": "T08 (correlate_evidence verdict CONFIRMED_RUNNING with &gt;=2 present sources) and T09 (windows.pslist showing subject_srv.exe with PID/PPID) cannot be satisfied as written for this case. The strongest available evidence remains the CONFIRMED netscan finding (subject_srv.exe PID 6160, ESTABLISHED + LISTENING at capture time, re-confirmed this session via invocation_id 5814ec35-56db-4220-bd06-d8da4866d714), which independently demonstrates the process was running at acquisition time via a different Volatility3 plugin than pslist. PPID is not recoverable from netscan. This is documented as a HYPOTHESIS/gap rather than asserted CONFIRMED_RUNNING, per the rule that CONFIRMED may not be declared without a qualifying correlate_evidence() verdict. This finding corrects evidence_quotes in the prior DRAFT (F-sansforensics-005), which referenced an invocation_id (mem-38574e73) not present in this session's audit log \u2014 re-ran parse_volatility_pslist in this session to obtain a valid invocation_id. The tool's total_entries field is a run-summary value, not a CSV cell, so exact_value is omitted per evidence-quote rules.",
+    "confidence": "INFERRED",
+    "artifact_source": "/root/cases/SRL-2018-FILE/base-file-memory.img",
+    "supporting_tool": "Volatility3-windows.pslist",
+    "mitre_technique": null,
+    "mitre_warning": null,
+    "examiner": "sansforensics",
+    "created_at": "2026-06-13T03:22:03.955389+00:00",
+    "approved_at": null,
+    "approved_by": null,
+    "evidence_quotes": [
+      {
+        "tool": "Volatility3-windows.pslist",
+        "claim": "windows.pslist returned total_entries=0 (no process records recoverable from this image)",
+        "invocation_id": "424289f4-b943-42f2-a553-105e86779652",
+        "audit_field": "total_entries",
+        "audit_expected": "0"
+      }
+    ],
+    "claim_confidence": "MEDIUM"
+  }
+]

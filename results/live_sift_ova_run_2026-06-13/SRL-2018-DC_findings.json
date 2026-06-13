@@ -1,0 +1,226 @@
+[
+  {
+    "id": "F-sansforensics-001",
+    "status": "DRAFT",
+    "title": "Volatility3 cannot enumerate processes/handles/DLLs from SRL-2018-DC memory image \u2014 persistent ISF/symbol resolution failure",
+    "observation": "parse_memory() was run against /root/cases/SRL-2018-DC/base-dc-memory.img (sha256 9679193c2b7852817006c55481124666422fea67ba63c872cf5e4203c6fa629a) for all 7 allowlisted Volotility3 plugins. windows.pslist (inv mem-5f743839, mem-6dca014e), windows.pstree, windows.cmdline, windows.malfind, windows.dlllist (inv mem-d9626cd6), and windows.handles (inv mem-344777b2) all completed in 2-752ms with error=null but total_records=0 and an empty records array. windows.netscan exited with code 1, failing during 'Scanning layer_name using PdbSignatureScanner' at 49.41% progress (no invocation_id returned because the call errored).",
+    "interpretation": "HYPOTHESIS: The most likely root cause is a missing or incorrect Intermediate Symbol File (ISF) for this Windows Server build, which prevents Volatility3 from walking kernel structures (EPROCESS list, handle tables, VAD tree) needed by every process-level plugin. This matches the diagnosis recorded in a prior session (2026-06-10): 'FileLayer PageMapScanner completed 100% \u2014 image is readable but kernel symbols cannot be resolved.' The blocker remains unresolved as of this session (2026-06-12). detect_host_type() classified this case as MEMORY_ONLY (no Amcache/Prefetch/registry/evtx/MFT present), so parse_memory() is the only permitted evidence source for this case, and it currently yields zero usable process data.",
+    "confidence": "INFERRED",
+    "artifact_source": "/root/cases/SRL-2018-DC/base-dc-memory.img",
+    "supporting_tool": "parse_memory",
+    "mitre_technique": null,
+    "mitre_warning": null,
+    "examiner": "sansforensics",
+    "created_at": "2026-06-12T23:17:28.025697+00:00",
+    "approved_at": null,
+    "approved_by": null,
+    "evidence_quotes": [
+      {
+        "tool": "parse_memory",
+        "claim": "windows.pslist returned 0 records for base-dc-memory.img",
+        "invocation_id": "mem-6dca014e",
+        "audit_field": "total_records",
+        "audit_expected": "0"
+      },
+      {
+        "tool": "parse_memory",
+        "claim": "windows.dlllist returned 0 records for base-dc-memory.img",
+        "invocation_id": "mem-d9626cd6",
+        "audit_field": "total_records",
+        "audit_expected": "0"
+      },
+      {
+        "tool": "parse_memory",
+        "claim": "windows.handles returned 0 records for base-dc-memory.img",
+        "invocation_id": "mem-344777b2",
+        "audit_field": "total_records",
+        "audit_expected": "0"
+      }
+    ],
+    "claim_confidence": "MEDIUM"
+  },
+  {
+    "id": "F-sansforensics-002",
+    "status": "DRAFT",
+    "title": "SRL-2018-DC evidence profile classified MEMORY_ONLY \u2014 no Amcache, Prefetch, registry, EVTX, or MFT available",
+    "observation": "detect_host_type('/root/cases/SRL-2018-DC') returned host_type=MEMORY_ONLY with indicators=['Memory image: /root/cases/SRL-2018-DC/base-dc-memory.img'] and recommendation 'Use parse_memory() only. No disk artifacts detected \u2014 confine claims to memory evidence.'",
+    "interpretation": "CONFIRMED: only the memory image is present in this session's case directory. Amcache.hve, Prefetch/, Security.evtx/System.evtx, registry hives, and $MFT \u2014 required for prd.json tasks T01-T05 and T08 \u2014 are not currently mounted/extracted. A prior session (2026-06-06) reportedly had these disk artifacts present, suggesting they are unmounted between sessions rather than permanently absent.",
+    "confidence": "INFERRED",
+    "artifact_source": "/root/cases/SRL-2018-DC",
+    "supporting_tool": "detect_host_type",
+    "mitre_technique": null,
+    "mitre_warning": null,
+    "examiner": "sansforensics",
+    "created_at": "2026-06-12T23:17:42.174963+00:00",
+    "approved_at": null,
+    "approved_by": null,
+    "evidence_quotes": [
+      {
+        "tool": "detect_host_type",
+        "claim": "SRL-2018-DC classified as MEMORY_ONLY",
+        "invocation_id": "012c4885-1c1e-4ac9-913a-12e64c5fcb00",
+        "audit_field": "host_type",
+        "audit_expected": "MEMORY_ONLY"
+      }
+    ],
+    "claim_confidence": "MEDIUM"
+  },
+  {
+    "id": "F-sansforensics-003",
+    "status": "DRAFT",
+    "title": "prd.json tasks T01-T05, T08 cannot be evaluated for SRL-2018-DC this session \u2014 no usable evidence source",
+    "observation": "prd.json defines known_iocs (stun.exe, msedge.exe, pssdnsvc.exe, atmfd.dll) and suspicious_patterns (172.15.1.20, 172.16.6.12) for case CRIMSON OSPREY, and T01-T05/T08 require Amcache, Prefetch, EventLog 4688, registry, or MFT evidence (or correlate_evidence over those sources). None of these artifacts are present for SRL-2018-DC in this session (per F-sansforensics-002), and the sole permitted source \u2014 parse_memory() \u2014 returned 0 records on all 7 allowlisted plugins (per F-sansforensics-001). /root/cases/SRL-2018-DC/iocs.md could not be read this session (path falls outside the sandboxed working-directory allowlist for Read/Bash tools), so case-specific IOCs from that file could not be cross-referenced; prd.json's known_iocs/suspicious_patterns were used as the IOC reference instead.",
+    "interpretation": "HYPOTHESIS: Cannot confirm or deny presence of STUN.exe, pssdnsvc.exe/atmfd.dll persistence, or lateral movement to 172.16.6.12 on this host with currently accessible evidence. This is an evidence-access gap, not a negative finding \u2014 absence of data is not evidence of absence. Per CLAUDE.md session-hygiene rules, no invocation_id from a prior session was reused; all citations above are from this session's audit log only.",
+    "confidence": "INFERRED",
+    "artifact_source": "/root/cases/SRL-2018-DC",
+    "supporting_tool": "parse_memory",
+    "mitre_technique": null,
+    "mitre_warning": null,
+    "examiner": "sansforensics",
+    "created_at": "2026-06-12T23:17:50.256477+00:00",
+    "approved_at": null,
+    "approved_by": null,
+    "evidence_quotes": [
+      {
+        "tool": "parse_memory",
+        "claim": "All 7 allowlisted Volatility3 plugins returned 0 records for base-dc-memory.img",
+        "invocation_id": "mem-6dca014e",
+        "audit_field": "total_records",
+        "audit_expected": "0"
+      }
+    ],
+    "claim_confidence": "MEDIUM"
+  },
+  {
+    "id": "F-sansforensics-004",
+    "status": "DRAFT",
+    "title": "SRL-2018-DC re-verified MEMORY_ONLY \u2014 4th consecutive session, disk parsers not applicable",
+    "observation": "detect_host_type('/root/cases/SRL-2018-DC') returned host_type=MEMORY_ONLY, indicators=['Memory image: /root/cases/SRL-2018-DC/base-dc-memory.img'], recommendation='Use parse_memory() only. No disk artifacts detected \u2014 confine claims to memory evidence.' This is the same verdict as sessions on 2026-06-06, 2026-06-10, and earlier on 2026-06-12.",
+    "interpretation": "CONFIRMED: this session's environment has no Amcache.hve, Prefetch directory, Security/System.evtx, registry hives, or $MFT for SRL-2018-DC. Per CLAUDE.md OODA workflow, for MEMORY_ONLY hosts steps 1-5 (parse_amcache, parse_prefetch, parse_event_logs, parse_registry, parse_mft) must be skipped \u2014 running them would not produce findings, only repeat the documented absence. prd.json tasks T01 (Amcache/Prefetch/MFT/EventLog), T02 (Amcache/Prefetch), T03 (registry), T04 (EventLog/Prefetch), and T05 (MFT) therefore remain NOT EVALUABLE this session due to a genuine evidence-access gap, not a negative malware finding.",
+    "confidence": "CONFIRMED",
+    "artifact_source": "/root/cases/SRL-2018-DC",
+    "supporting_tool": "detect_host_type",
+    "mitre_technique": null,
+    "mitre_warning": null,
+    "examiner": "sansforensics",
+    "created_at": "2026-06-12T23:21:45.920358+00:00",
+    "approved_at": null,
+    "approved_by": null,
+    "evidence_quotes": [
+      {
+        "tool": "detect_host_type",
+        "claim": "SRL-2018-DC classified as MEMORY_ONLY this session",
+        "invocation_id": "936865c1-c0e4-4570-a62d-3f3c444d25e1",
+        "audit_field": "host_type",
+        "audit_expected": "MEMORY_ONLY"
+      }
+    ],
+    "claim_confidence": "MEDIUM"
+  },
+  {
+    "id": "F-sansforensics-005",
+    "status": "DRAFT",
+    "title": "windows.pslist re-run (fresh, uncached) still returns 0 records for SRL-2018-DC memory image",
+    "observation": "parse_memory(image_path='/root/cases/SRL-2018-DC/base-dc-memory.img', plugin='windows.pslist', use_cache=false) completed in 543ms with error=null, total_records=0, records=[]. image_sha256=9679193c2b7852817006c55481124666422fea67ba63c872cf5e4203c6fa629a (same image as prior sessions). windows.info is not in the parse_memory ALLOWED_PLUGINS list (allowlist: windows.cmdline, windows.dlllist, windows.handles, windows.malfind, windows.netscan, windows.pslist, windows.pstree), so the suspected ISF/symbol-table root cause identified in F-sansforensics-001 cannot be diagnosed further via MCP tools.",
+    "interpretation": "CONFIRMED: a fresh, uncached windows.pslist run against this memory image yields zero process records. This reproduces F-sansforensics-001 with a new invocation_id for this session per CLAUDE.md session-hygiene rules. INFERRED/HYPOTHESIS (unchanged from prior session): the cause is most likely a missing/incorrect ISF for this kernel build, but this cannot be confirmed without windows.info, which is outside the MCP allowlist \u2014 this is an architectural limitation, not something the agent can work around with raw shell per LAW 2. T09 (subject_srv.exe in windows.pslist) cannot be evaluated \u2014 there are no records to search.",
+    "confidence": "CONFIRMED",
+    "artifact_source": "/root/cases/SRL-2018-DC/base-dc-memory.img",
+    "supporting_tool": "parse_memory",
+    "mitre_technique": null,
+    "mitre_warning": null,
+    "examiner": "sansforensics",
+    "created_at": "2026-06-12T23:21:54.145469+00:00",
+    "approved_at": null,
+    "approved_by": null,
+    "evidence_quotes": [
+      {
+        "tool": "parse_memory",
+        "claim": "windows.pslist returned 0 records for base-dc-memory.img (fresh run, this session)",
+        "invocation_id": "mem-ff347495",
+        "audit_field": "total_records",
+        "audit_expected": "0"
+      }
+    ],
+    "claim_confidence": "MEDIUM"
+  },
+  {
+    "id": "F-sansforensics-006",
+    "status": "DRAFT",
+    "title": "correlate_evidence('subject_srv.exe') returns ERROR for SRL-2018-DC \u2014 process not found in any source, prefetch parser unavailable",
+    "observation": "correlate_evidence(process_name='subject_srv.exe', case_dir='/root/cases/SRL-2018-DC/analysis') returned: amcache.present=false, prefetch.present=false (error: 'pyscca (libscca) not installed'), memory.present=false, mft.present=false, verdict='ERROR', verdict_reasoning='One or more parsers failed \u2014 verdict unreliable. Errors: prefetch: pyscca (libscca) not installed.', confidence='INFERRED'.",
+    "interpretation": "INFERRED: subject_srv.exe is not present in Amcache, memory (windows.pslist/dlllist/handles all empty per other findings), or MFT for SRL-2018-DC, and the prefetch source cannot be checked because pyscca/libscca is not installed in this environment (same blocker as SRL-2018-WKSTN and SRL-2018-RD01). The verdict is ERROR, not a clean NOT_FOUND, so per CLAUDE.md confidence mapping this cannot be elevated to CONFIRMED in either direction. Separately, HYPOTHESIS: prd.json T08/T09 reference 'subject_srv.exe', but SRL-2018-DC's own investigation_stories (IS-01/02/03) reference STUN.exe, pssdnsvc.exe, and net.exe/172.16.6.12 \u2014 subject_srv.exe does not appear in this case's ground_truth at all, suggesting T08/T09 wording was copied from another case's prd.json and may not be answerable for SRL-2018-DC regardless of evidence availability.",
+    "confidence": "INFERRED",
+    "artifact_source": "/root/cases/SRL-2018-DC/analysis",
+    "supporting_tool": "correlate_evidence",
+    "mitre_technique": null,
+    "mitre_warning": null,
+    "examiner": "sansforensics",
+    "created_at": "2026-06-12T23:22:01.312155+00:00",
+    "approved_at": null,
+    "approved_by": null,
+    "evidence_quotes": [
+      {
+        "tool": "correlate_evidence",
+        "claim": "subject_srv.exe correlation verdict for SRL-2018-DC is ERROR (not CONFIRMED_RUNNING)",
+        "invocation_id": "correlation_42e429e8f16e",
+        "audit_field": "verdict",
+        "audit_expected": "ERROR"
+      }
+    ],
+    "claim_confidence": "MEDIUM"
+  },
+  {
+    "id": "F-sansforensics-007",
+    "status": "DRAFT",
+    "title": "Volatility3 zero-record claims for SRL-2018-DC (F-001) could not be verified this session \u2014 invocation_ids absent from audit log",
+    "observation": "F-sansforensics-001 (created 2026-06-12T23:17:28Z) cited invocation_ids mem-5f743839, mem-6dca014e (windows.pslist), mem-d9626cd6 (windows.dlllist), and mem-344777b2 (windows.handles) as evidence that parse_memory()/Volatility3 returned total_records=0 for /root/cases/SRL-2018-DC/base-dc-memory.img. None of these invocation_ids appear anywhere in this session's ./audit/mcp.jsonl (396 entries, spanning 2026-06-10T05:56 to 2026-06-12T00:39). The only Volatility3 entries in this log are 6 rejected calls with image_path_input='/etc/passwd' (rejection_reason=invalid_image_path, parsed_record_count=0), plus unrelated AmcacheParser/EvtxECmd/MFTECmd/RECmd/pyscca pytest-fixture entries. No successful parse_memory call against base-dc-memory.img exists in this session's audit trail. Separately, a direct `ls /root/cases/SRL-2018-DC/` in this session was blocked ('only the allowed working directories... /home/sansforensics/casefile'), so the underlying parse_memory calls cannot be re-run this session to produce fresh grounded evidence.",
+    "interpretation": "HYPOTHESIS: Per CLAUDE.md session-hygiene rules, invocation_ids from a prior run do not exist in this session's audit log and must not be cited. Since /root/cases/SRL-2018-DC is outside this session's sandboxed working-directory allowlist, the parse_memory calls cannot be reproduced to verify the claim. The specific claims \"windows.pslist/dlllist/handles returned 0 records for base-dc-memory.img\" are withdrawn as ungrounded for this session \u2014 this is neither confirmed nor refuted, it is unverifiable with this session's tool access. The broader ISF/symbol-resolution hypothesis from the prior session remains unconfirmed pending a session with access to /root/cases/SRL-2018-DC.",
+    "confidence": "INFERRED",
+    "artifact_source": "/root/cases/SRL-2018-DC/base-dc-memory.img (path outside this session's allowed working directories \u2014 inaccessible)",
+    "supporting_tool": "parse_memory",
+    "mitre_technique": null,
+    "mitre_warning": null,
+    "examiner": "sansforensics",
+    "created_at": "2026-06-12T23:26:25.657327+00:00",
+    "approved_at": null,
+    "approved_by": null,
+    "evidence_quotes": [],
+    "claim_confidence": "UNSCORED"
+  },
+  {
+    "id": "F-sansforensics-008",
+    "status": "DRAFT",
+    "title": "prd.json T01-T05/T08 evaluability for SRL-2018-DC (F-003) \u2014 supporting zero-records claim withdrawn as ungrounded",
+    "observation": "F-sansforensics-003 (created 2026-06-12T23:17:50Z) cited invocation_id mem-6dca014e to support the claim \"All 7 allowlisted Volatility3 plugins returned 0 records for base-dc-memory.img.\" This invocation_id does not appear in this session's ./audit/mcp.jsonl (verified across all 396 entries \u2014 no parse_memory/Volatility3 call against base-dc-memory.img is present; see F-sansforensics-001 correction for full audit-log search results).",
+    "interpretation": "HYPOTHESIS: The cited evidence for \"0 records on all 7 plugins\" is withdrawn as ungrounded this session per session-hygiene rules (prior-session invocation_id, path /root/cases/SRL-2018-DC inaccessible this session, cannot re-run to verify). The separate conclusion that T01-T05/T08 are not evaluable for SRL-2018-DC this session may still hold on independent grounds (the MEMORY_ONLY host classification in F-sansforensics-002/004), but the specific \"0 records on all plugins\" evidence chain is not supported by this session's audit log and must be re-verified in a session with access to /root/cases/SRL-2018-DC before being relied upon.",
+    "confidence": "INFERRED",
+    "artifact_source": "/root/cases/SRL-2018-DC (path outside this session's allowed working directories \u2014 inaccessible)",
+    "supporting_tool": "parse_memory",
+    "mitre_technique": null,
+    "mitre_warning": null,
+    "examiner": "sansforensics",
+    "created_at": "2026-06-12T23:26:30.956022+00:00",
+    "approved_at": null,
+    "approved_by": null,
+    "evidence_quotes": [],
+    "claim_confidence": "UNSCORED"
+  },
+  {
+    "id": "F-sansforensics-009",
+    "status": "DRAFT",
+    "title": "Fresh windows.pslist re-run claim for SRL-2018-DC (F-005) \u2014 invocation_id mem-ff347495 not found in this session's audit log",
+    "observation": "F-sansforensics-005 (created 2026-06-12T23:21:54Z) claimed a fresh, uncached parse_memory(image_path='/root/cases/SRL-2018-DC/base-dc-memory.img', plugin='windows.pslist', use_cache=false) completed with total_records=0, citing invocation_id mem-ff347495. This invocation_id does not appear anywhere in this session's ./audit/mcp.jsonl. The only Volatility3/windows.pslist entries in this session's log are 6 rejected calls against image_path_input='/etc/passwd' (rejection_reason=invalid_image_path); no call against base-dc-memory.img is recorded. /root/cases/SRL-2018-DC is outside this session's allowed working directories (a direct `ls` to that path was blocked), so the call cannot be re-issued this session to produce grounded evidence.",
+    "interpretation": "HYPOTHESIS: The claim \"a fresh windows.pslist run returned 0 records for base-dc-memory.img\" is withdrawn as ungrounded for this session. T09 (subject_srv.exe presence in windows.pslist) remains NOT EVALUATED this session \u2014 its absence from process-list output is unverified, not confirmed. Re-run parse_memory(plugin='windows.pslist', use_cache=false) in a session with access to /root/cases/SRL-2018-DC to obtain a grounded result.",
+    "confidence": "INFERRED",
+    "artifact_source": "/root/cases/SRL-2018-DC/base-dc-memory.img (path outside this session's allowed working directories \u2014 inaccessible)",
+    "supporting_tool": "parse_memory",
+    "mitre_technique": null,
+    "mitre_warning": null,
+    "examiner": "sansforensics",
+    "created_at": "2026-06-12T23:26:35.956322+00:00",
+    "approved_at": null,
+    "approved_by": null,
+    "evidence_quotes": [],
+    "claim_confidence": "UNSCORED"
+  }
+]

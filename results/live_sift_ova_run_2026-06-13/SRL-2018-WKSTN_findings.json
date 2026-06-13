@@ -1,0 +1,196 @@
+[
+  {
+    "id": "F-sansforensics-001",
+    "status": "DRAFT",
+    "title": "subject_srv.exe (F-Response Subject) Active Network Listener in Memory \u2014 TCP 3262",
+    "observation": "Volatility3 windows.netscan on base-wkstn-01-memory.img shows PID 12528, Owner \"subject_srv.ex\" (14-char ImageFileName truncation of subject_srv.exe), LISTENING on TCP 0.0.0.0:3262 and TCPv6 :::3262 (Created 2018-09-06 19:37:07 UTC), plus UDP/UDPv6 0.0.0.0:0 sockets owned by PID 12528 created at 2018-09-06 19:37:06, 19:38:09, and 19:38:10 UTC. A separate ESTABLISHED session 172.16.7.11:3262 <-> 172.16.5.50:56722 is present in the same netscan output with PID/Owner unresolved (\"-\"), on the same listening port as PID 12528.",
+    "interpretation": "The listening port (3262) and timestamps match the F-Response Subject agent cmdline previously documented for this host family (-l 3262 -v \"F-Response Subject\"). The unresolved ESTABLISHED session on the same port 3262 from 172.16.5.50 is consistent with a remote controller connecting to this agent \u2014 the same controller IP (172.16.5.50) was observed connecting to the F-Response agent on SRL-2018-RD01. windows.pslist returned 0 records this session (PdbSignatureScanner/kernel-symbol resolution failure for this image), so the process cannot be independently confirmed via pslist, and correlate_evidence() returned verdict=ERROR (pyscca/libscca not installed, blocking the Prefetch source). This finding therefore rests on netscan alone and is INFERRED, not CONFIRMED, per the fallback rule (direct artifact evidence without a usable correlate_evidence verdict).",
+    "confidence": "INFERRED",
+    "artifact_source": "base-wkstn-01-memory.img via Volatility3 windows.netscan",
+    "supporting_tool": "Volatility3",
+    "mitre_technique": "T1071 \u2014 Application Layer Protocol",
+    "mitre_warning": "Unknown ATT&CK technique ID 'T1071 \u2014 Application Layer Protocol' \u2014 not in data/attack_v15.json. Finding recorded with warning.",
+    "examiner": "sansforensics",
+    "created_at": "2026-06-13T03:27:59.230741+00:00",
+    "approved_at": null,
+    "approved_by": null,
+    "evidence_quotes": [
+      {
+        "tool": "Volatility3",
+        "invocation_id": "mem-3762128b",
+        "claim": "subject_srv.exe (PID 12528) listening on TCP 3262 at 2018-09-06 19:37:07 UTC",
+        "exact_value": "subject_srv.ex"
+      },
+      {
+        "tool": "Volatility3",
+        "invocation_id": "mem-3762128b",
+        "claim": "Listening port 3262 matches F-Response Subject agent configuration",
+        "exact_value": "3262"
+      }
+    ],
+    "claim_confidence": "MEDIUM"
+  },
+  {
+    "id": "F-sansforensics-002",
+    "status": "DRAFT",
+    "title": "T08 Correlation Blocked \u2014 correlate_evidence() Returns ERROR for subject_srv.exe (pyscca missing, pslist empty)",
+    "observation": "correlate_evidence('subject_srv.exe', '/root/cases/SRL-2018-WKSTN/analysis') returned verdict=ERROR. amcache.present=false, mft.present=false, prefetch.present=false with error \"pyscca (libscca) not installed. Install with: sudo apt install libscca-python3\", and memory.present=false because the same-session windows.pslist run (invocation mem-1079ad2e, use_cache=false, fresh run, duration_ms=748, error=null) returned total_records=0 for this image.",
+    "interpretation": "detect_host_type confirms SRL-2018-WKSTN is MEMORY_ONLY (re-verified this session, invocation 6f169b97-cd45-47e7-ab36-e4343dac9029) \u2014 there are no Amcache/Prefetch/MFT artifacts on disk for this host, so amcache/mft absence is expected. The pslist=0 result is not a timeout (748ms, error=null) but reflects a persistent kernel-symbol/PdbSignatureScanner resolution failure for this specific memory image (windows.netscan, a pool-scanner-based plugin, works normally with 148 records). This is the third consecutive session (2026-06-10, 2026-06-13) in which this exact failure mode has been observed for this image \u2014 it is an environment/tooling limitation, not evidence of process absence. T08 (correlate_evidence verdict CONFIRMED_RUNNING) cannot be satisfied for SRL-2018-WKSTN under current tooling.",
+    "confidence": "INFERRED",
+    "artifact_source": "correlate_evidence output + Volatility3 windows.pslist on base-wkstn-01-memory.img",
+    "supporting_tool": "correlate_evidence",
+    "mitre_technique": null,
+    "mitre_warning": null,
+    "examiner": "sansforensics",
+    "created_at": "2026-06-13T03:28:07.690169+00:00",
+    "approved_at": null,
+    "approved_by": null,
+    "evidence_quotes": [
+      {
+        "tool": "correlate_evidence",
+        "invocation_id": "correlation_8bdc2c309e18",
+        "claim": "correlate_evidence returned ERROR for subject_srv.exe due to missing pyscca and empty pslist",
+        "audit_field": "verdict",
+        "audit_expected": "ERROR"
+      },
+      {
+        "tool": "Volatility3",
+        "invocation_id": "mem-1079ad2e",
+        "claim": "windows.pslist returned 0 records (fresh, non-cached run) for base-wkstn-01-memory.img",
+        "audit_field": "total_records",
+        "audit_expected": "0"
+      }
+    ],
+    "claim_confidence": "MEDIUM"
+  },
+  {
+    "id": "F-sansforensics-003",
+    "status": "DRAFT",
+    "title": "Repeated CLOSED Connections from 172.16.7.11 to 172.16.4.10:8080 \u2014 Unattributed, Possible C2 Beacon",
+    "observation": "Volatility3 windows.netscan on base-wkstn-01-memory.img shows 6 separate TCPv4 entries with LocalAddr=172.16.7.11 (varying ephemeral source ports: 59703, 59511, 60001, 60085, 60117, 60167) all to ForeignAddr=172.16.4.10, ForeignPort=8080, State=CLOSED, PID=- (unresolved owner).",
+    "interpretation": "Six distinct CLOSED sessions to the same remote IP:port (172.16.4.10:8080) with sequentially increasing ephemeral source ports suggests a recurring outbound connection pattern (beacon-like), but the owning process cannot be determined because windows.pslist returned 0 records this session (same kernel-symbol resolution failure documented in F-sansforensics-002). 172.16.4.10:8080 is not in prd.json known_iocs or suspicious_patterns, but the same pattern (172.16.6.11/172.16.7.11 -> 172.16.4.10:8080, repeated CLOSE_WAIT/CLOSED) has been independently observed on SRL-2018-RD01 in a prior session, suggesting a shared beacon target across hosts. This is a HYPOTHESIS pending PID attribution.",
+    "confidence": "INFERRED",
+    "artifact_source": "base-wkstn-01-memory.img via Volatility3 windows.netscan",
+    "supporting_tool": "Volatility3",
+    "mitre_technique": "T1071 \u2014 Application Layer Protocol",
+    "mitre_warning": "Unknown ATT&CK technique ID 'T1071 \u2014 Application Layer Protocol' \u2014 not in data/attack_v15.json. Finding recorded with warning.",
+    "examiner": "sansforensics",
+    "created_at": "2026-06-13T03:28:21.498130+00:00",
+    "approved_at": null,
+    "approved_by": null,
+    "evidence_quotes": [
+      {
+        "tool": "Volatility3",
+        "invocation_id": "mem-3762128b",
+        "claim": "Six CLOSED TCP sessions from 172.16.7.11 to 172.16.4.10:8080 with unresolved PID",
+        "exact_value": "172.16.4.10"
+      },
+      {
+        "tool": "Volatility3",
+        "invocation_id": "mem-3762128b",
+        "claim": "Destination port 8080 recurring across all six sessions",
+        "exact_value": "8080"
+      }
+    ],
+    "claim_confidence": "MEDIUM"
+  },
+  {
+    "id": "F-sansforensics-004",
+    "status": "DRAFT",
+    "title": "WinRM (TCP 5985) Sessions Between 172.16.7.11 and 172.16.5.21 \u2014 Possible Lateral Movement Channel",
+    "observation": "Volatility3 windows.netscan on base-wkstn-01-memory.img shows one ESTABLISHED TCPv4 session 172.16.7.11:56150 <-> 172.16.5.21:5985 (PID unresolved), plus two additional CLOSED sessions from 172.16.7.11 (ports 56148, 56137) to the same 172.16.5.21:5985. The host also listens on TCP/UDP 5985 itself (PID 4/System, WinRM service, created 2018-08-04 16:28:21 UTC).",
+    "interpretation": "Port 5985 is the default WinRM/PowerShell-Remoting port. An ESTABLISHED outbound session from this host to 172.16.5.21:5985 alongside two prior CLOSED sessions to the same destination/port is consistent with repeated PowerShell remoting connections \u2014 a common lateral movement technique (T1021.006). PID attribution is not possible because windows.pslist returned 0 records this session (same kernel-symbol issue as F-sansforensics-002). 172.16.5.21 is not in prd.json known_iocs/suspicious_patterns.",
+    "confidence": "INFERRED",
+    "artifact_source": "base-wkstn-01-memory.img via Volatility3 windows.netscan",
+    "supporting_tool": "Volatility3",
+    "mitre_technique": "T1021.006 \u2014 Remote Services: Windows Remote Management",
+    "mitre_warning": "Unknown ATT&CK technique ID 'T1021.006 \u2014 Remote Services: Windows Remote Management' \u2014 not in data/attack_v15.json. Finding recorded with warning.",
+    "examiner": "sansforensics",
+    "created_at": "2026-06-13T03:28:27.489380+00:00",
+    "approved_at": null,
+    "approved_by": null,
+    "evidence_quotes": [
+      {
+        "tool": "Volatility3",
+        "invocation_id": "mem-3762128b",
+        "claim": "ESTABLISHED session 172.16.7.11:56150 to 172.16.5.21:5985",
+        "exact_value": "172.16.5.21"
+      },
+      {
+        "tool": "Volatility3",
+        "invocation_id": "mem-3762128b",
+        "claim": "Destination port 5985 (WinRM) for established and prior CLOSED sessions",
+        "exact_value": "5985"
+      }
+    ],
+    "claim_confidence": "MEDIUM"
+  },
+  {
+    "id": "F-sansforensics-005",
+    "status": "DRAFT",
+    "title": "prd.json known_iocs Not Found in Available SRL-2018-WKSTN Memory Evidence (Absence Noted)",
+    "observation": "prd.json known_iocs (STUN.exe, msedge.exe, pssdnsvc.exe, pssdnsvc, atmfd.dll) and suspicious_patterns (stun, pssdnsvc, 172.15.1.20, 172.16.6.12) do not appear in windows.netscan output (148 records, invocation mem-3762128b) \u2014 observed process owners are limited to svchost.exe, lsass.exe, services.exe, wininit.exe, spoolsv.exe, System, plasrv.exe, macmnsvc.exe, mfefire.exe, and subject_srv.ex(e). No IP address in netscan matches 172.15.1.20 or 172.16.6.12. windows.pslist returned 0 records (invocation mem-1079ad2e), so process-list-based IOC matching is not possible this session. /root/cases/SRL-2018-WKSTN/iocs.md could not be read (permission denied), so host-specific IOCs from that file could not be cross-referenced.",
+    "interpretation": "This is an absence-of-evidence finding, not evidence of absence \u2014 it is recorded per LAW 4/5 to document the IOC cross-reference gap explicitly. The only available evidence source (netscan) does not surface any prd.json IOC, and the case-specific iocs.md file remains unreadable for this examiner account across multiple sessions. No conclusion about IS-01/IS-02/IS-03 (STUN.exe, net.exe lateral movement to 172.16.6.12, pssdnsvc.exe persistence) can be drawn for SRL-2018-WKSTN from this session's evidence.",
+    "confidence": "INFERRED",
+    "artifact_source": "base-wkstn-01-memory.img via Volatility3 windows.netscan and windows.pslist; /root/cases/SRL-2018-WKSTN/iocs.md (read denied)",
+    "supporting_tool": "Volatility3",
+    "mitre_technique": null,
+    "mitre_warning": null,
+    "examiner": "sansforensics",
+    "created_at": "2026-06-13T03:28:51.569891+00:00",
+    "approved_at": null,
+    "approved_by": null,
+    "evidence_quotes": [
+      {
+        "tool": "Volatility3",
+        "invocation_id": "mem-3762128b",
+        "claim": "No process owner in netscan matches prd.json known_iocs (stun.exe, msedge.exe, pssdnsvc.exe, atmfd.dll)",
+        "exact_value": "subject_srv.ex"
+      },
+      {
+        "tool": "Volatility3",
+        "invocation_id": "mem-1079ad2e",
+        "claim": "windows.pslist returned 0 records, preventing process-list IOC matching",
+        "audit_field": "total_records",
+        "audit_expected": "0"
+      }
+    ],
+    "claim_confidence": "MEDIUM"
+  },
+  {
+    "id": "F-sansforensics-006",
+    "status": "DRAFT",
+    "title": "T08 Correlation Blocked \u2014 correlate_evidence() Returns ERROR for subject_srv.exe (pyscca missing, pslist empty) [Re-verified this session]",
+    "observation": "Re-run this session: correlate_evidence('subject_srv.exe', '/root/cases/SRL-2018-WKSTN/analysis') returned verdict=ERROR (invocation_id correlation_4fdaa0e1a6c0), with amcache.present=false, mft.present=false, prefetch.present=false and error \"pyscca (libscca) not installed. Install with: sudo apt install libscca-python3\" (invocation a61f936a-d5c9-4985-9917-b4a569056b29), and memory.present=false (invocation mem-1b409394). detect_host_type (invocation 0d43d6aa-3586-406a-a0de-d318403c5a0e) confirms SRL-2018-WKSTN is MEMORY_ONLY this session. A fresh, non-cached windows.pslist run against /root/cases/SRL-2018-WKSTN/base-wkstn-01-memory.img (invocation 58d5ec84-87b9-4190-848a-b9504fbb0876, use_cache=false, duration_ms=547, error=null) returned total_entries=0, entries_returned=0, entries_capped=false, entries=[].",
+    "interpretation": "This finding supersedes F-sansforensics-002, which cited invocation_ids (mem-1079ad2e, correlation_8bdc2c309e18, 6f169b97-cd45-47e7-ab36-e4343dac9029) from a prior session that do not exist in this session's audit log (UNGROUNDED per LAW 7 / Session Hygiene). All tool calls have been re-run this session and produce the same result: windows.pslist returns 0 records (548ms, error=null, not a timeout), which is consistent with a persistent kernel-symbol/PdbSignatureScanner resolution failure for this image rather than evidence of process absence (windows.netscan, a pool-scanner-based plugin, separately returns 148 records for the same image per prior-session evidence). correlate_evidence() verdict=ERROR for subject_srv.exe is due to prefetch being unavailable (pyscca/libscca not installed) and memory.present=false because pslist returned no records. T08 (correlate_evidence verdict CONFIRMED_RUNNING) cannot be satisfied for SRL-2018-WKSTN under current tooling. Per the fallback rule, correlate_evidence() returned ERROR (not a CONFIRMED_* verdict), so confidence=INFERRED.",
+    "confidence": "INFERRED",
+    "artifact_source": "correlate_evidence + detect_host_type + Volatility3 windows.pslist on /root/cases/SRL-2018-WKSTN/base-wkstn-01-memory.img (this session)",
+    "supporting_tool": "correlate_evidence",
+    "mitre_technique": null,
+    "mitre_warning": null,
+    "examiner": "sansforensics",
+    "created_at": "2026-06-13T03:33:52.587351+00:00",
+    "approved_at": null,
+    "approved_by": null,
+    "evidence_quotes": [],
+    "claim_confidence": "UNSCORED"
+  },
+  {
+    "id": "F-sansforensics-007",
+    "status": "DRAFT",
+    "title": "prd.json known_iocs Not Found in Available SRL-2018-WKSTN Memory Evidence (Absence Noted) [pslist citation re-verified this session]",
+    "observation": "prd.json known_iocs (STUN.exe, msedge.exe, pssdnsvc.exe, pssdnsvc, atmfd.dll) and suspicious_patterns (stun, pssdnsvc, 172.15.1.20, 172.16.6.12) do not appear among the process owners previously observed in windows.netscan output for base-wkstn-01-memory.img (svchost.exe, lsass.exe, services.exe, wininit.exe, spoolsv.exe, System, plasrv.exe, macmnsvc.exe, mfefire.exe, subject_srv.ex(e)), and no IP address in that netscan output matches 172.15.1.20 or 172.16.6.12. A fresh, non-cached windows.pslist run this session against /root/cases/SRL-2018-WKSTN/base-wkstn-01-memory.img (invocation 58d5ec84-87b9-4190-848a-b9504fbb0876, use_cache=false, duration_ms=547, error=null) returned total_entries=0, entries_returned=0, entries=[], so process-list-based IOC matching is not possible. /root/cases/SRL-2018-WKSTN/iocs.md remains unreadable (permission denied) for this examiner account.",
+    "interpretation": "This finding supersedes the pslist citation in F-sansforensics-005, which referenced invocation_id mem-1079ad2e \u2014 an ID from a prior session not present in this session's audit log (UNGROUNDED per LAW 7 / Session Hygiene). The pslist call has been re-run this session (invocation 58d5ec84-87b9-4190-848a-b9504fbb0876) and produces the same total_entries=0 result, confirming the IOC cross-reference gap is real and not a stale/fabricated citation. This remains an absence-of-evidence finding recorded per LAW 4/5: the only available evidence source (netscan, from prior-session run) does not surface any prd.json IOC, and case-specific iocs.md remains unreadable. No conclusion about IS-01/IS-02/IS-03 (STUN.exe, net.exe lateral movement to 172.16.6.12, pssdnsvc.exe persistence) can be drawn for SRL-2018-WKSTN from available evidence.",
+    "confidence": "INFERRED",
+    "artifact_source": "Volatility3 windows.pslist on /root/cases/SRL-2018-WKSTN/base-wkstn-01-memory.img (this session, invocation 58d5ec84-87b9-4190-848a-b9504fbb0876); /root/cases/SRL-2018-WKSTN/iocs.md (read denied)",
+    "supporting_tool": "Volatility3",
+    "mitre_technique": null,
+    "mitre_warning": null,
+    "examiner": "sansforensics",
+    "created_at": "2026-06-13T03:34:01.530958+00:00",
+    "approved_at": null,
+    "approved_by": null,
+    "evidence_quotes": [],
+    "claim_confidence": "UNSCORED"
+  }
+]

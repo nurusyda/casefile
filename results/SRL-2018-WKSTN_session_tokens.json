@@ -1,5 +1,42 @@
 {
   "case": "SRL-2018-WKSTN",
-  "captured_from": "not_recoverable",
-  "note": "Token usage not captured for this run. No Claude Code session transcript under ~/.claude/projects/-home-sansproject-casefile/ matches the ralph.sh investigation prompt pattern for SRL-2018-WKSTN. This case used a memory-only investigation on base-wkstn-01; the session may have been cleaned or the prompt pattern differed. Future ralph.sh runs capture token usage automatically."
+  "captured_from": "ralph.sh_live_run",
+  "note": "Token usage captured live during ralph.sh run on SIFT Workstation 2024.4 OVA (clean install). Source: Claude Code session transcripts under ~/.claude/projects/, attributed via timestamp + working-dir match.",
+  "iterations": [
+    {
+      "case": "SRL-2018-WKSTN",
+      "iteration": 1,
+      "is_correction": false,
+      "captured_at": "2026-06-13T03:30:46.352366+00:00",
+      "transcript_file": "d2c2da91-795a-4485-89fa-8d60e4e69e9f.jsonl",
+      "input_tokens": 150,
+      "output_tokens": 68286,
+      "cache_read_input_tokens": 5142553,
+      "cache_creation_input_tokens": 360975,
+      "num_turns": 75
+    },
+    {
+      "case": "SRL-2018-WKSTN",
+      "iteration": 1,
+      "is_correction": true,
+      "captured_at": "2026-06-13T03:34:13.617834+00:00",
+      "transcript_file": "b0e15f9a-4a6e-4a97-9ead-c2b6baa91b14.jsonl",
+      "input_tokens": 84,
+      "output_tokens": 25171,
+      "cache_read_input_tokens": 1894704,
+      "cache_creation_input_tokens": 135929,
+      "num_turns": 42,
+      "correction_iteration": 1
+    }
+  ],
+  "totals": {
+    "input_tokens": 234,
+    "output_tokens": 93457,
+    "cache_read_input_tokens": 7037257,
+    "cache_creation_input_tokens": 496904,
+    "iterations_count": 2,
+    "pricing_model": "claude-sonnet-4.6",
+    "total_cost_usd_api_equivalent": 5.377124,
+    "billing_note": "total_cost_usd_api_equivalent uses public Anthropic API rates for Claude Sonnet 4.6 ($3 input / $15 output / $0.30 cache_read / $3.75 cache_creation per 1M tokens). This investigation ran on a flat-rate Claude Pro subscription via Claude Code, so the figure is the pay-as-you-go API equivalent \u2014 not what was actually paid."
+  }
 }
