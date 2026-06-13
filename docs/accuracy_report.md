@@ -370,5 +370,19 @@ Across the five committed cases, zero CONTRADICTED claims were ever certified as
 - **Scoring:** Binary pass/fail per checkpoint.
 - **Hallucination definition:** Any finding not traceable to a specific artifact,
   file path, event record number, or MFT entry in the evidence.
-- **Reproducibility:** RD-01 is documented as a live-run case; the four committed
-  fixtures remain the reproducible set verifiable in under one minute via `bash verify.sh`.
+- **Reproducibility:** four fixture cases (SRL-2018, SRL-2018-DC, SRL-2018-FILE,
+  SRL-2018-WKSTN) are committed under `fixtures/reproducibility/` and reproduce
+  in under one minute via `bash verify.sh` (aggregate: 41 claims, 35 grounded,
+  0 contradicted, 0.0% hallucination). The fifth case (SRL-2018-RD01) was a live
+  run on 2026-06-12 and is documented via its committed audit sample and session
+  tokens in `results/`; no reproducibility fixture was built because the run was
+  memory-focused (Volatility3 + pyscca, no parser CSVs for Tier 2 cell-value
+  checks), so the four fixture cases remain the reproducible set.
+- **Video-to-repo reconciliation:** the demo video was recorded 2026-06-11 and
+  shows `verify.sh` running against the four fixture cases committed at that time
+  (aggregate 41/35/0.0%). The SRL-2018-RD01 run (14/14 grounded) and the live DC
+  re-run self-correction (commit `2d7156e`) were completed on 2026-06-12, after
+  the video was recorded. The current repository aggregate across all five
+  datasets is **55 claims / 49 grounded (89.1%) / 0 contradicted / 0.0%
+  hallucination**. `bash verify.sh` output (41/35) matches the video exactly;
+  the accuracy report table above reflects the full five-dataset state.
