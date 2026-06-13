@@ -162,9 +162,8 @@ environment and several external tools.
 
 ### Remaining open items (minor, not blocking)
 
-- **Image 9 wording:** The loop prints `0 CONTRADICTED, 4 UNGROUNDED` then
-  `GROUNDING FAILURE: CONTRADICTED claims detected` — the second message should
-  say "ungrounded or contradicted claims detected" (cosmetic).
+- **Image 9 wording:** ✅ FIXED — `ralph.sh` now prints `GROUNDING FAILURE:
+  ungrounded or contradicted claims detected`.
 - **WKSTN variance section:** The run-to-run variance section in the accuracy
   report should explicitly name the workstation case shown in the video
   (WKSTN at 12 claims then 5 on clean re-run vs committed fixture at 10/6).

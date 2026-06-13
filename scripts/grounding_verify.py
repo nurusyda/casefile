@@ -10,7 +10,7 @@ on every finding, writes analysis/claim_accuracy_report.json.
 
 Exit codes:
   0 — all claims grounded
-  2 — one or more CONTRADICTED claims detected (triggers correction loop)
+  2 — one or more CONTRADICTED or UNGROUNDED claims detected (triggers correction loop)
 
 Environment variables (all required):
   CASE_DIR        — path to the case directory

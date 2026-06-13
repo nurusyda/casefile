@@ -268,7 +268,7 @@ PYEOF
         fi
 
         if [ "${GROUNDING_EXIT}" -eq 2 ]; then
-            log "GROUNDING FAILURE: CONTRADICTED claims detected."
+            log "GROUNDING FAILURE: ungrounded or contradicted claims detected."
             log "Feeding correction prompt back to Claude (max 3 correction iterations)..."
 
             CORRECTION_ITER=0

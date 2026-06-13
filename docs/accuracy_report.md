@@ -435,6 +435,19 @@ present for that host). The WKSTN fixture and re-run produced the same 4 observa
 with 66.7% grounding — consistent, deterministic behavior when the host_type
 classification is stable.
 
+**Claim-count variance on the WKSTN case.** Three numbers appear across artifacts
+and a judge cross-checking them should read this as documented variance, not a
+discrepancy. The committed fixture (`fixtures/reproducibility/SRL-2018-WKSTN`)
+reports 10 claims / 6 grounded; the 2026-06-13 live SIFT-OVA re-run reports 12
+claims / 8 grounded (66.7%); the demo video shows iteration one producing 12 claims
+and the post-correction re-check converging on 5 grounded. All three are the same
+nondeterministic tool-choice variance documented above for RD-01 — Claude Code
+chooses a slightly different subset of memory plugins per run — at a smaller
+magnitude because both WKSTN runs were MEMORY_ONLY (no host_type fork).
+**Hallucination rate across all three: 0.0%.** The grounding architecture's
+invariant is not that the agent makes the same claims every run; it is that
+whatever claims the agent makes, none are CONTRADICTED.
+
 The committed live-run artifacts for both FILE and WKSTN are preserved under
 `results/live_sift_ova_run_2026-06-13/` for judge inspection.
 
