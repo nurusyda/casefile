@@ -1,5 +1,29 @@
 {
   "case": "SRL-2018",
-  "captured_from": "not_recoverable",
-  "note": "Token usage not captured for this run. Claude Code session transcripts exist under ~/.claude/projects/-home-sansproject-casefile/ but cannot be definitively attributed to the specific ralph.sh iteration that produced the committed results/SRL-2018_workstation_session20.json — the result file does not store a transcript session ID, and multiple sessions reference SRL-2018 case paths. Future ralph.sh runs capture token usage automatically."
+  "captured_from": "ralph.sh_live_run",
+  "note": "Token usage captured live during ralph.sh run on SIFT Workstation 2024.4 OVA (clean install). Source: Claude Code session transcript, attributed via timestamp + working-dir match.",
+  "iterations": [
+    {
+      "case": "SRL-2018",
+      "iteration": 1,
+      "is_correction": false,
+      "captured_at": "2026-06-13T04:08:21.526536+00:00",
+      "transcript_file": "2233b105-4fff-463a-9ac8-a1b2a735c230.jsonl",
+      "input_tokens": 106,
+      "output_tokens": 77340,
+      "cache_read_input_tokens": 4065559,
+      "cache_creation_input_tokens": 386141,
+      "num_turns": 53
+    }
+  ],
+  "totals": {
+    "input_tokens": 106,
+    "output_tokens": 77340,
+    "cache_read_input_tokens": 4065559,
+    "cache_creation_input_tokens": 386141,
+    "iterations_count": 1,
+    "pricing_model": "claude-sonnet-4.6",
+    "total_cost_usd_api_equivalent": 3.828114,
+    "billing_note": "total_cost_usd_api_equivalent uses public Anthropic API rates for Claude Sonnet 4.6 ($3 input / $15 output / $0.30 cache_read / $3.75 cache_creation per 1M tokens). This investigation ran on a flat-rate Claude Pro subscription via Claude Code, so the figure is the pay-as-you-go API equivalent \u2014 not what was actually paid."
+  }
 }

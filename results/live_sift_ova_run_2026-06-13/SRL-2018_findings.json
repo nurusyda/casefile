@@ -1,0 +1,200 @@
+[
+  {
+    "id": "F-sansforensics-001",
+    "status": "DRAFT",
+    "title": "subject_srv.exe running with anomalous path at memory acquisition",
+    "observation": "windows.pslist shows ImageFileName 'subject_srv.ex' (14-char kernel truncation of subject_srv.exe), PID 1096, PPID 740 (services.exe), CreateTime 2018-09-06 18:28:30 UTC, Wow64=True, no ExitTime (still running at acquisition). windows.cmdline shows full command line: C:\\windows\\subject_srv.exe -s \"base-hunt.shieldbase.lan:5682\" -l 3262 -v \"F-Response Subject\" -k \"155522845\". The binary resides directly in C:\\windows\\ rather than C:\\windows\\system32\\, and was launched as a child of services.exe.",
+    "interpretation": "A process named subject_srv.exe was actively running at the moment of memory acquisition, located at C:\\windows\\subject_srv.exe (non-standard path for a service-spawned binary) and configured as an 'F-Response Subject' remote forensic/incident-response agent connecting out to base-hunt.shieldbase.lan:5682. This satisfies T09 (memory confirms malicious/suspicious process running, anomalous path not System32).",
+    "confidence": "CONFIRMED",
+    "artifact_source": "/root/cases/SRL-2018/base-rd01-memory.img",
+    "supporting_tool": "Volatility3",
+    "mitre_technique": "T1055",
+    "mitre_warning": null,
+    "examiner": "sansforensics",
+    "created_at": "2026-06-13T04:05:01.655903+00:00",
+    "approved_at": null,
+    "approved_by": null,
+    "evidence_quotes": [
+      {
+        "tool": "Volatility3",
+        "claim": "subject_srv.exe running, PID 1096, PPID 740, started 2018-09-06 18:28:30 UTC",
+        "invocation_id": "mem-65c65555",
+        "exact_value": "1096"
+      },
+      {
+        "tool": "Volatility3",
+        "claim": "subject_srv.exe full command line shows path C:\\windows\\subject_srv.exe (non-System32)",
+        "invocation_id": "mem-2b4881fa",
+        "exact_value": "C:\\windows\\subject_srv.exe -s \"base-hunt.shieldbase.lan:5682\" -l 3262 -v \"F-Response Subject\" -k \"155522845\""
+      }
+    ],
+    "claim_confidence": "MEDIUM"
+  },
+  {
+    "id": "F-sansforensics-002",
+    "status": "DRAFT",
+    "title": "subject_srv.exe listening on TCP 3262 with active inbound session from 172.16.5.50",
+    "observation": "windows.netscan shows PID 1096 (Owner=subject_srv.ex) listening on TCP/UDP port 3262 (0.0.0.0:3262 and [::]:3262), created 2018-09-06 18:28:32 UTC. A separate ESTABLISHED entry shows 172.16.6.11:3262 <-> 172.16.5.50:39372.",
+    "interpretation": "subject_srv.exe was not only running but actively listening and had an established session with controller 172.16.5.50 at the time of acquisition, consistent with a live remote-access/forensic agent connection (F-Response Subject protocol on port 3262). 172.16.5.50 matches the controller IP previously observed connecting to the same F-Response agent on the SRL-2018-WKSTN host.",
+    "confidence": "CONFIRMED",
+    "artifact_source": "/root/cases/SRL-2018/base-rd01-memory.img",
+    "supporting_tool": "Volatility3",
+    "mitre_technique": "T1071",
+    "mitre_warning": null,
+    "examiner": "sansforensics",
+    "created_at": "2026-06-13T04:05:06.053106+00:00",
+    "approved_at": null,
+    "approved_by": null,
+    "evidence_quotes": [
+      {
+        "tool": "Volatility3",
+        "claim": "subject_srv.exe (PID 1096) listening on TCP 3262 since 2018-09-06 18:28:32 UTC",
+        "invocation_id": "mem-27a34e2a",
+        "exact_value": "3262"
+      },
+      {
+        "tool": "Volatility3",
+        "claim": "Established session 172.16.6.11:3262 <-> 172.16.5.50:39372",
+        "invocation_id": "mem-27a34e2a",
+        "exact_value": "172.16.5.50"
+      }
+    ],
+    "claim_confidence": "MEDIUM"
+  },
+  {
+    "id": "F-sansforensics-003",
+    "status": "DRAFT",
+    "title": "T08 cross-source correlation for subject_srv.exe returns ERROR (pyscca missing) \u2014 single-source memory evidence only",
+    "observation": "correlate_evidence('subject_srv.exe', '/root/cases/SRL-2018/analysis') returned verdict=ERROR. memory.present=true (PID 1096, PPID 740, image_filename 'subject_srv.ex', invocation mem-dcbf8c5c). amcache.present=false, mft.present=false, prefetch.present=false with error 'pyscca (libscca) not installed'. A timeline_contradiction was raised: memory_only_no_amcache_prefetch_mft (HIGH, T1055) \u2014 process found in memory with no corroborating Amcache/Prefetch/MFT.",
+    "interpretation": "T08 requires verdict=CONFIRMED_RUNNING with >=2 sources present=True; only 1 source (memory) is available and the prefetch parser errored due to a missing host dependency (pyscca/libscca), not due to absence of evidence. Per CLAUDE.md confidence mapping, ERROR is not one of the five defined verdicts (CONFIRMED_RUNNING/CONFIRMED_HISTORICAL/MEMORY_ONLY/INSTALLED_NEVER_RAN/NOT_FOUND), so the fallback rule applies: single-source artifact evidence with behavioral interpretation -> INFERRED. T08 is NOT satisfied this session. This is the same pyscca blocker previously documented for SRL-2018-WKSTN and SRL-2018-DC.",
+    "confidence": "INFERRED",
+    "artifact_source": "/root/cases/SRL-2018/analysis",
+    "supporting_tool": "correlate_evidence",
+    "mitre_technique": "T1055",
+    "mitre_warning": null,
+    "examiner": "sansforensics",
+    "created_at": "2026-06-13T04:05:21.262126+00:00",
+    "approved_at": null,
+    "approved_by": null,
+    "evidence_quotes": [
+      {
+        "tool": "correlate_evidence",
+        "claim": "subject_srv.exe correlation verdict=ERROR, memory.present=true, prefetch error pyscca not installed",
+        "invocation_id": "correlation_e15d2dae6c8a",
+        "exact_value": "ERROR"
+      },
+      {
+        "tool": "Volatility3",
+        "claim": "memory source for correlation: PID 1096, PPID 740",
+        "invocation_id": "mem-dcbf8c5c",
+        "exact_value": "1096"
+      }
+    ],
+    "claim_confidence": "MEDIUM"
+  },
+  {
+    "id": "F-sansforensics-004",
+    "status": "DRAFT",
+    "title": "Suspicious PowerShell-spawned rundll32/p.exe beacon chain (LOLBAS pattern)",
+    "observation": "windows.pstree/cmdline show: WmiPrvSE.exe (PID 2876) -> powershell.exe (PID 8712, no args) -> powershell.exe (PID 5848, cmdline 'c:\\windows\\syswow64\\windowspowershell\\v1.0\\powershell.exe -Version 5.1 -s -NoLogo -NoProfile', started 2018-08-30 16:43:42 UTC). PID 5848 repeatedly spawns rundll32.exe with no arguments (PIDs 6768, 5452, 5588, 2216, 4108, 8148, 5768, 1424, 7552) at intervals from 2018-08-30 18:31 through 2018-09-06 17:26. PID 5848 also spawns cmd.exe (PID 5948, cmdline 'C:\\WINDOWS\\system32\\cmd.exe /C c:\\windows\\temp\\perfmon\\p.exe', started 2018-08-30 22:15:18 UTC) which launches p.exe (PID 8260, cmdline 'c:\\windows\\temp\\perfmon\\p.exe', no ExitTime). p.exe itself spawns additional rundll32.exe instances (PIDs 5768, 1424, 7552) on 2018-09-05 and 2018-09-06.",
+    "interpretation": "A non-interactive PowerShell process (-s -NoLogo -NoProfile) running under WmiPrvSE repeatedly launches rundll32.exe with empty arguments over a multi-day period and drops/executes p.exe from C:\\windows\\temp\\perfmon\\ (a non-standard path masquerading as a Windows performance-monitoring directory). The repeated short-lived rundll32.exe invocations with no arguments are a classic LOLBAS beacon/callback pattern (T1218.011 Rundll32, T1059.001 PowerShell). p.exe never exits and itself spawns rundll32.exe beacons days later, suggesting it is a persistent agent or scheduler for the beacon. No disk artifacts (Amcache/Prefetch/MFT) are available on this MEMORY_ONLY host to corroborate file hashes or execution counts.",
+    "confidence": "INFERRED",
+    "artifact_source": "/root/cases/SRL-2018/base-rd01-memory.img",
+    "supporting_tool": "Volatility3",
+    "mitre_technique": "T1218.011",
+    "mitre_warning": null,
+    "examiner": "sansforensics",
+    "created_at": "2026-06-13T04:05:33.415755+00:00",
+    "approved_at": null,
+    "approved_by": null,
+    "evidence_quotes": [
+      {
+        "tool": "Volatility3",
+        "claim": "powershell.exe PID 5848 launched with -s -NoLogo -NoProfile",
+        "invocation_id": "mem-2b4881fa",
+        "exact_value": "\"c:\\windows\\syswow64\\windowspowershell\\v1.0\\powershell.exe\" -Version 5.1 -s -NoLogo -NoProfile"
+      },
+      {
+        "tool": "Volatility3",
+        "claim": "cmd.exe spawned p.exe from c:\\windows\\temp\\perfmon\\",
+        "invocation_id": "mem-2b4881fa",
+        "exact_value": "C:\\WINDOWS\\system32\\cmd.exe /C c:\\windows\\temp\\perfmon\\p.exe"
+      },
+      {
+        "tool": "Volatility3",
+        "claim": "p.exe process tree showing PID 8260, PPID 5948, started 2018-08-30 22:15:18 UTC, no ExitTime",
+        "invocation_id": "mem-38766e01",
+        "exact_value": "8260"
+      }
+    ],
+    "claim_confidence": "MEDIUM"
+  },
+  {
+    "id": "F-sansforensics-005",
+    "status": "DRAFT",
+    "title": "Network connections consistent with lateral movement from R&D host 172.16.6.11",
+    "observation": "windows.netscan shows multiple connections from local host 172.16.6.11 at time of acquisition / historically: repeated CLOSE_WAIT/ESTABLISHED/CLOSED TCP sessions to 172.16.4.10:8080 (8 distinct entries, mostly CLOSE_WAIT, PID unattributed); ESTABLISHED 172.16.6.11:49763 <-> 172.16.4.5:445 (SMB) and multiple CLOSED sessions 172.16.6.11:* <-> 172.16.4.5:3389 (RDP, 6 entries); ESTABLISHED inbound 172.16.6.11:445 <-> 172.16.6.14:65368 (SMB); CLOSED 172.16.6.11:49791 <-> 172.16.5.21:5985 (WinRM); CLOSED 172.16.6.11:56345 <-> 172.16.4.4:389 (LDAP); CLOSED 172.16.6.11:65294 <-> 172.16.5.20:443.",
+    "interpretation": "The pattern of RDP (3389), SMB (445), WinRM (5985) and LDAP (389) connections between this R&D-subnet host (172.16.6.11) and other internal hosts (172.16.4.5, 172.16.4.4, 172.16.5.20, 172.16.5.21, 172.16.6.14) plus repeated outbound HTTP-proxy-like traffic to 172.16.4.10:8080 is consistent with lateral movement / internal reconnaissance, but no process is attributed to these connections (PID/Owner = '-', historical CLOSED/CLOSE_WAIT states). None of the prd.json suspicious_patterns IPs (172.15.1.20, 172.16.6.12) appear in this netscan output.",
+    "confidence": "INFERRED",
+    "artifact_source": "/root/cases/SRL-2018/base-rd01-memory.img",
+    "supporting_tool": "Volatility3",
+    "mitre_technique": "T1021",
+    "mitre_warning": null,
+    "examiner": "sansforensics",
+    "created_at": "2026-06-13T04:05:42.153359+00:00",
+    "approved_at": null,
+    "approved_by": null,
+    "evidence_quotes": [
+      {
+        "tool": "Volatility3",
+        "claim": "Established SMB session 172.16.6.11:49763 <-> 172.16.4.5:445",
+        "invocation_id": "mem-27a34e2a",
+        "exact_value": "172.16.4.5"
+      },
+      {
+        "tool": "Volatility3",
+        "claim": "Established inbound SMB session 172.16.6.11:445 <-> 172.16.6.14:65368",
+        "invocation_id": "mem-27a34e2a",
+        "exact_value": "172.16.6.14"
+      },
+      {
+        "tool": "Volatility3",
+        "claim": "CLOSED WinRM session 172.16.6.11:49791 <-> 172.16.5.21:5985",
+        "invocation_id": "mem-27a34e2a",
+        "exact_value": "172.16.5.21"
+      }
+    ],
+    "claim_confidence": "MEDIUM"
+  },
+  {
+    "id": "F-sansforensics-006",
+    "status": "DRAFT",
+    "title": "prd.json IOCs (STUN.exe, msedge.exe x7, pssdnsvc, atmfd.dll, 172.15.1.20, 172.16.6.12) not present on this host",
+    "observation": "windows.pslist (129 records), windows.cmdline (129 records), and windows.netscan (129 records) for /root/cases/SRL-2018/base-rd01-memory.img contain no entries matching prd.json known_iocs (stun.exe, msedge.exe, pssdnsvc.exe/pssdnsvc, atmfd.dll) or suspicious_patterns (172.15.1.20, 172.16.6.12). The host's local IP is 172.16.6.11 (R&D subnet), not 172.16.6.12.",
+    "interpretation": "This MEMORY_ONLY host (SRL-2018 / base-rd01-memory.img) does not exhibit the IS-01 (STUN.exe/msedge.exe masquerade, C2 to 172.15.1.20) or IS-03 (pssdnsvc service persistence, atmfd.dll) ground-truth scenarios, and is not itself the 172.16.6.12 lateral-movement target described in IS-02/T04. Tasks T01-T04 (which depend on Amcache/Prefetch/MFT/EventLog evidence unavailable on a MEMORY_ONLY host per the OODA host_type gating) cannot be satisfied from this image. This is recorded as a HYPOTHESIS/gap: those checkpoints likely apply to a different host in the SRL-2018 case set (e.g. the WKSTN image referenced in prior session memory) rather than this RD-01 memory image.",
+    "confidence": "INFERRED",
+    "artifact_source": "/root/cases/SRL-2018/base-rd01-memory.img",
+    "supporting_tool": "Volatility3",
+    "mitre_technique": null,
+    "mitre_warning": null,
+    "examiner": "sansforensics",
+    "created_at": "2026-06-13T04:05:49.785746+00:00",
+    "approved_at": null,
+    "approved_by": null,
+    "evidence_quotes": [
+      {
+        "tool": "Volatility3",
+        "claim": "Full process list (129 records) contains no stun.exe/msedge.exe/pssdnsvc entries",
+        "invocation_id": "mem-65c65555",
+        "exact_value": "129"
+      },
+      {
+        "tool": "Volatility3",
+        "claim": "Full netscan (129 records) contains no 172.15.1.20 or 172.16.6.12 entries; host IP is 172.16.6.11",
+        "invocation_id": "mem-27a34e2a",
+        "exact_value": "172.16.6.11"
+      }
+    ],
+    "claim_confidence": "MEDIUM"
+  }
+]
