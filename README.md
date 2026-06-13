@@ -27,7 +27,7 @@ under five minutes — every claim below has a committed artifact and a one-comm
 
 - **0.0% hallucination, judge-reproducible.** `bash verify.sh` re-runs grounding
   verification against committed sanitized fixtures (audit logs + trimmed parser CSVs)
-  and reprints the headline numbers per case and in aggregate. All four datasets
+  and reprints the headline numbers per case and in aggregate. All four committed fixture sets
   reproduce full Tier 1 + Tier 2 attestation. No raw evidence required.
   *Artifact:* [`verify.sh`](verify.sh), [`fixtures/reproducibility/`](fixtures/reproducibility).
 - **0.0% false-positive rate on a benign control corpus.** A 25-row synthetic

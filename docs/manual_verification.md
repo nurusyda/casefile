@@ -1,6 +1,6 @@
 # Manual Verification — Walking One Finding by Hand
 
-`verify.sh` runs the grounding verifier against all 41 claims across four cases and
+`verify.sh` runs the grounding verifier against all 41 claims across the four committed fixture cases and
 reports the aggregate accuracy mechanically. This document shows the same check
 performed by hand on a single finding, so anyone — including readers who don't
 trust the verifier yet — can walk the chain themselves in three commands.
@@ -107,7 +107,7 @@ verbatim value, parser CSV output, audit log invocation — is consistent and
 self-evident. No trust in the agent, the verifier, or the authors is required.
 
 The same check, performed mechanically by `scripts/grounding_verify.py` against all
-41 claims across all four cases, produces zero `CONTRADICTED`. The verifier isn't
+41 claims across all four fixture cases, produces zero `CONTRADICTED`. The verifier isn't
 a black box — it's this three-step check, automated.
 
 ## Verify a different finding

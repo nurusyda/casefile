@@ -297,11 +297,51 @@ ones. Two examples, both committed to git history. Honesty valued over perfectio
 
 ### Known schema mismatch: Volatility3 audit field — surfaced and self-corrected (2026-06-12)
 
-The live SRL-2018-DC re-run on 2026-06-12 (commit `2d7156e`) initially produced 5 UNGROUNDED claims because the agent referenced `total_records` in its Volatility3 attestations, while the audit log records the field as `parsed_record_count`. The grounding verifier correctly refused to mark these as grounded — it does not guess — and the correction loop resolved them in 1 iteration (`hallucination_rate=0.0, contradicted=0` on recheck). The committed `results/SRL-2018-DC_audit_sample.jsonl` and `claim_accuracy_report.json` preserve both pre- and post-correction state. A real schema gap surfaced in production was flagged transparently and self-corrected.
+The live SRL-2018-DC re-run on 2026-06-12 (commit `2d7156e`) initially produced 5 UNGROUNDED claims because the agent referenced `total_records` in its Volatility3 attestations, while the audit log records the field as `parsed_record_count`. The grounding verifier correctly refused to mark these as grounded — it does not guess — and the correction loop resolved them in 1 iteration (`hallucination_rate=0.0, contradicted=0` on recheck). The pre-correction trace is preserved in `results/SRL-2018-DC_audit_sample.jsonl` (the field mismatch is visible in the audit entries themselves), and the post-correction state is committed at `results/SRL-2018-DC_session19.json` (12/12 grounded, 0.0% hallucination). A real schema gap surfaced in production was flagged transparently and self-corrected.
 
 ### SRL-2018-RD01 live run (2026-06-12)
 
 The RD-01 case (`base-rd-01-cdrive.E01` + memory archive) was ingested and processed end-to-end via `ralph.sh` in a single iteration, 65 turns, 0 corrections (commit `9d5487a`). Result: 14/14 claims grounded, 2 CONFIRMED findings, 0.0% hallucination. Token usage and audit log committed at `results/SRL-2018-RD01_session_tokens.json` and `results/SRL-2018-RD01_audit_sample.jsonl`. API-equivalent cost at public Claude Sonnet 4.6 rates: USD 5.11. This submission ran on a flat Claude Pro subscription via Claude Code, so the figure is the pay-as-you-go API equivalent, not what was actually paid.
+
+### Run-to-run variance: same evidence, different investigation paths (documented, not hidden)
+
+The SRL-2018 workstation case (Session 20, 2026-06-06, 10 claims) and the
+SRL-2018-RD01 live re-ingest (2026-06-12, 14 claims) both ran against the same
+evidence: `base-rd-01-cdrive.E01` + `base-rd01-memory.img`. The claim-count
+difference is not a hallucination — both runs have 0.0% hallucination — but it
+is real nondeterministic variance, and it is documented here rather than papered
+over.
+
+The two runs took fundamentally different investigation paths:
+
+| Property | SRL-2018 (Session 20) | SRL-2018-RD01 |
+|---|---|---|
+| Strategy | Full disk + memory | Memory-focused |
+| Parsers called | AmcacheParser, pyscca (218 recs), EvtxECmd (15,446 recs), RECmd (24 recs), MFTECmd, Volatility3 | Volatility3 ×5 (129 recs each), pyscca (**0 recs**), correlate_evidence |
+| Disk parsers (Amcache, MFT, EvtxECmd, RECmd) | Called — two returned 0 entries (-q flag issue), fell back to pre-existing CSVs | Not called |
+| Findings | 5 findings, 10 claims | 6 findings, 14 claims |
+| Grounded | 10/10 (100%) | 14/14 (100%) |
+| Hallucination rate | 0.0% | 0.0% |
+
+The pyscca discrepancy (218 records in Session 20 vs. 0 records in RD-01)
+suggests that Prefetch files may not have been extracted during the RD-01
+ingest, which would explain the agent's pivot to memory-only parsers. The
+original run also benefited from pre-existing CSVs when the live Amcache and MFT
+parsers returned 0 entries (the `-q` flag incompatibility later fixed). The RD-01
+run called neither — the agent found 14 groundable claims from Volatility3 and
+correlate_evidence alone.
+
+**Why this matters for evaluation:** the Judge Pack instructs finalist
+verification to re-run the agent 3–5 times on the same input to observe
+variance. This variance is presented transparently. Both runs produce 0.0%
+hallucination; the variance is in investigation strategy, not accuracy. A judge
+re-running the agent on this evidence should expect claim counts in the 10–14
+range depending on which tools the agent chooses to call — and should expect
+zero contradicted claims regardless.
+
+The committed audit logs for both runs (`results/SRL-2018_workstation_session20.json`,
+`results/SRL-2018-RD01_audit_sample.jsonl`) preserve the full tool-call profile
+for independent verification of the path difference.
 
 - **Volatility3 sub-plugin variant.** A related bug where
   `Volatility3-windows.pslist` was treated as different from `Volatility3` in the

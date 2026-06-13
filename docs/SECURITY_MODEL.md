@@ -97,7 +97,7 @@ python3 -m pytest tests/test_security_boundaries.py::TestBypass4_CommandInjectio
 ## Test Run Output (2026-06-07)
 
 ```
-tests/test_security_boundaries.py — 35 passed in 4.13s
+tests/test_security_boundaries.py — 38 passed in 1.83s
 
 BYPASS-1  Path traversal via evtx_path      — 5/5 PASSED
 BYPASS-2  Path traversal via output_dir     — 3/3 PASSED

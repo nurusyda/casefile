@@ -197,7 +197,7 @@ echo ""
 if [ "$FAIL_COUNT" -eq 0 ]; then
     echo "✓ All $PASS_COUNT case(s) PASSED reproducibility check."
     echo ""
-    echo "  All four cases reproduce full Tier 1 + Tier 2 attestation."
+    echo "  All four fixture cases reproduce full Tier 1 + Tier 2 attestation."
     exit 0
 else
     echo "✗ $FAIL_COUNT case(s) FAILED reproducibility check:"
