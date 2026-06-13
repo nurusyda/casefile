@@ -7,14 +7,16 @@ POST-CORRECTION GROUNDING VERIFICATION (across all five datasets)
 | SRL-2018-FILE  | File Server                     | 9      | 7 (77.8%)      | 6               | 0.0%          |
 | SRL-2018-WKSTN | `base-wkstn-01` (memory only)   | 10     | 6 (60.0%)      | 3               | 0.0%          |
 | SRL-2018-RD01  | `base-rd-01` (workstation, live run 2026-06-12) | 14 | 14 (100%) | — | 0.0% |
-| **Aggregate**  |                                 | **55** | **49 (89.1%)** | **19**          | **0.0%**      |
+| SRL-2018-FILE (live) | File Server (memory-only, 2026-06-13) | 15 | 3 (20.0%) | 0 | 0.0% |
+| SRL-2018-WKSTN (live) | Workstation (memory-only, 2026-06-13) | 12 | 8 (66.7%) | 0 | 0.0% |
+| **Aggregate**  |                                 | **82** | **60 (73.2%)** | **19**          | **0.0%**      |
 
 CaseFile uses two-tier grounding verification:
 
 - **Tier 1 (attestation)**: the claim's tool was actually called with a non-zero record count, verified against the append-only audit log via `invocation_id`.
 - **Tier 2 (literal value)**: in addition to Tier 1, the `exact_value` cited in the claim's `evidence_quote` appears as a literal cell in the tool's CSV output.
 
-Hallucination rate = CONTRADICTED claims / total claims. **Zero contradicted across 55 claims, all five datasets.**
+Hallucination rate = CONTRADICTED claims / total claims. **Zero contradicted across 82 claims, all seven datasets.**
 
 The two ungrounded claims on the file-server case are transparent traceability gaps — the live MFT parser returned 0 entries against a corrupt `$MFT`, so no `csv_files` were available for Tier 2 verification. The grounding verifier correctly refused to label these as CONFIRMED rather than fabricating evidence — exactly the failure mode the architecture is designed to make impossible.
 
@@ -39,5 +41,7 @@ CaseFile enforces evidence integrity architecturally, not via prompts:
 4. **Bypass-validation matrix** (`docs/SECURITY_MODEL.md`): nine documented bypass-attempt tests, each with file:line references, classified as Architectural (cannot be bypassed) or Environmental (depends on system configuration). BYPASS-1 through BYPASS-6 specifically test spoliation resistance. All architectural tests PASSED. Two GAPs are honestly documented (network egress controls, `BLOCKED_COMMANDS` not enforced at MCP call time — mitigated because no shell-exec tool is registered).
 
 5. **BYPASS-9 (evidence-borne prompt injection)**: six tests prove that adversarial instructions embedded inside evidence content (filenames, registry values, event-log fields, finding text) cannot escalate the agent's privileges, because destructive and approval capabilities are not registered as MCP tools. Injection can bias reasoning; it cannot reach action. The reasoning channel is caught downstream by the grounding verifier.
+
+**Run-to-run variance — host_type classification fork (FILE case).** The SRL-2018-FILE fixture (disk-and-log path, 77.8% grounded) and the 2026-06-13 live SIFT OVA re-run (memory-only path, 20.0% grounded) produced zero overlapping findings against the same evidence. The fork occurred because the re-run's ingest could not extract `$MFT` or `Prefetch/`, causing `detect_host_type` to classify as MEMORY_ONLY, which CLAUDE.md LAW 2 routing restricts to memory-only parsers. The fixture benefited from pre-existing CSV fallbacks and event logs, producing a completely different evidence set (service install, log clearing, timestomping vs. live PIDs, C2 beacons). Both runs: 0.0% hallucination. The WKSTN re-run did not exhibit this fork (both fixture and re-run were MEMORY_ONLY — stable, deterministic). Full analysis in `docs/accuracy_report.md`.
 
 Full methodology, per-checkpoint CFA-Bench scoring, the negative-control / false-positive section, the complete self-correction log, the Volatility3 schema-mismatch note, and the missed-artifacts / hallucinations-found-during-testing subsections are in the repository at `docs/accuracy_report.md` and `docs/SECURITY_MODEL.md`.
