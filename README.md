@@ -3,7 +3,7 @@
 [![CI](https://github.com/nurusyda/casefile/actions/workflows/ci.yml/badge.svg)](https://github.com/nurusyda/casefile/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/nurusyda/casefile/blob/main/LICENSE)
 
-**Autonomous forensic investigation for Claude Code on SIFT Workstation — 0.0% hallucination rate across all five tested datasets.**
+**Autonomous forensic investigation for Claude Code on SIFT Workstation — 0.0% hallucination across 41 reproducible claims (`bash verify.sh`, under a minute from a fresh clone), holding across all 96 claims on 5 hosts including four live re-runs.**
 
 CaseFile gives Claude Code structured access to Windows forensic artifact parsers, a
 deterministic cross-source correlation engine, and a two-tier grounding verifier
@@ -71,6 +71,13 @@ etc.). The architecture worked exactly as designed: it refused to silently accep
 findings it couldn't verify, forced human investigation, and the fix went into code
 rather than into a special case for this demo.
 
+**Autonomous self-correction (Project Requirement #1):** The above alias-bug arc shows
+the refusal-to-certify guarantee. For correction *without human intervention*, see the
+Volatility3 `total_records` → `parsed_record_count` fix (commit `2d7156e`, live DC re-run
+2026-06-12): the agent attested the wrong audit field, the verifier flagged it, the
+correction loop re-prompted, and the agent corrected its own attestations in one
+iteration with no human edit — traceable in `results/SRL-2018-DC_audit_sample.jsonl`.
+
 This isn't a demo where everything happened to work on the first try — this is a
 demo where the loop failed, the failure was real, the fix is in commit history, and
 the system is now stable on those classes of failure.
@@ -79,23 +86,28 @@ the system is now stable on those classes of failure.
 
 ## Results
 
-Post-correction grounding verification across five datasets from the CRIMSON OSPREY case:
+Post-correction grounding verification across all eight investigations (five hosts) from the CRIMSON OSPREY case:
 
-Evidence types covered. Three disk + memory pairs (workstation BASE-RD-01, domain controller BASE-DC, file server BASE-FILE) plus one memory-only investigation (base-wkstn-01, on a clean SIFT OVA), plus a live re-ingest of the workstation E01 (SRL-2018-RD01, 2026-06-12). All five cases were sourced from the same SRL-2018 CRIMSON OSPREY intrusion. The memory-only case demonstrates that CaseFile's grounding architecture works for live-acquisition forensics — not just disk artifacts — including transparent traceability gaps when Volatility3's symbol resolution fails on a specific Windows build.
+Evidence types covered. Three disk + memory pairs (workstation BASE-RD-01, domain controller BASE-DC, file server BASE-FILE) plus one memory-only investigation (base-wkstn-01, on a clean SIFT OVA), plus four live re-runs on clean SIFT Workstation 2024.4 OVA (2026-06-12 and 2026-06-13). All cases were sourced from the same SRL-2018 CRIMSON OSPREY intrusion. The memory-only cases demonstrate that CaseFile's grounding architecture works for live-acquisition forensics — not just disk artifacts — including transparent traceability gaps when Volatility3's symbol resolution fails on a specific Windows build.
 
-| Dataset | Host role | Claims | Grounded | Tier 2 verified | Hallucination |
-|---|---|---|---|---|---|
-| SRL-2018 | Workstation | 10 | 10 (100%) | 7 | 0.0% |
-| SRL-2018-DC | Domain Controller | 12 | 12 (100%) | 3 | 0.0% |
-| SRL-2018-FILE | File Server | 9 | 7 (77.8%) | 6 | 0.0% |
-| SRL-2018-WKSTN | `base-wkstn-01` (memory only) | 10 | 6 (60.0%) | 3 | 0.0% |
-| SRL-2018-RD01 | `base-rd-01` (workstation, live run 2026-06-12) | 14 | 14 (100%) | — | 0.0% |
-| **Aggregate** | | **55** | **49 (89.1%)** | **19** | **0.0%** |
+| Dataset | Host role | Claims | Grounded | Tier 2 | Halluc. | verify.sh |
+|---|---|---|---|---|---|---|
+| SRL-2018 | Workstation (disk+mem) | 10 | 10 (100%) | 7 | 0.0% | ✅ fixture |
+| SRL-2018-DC | Domain Controller | 12 | 12 (100%) | 3 | 0.0% | ✅ fixture |
+| SRL-2018-FILE | File Server | 9 | 7 (77.8%) | 6 | 0.0% | ✅ fixture |
+| SRL-2018-WKSTN | base-wkstn-01 (memory only) | 10 | 6 (60.0%) | 3 | 0.0% | ✅ fixture |
+| SRL-2018-RD01 | base-rd-01 (live, 2026-06-12) | 14 | 14 (100%) | — | 0.0% | live re-run |
+| SRL-2018-FILE (live) | File Server (mem-only, 06-13) | 15 | 3 (20.0%) | 0 | 0.0% | live re-run |
+| SRL-2018-WKSTN (live) | Workstation (mem-only, 06-13) | 12 | 8 (66.7%) | 0 | 0.0% | live re-run |
+| SRL-2018 (live) | Workstation (disk+mem, 06-13) | 14 | 14 (100%) | 0 | 0.0% | live re-run |
+| **Aggregate** | **5 hosts, 8 investigations** | **96** | **74 (77.1%)** | **19** | **0.0%** | **41 reproducible** |
+
+Reproducible core: the four `✅ fixture` rows (41 claims) reproduce from a fresh clone via `bash verify.sh`, no raw evidence required. The four live re-runs add breadth (live SIFT OVA, real token capture) and are documented with sanitized audit samples in `results/`. Hallucination rate = CONTRADICTED / total = 0.0% on every dataset.
 
 - **Grounded claim**: invocation ID found in audit log AND exact value found in parser CSV output
 - **Tier 2 verified**: claim passed CSV cell-value verification (only applicable to tools that produce CSV output — Amcache, Registry, Event Logs, MFT, Hayabusa)
 - **Hallucination rate**: `CONTRADICTED / total_claims`. A CONTRADICTED claim means the cited value was not found in tool output — the AI fabricated it.
-- **Ungrounded claims** (SRL-2018-FILE: 2 claims, SRL-2018-WKSTN: 4 claims): audit field missing from audit entry — not a fabrication, but a traceability gap
+- **Ungrounded claims** (SRL-2018-FILE: 2, SRL-2018-WKSTN: 4, live FILE: 12, live WKSTN: 4): audit field missing from audit entry — traceability gap, not fabrication
 - **False-positive rate on a benign control corpus: 0.0%** (0 of 25 synthetic benign rows flagged across all five parsers; `tests/test_false_positive.py`)
 
 Source files:
@@ -105,6 +117,7 @@ Source files:
 - `results/SRL-2018-WKSTN_audit_sample.jsonl`
 - `results/SRL-2018-RD01_session_tokens.json`
 - `results/SRL-2018-RD01_audit_sample.jsonl`
+- `results/live_sift_ova_run_2026-06-13/`
 
 ### Evidence & Verification Index
 
@@ -165,7 +178,7 @@ directory. The agent cannot bypass the grounding verifier because the verifier
 runs as a separate, deterministic post-investigation step that exits non-zero on
 any contradicted claim.
 
-CaseFile's measured hallucination rate across 55 claims on five datasets: **0.0%** (0 contradicted).
+CaseFile's measured hallucination rate: **0.0%** — 0 contradicted across the 41-claim reproducible core and across all 96 claims on five hosts.
 
 > **Note on SRL-2018-FILE grounding (77.8%):** Two claims are marked UNGROUNDED because
 > the audit entry lacked a `csv_files` field — the Amcache and MFT parsers produced 0
@@ -365,7 +378,7 @@ fundamentally different approaches:
 
 - **CaseFile** compresses the examiner loop: autonomous investigation with
   post-hoc grounding verification of every claim against actual tool output.
-  Measured hallucination rate: 0.0% across five datasets. Strength is depth
+  Measured hallucination rate: 0.0% across the 41-claim reproducible core (and all 96 claims). Strength is depth
   of verification, not breadth of tool coverage.
 - **Valhuntir** provides breadth and human-in-the-loop discipline: 15 parsers,
   Hayabusa Sigma rules, OpenSearch indexing, RAG with 22,000+ records, multi-VM

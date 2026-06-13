@@ -28,7 +28,7 @@ Phase 1 (this file) implements:
   5. detect_baseline_assumptions() — training-data contamination guard
   6. build_claim_accuracy_report() — aggregate accuracy report helper
 
-Phase 2 (future): Tier 2 value verification — read csv_files from the audit
+Tier 2 value verification (implemented; see `_verify_exact_value_in_csv`) — reads csv_files from the audit log and confirms the cited `exact_value` appears as a literal CSV cell
   entry and verify exact field values against parsed CSV content.
 
 Design principles (must not violate):

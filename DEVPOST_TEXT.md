@@ -12,7 +12,7 @@ CaseFile is a custom MCP (Model Context Protocol) server that gives Claude Code 
 - **Tier 2** opens the parser's CSV output and confirms the exact value cited (a hash, a service name, a timestamp) appears as a literal cell — catching the "right tool, wrong value" failure mode.
 - If any claim is CONTRADICTED, `ralph.sh` feeds a targeted correction prompt back to Claude Code (up to 3 attempts) until every claim is grounded or the budget runs out.
 
-Measured result across five distinct hosts from the SANS SRL-2018 CRIMSON OSPREY case — spanning eight investigations (4 committed fixtures + 4 live re-runs on clean SIFT Workstation 2024.4 OVA, 2026-06-12 and 2026-06-13), across three artifact categories (disk forensics, AD/DC artifacts, and live memory analysis): **0.0% hallucination over 96 claims (74 grounded, 77.1%).** All five cases have real token usage captured from Claude Code session transcripts, with costs documented in `results/`.
+Measured result on the SANS SRL-2018 CRIMSON OSPREY case: **0.0% hallucination across 41 claims on four hosts — the same number shown in the demo video — reproducible from a fresh clone in under a minute via `bash verify.sh`.** Extended to all eight investigations (five hosts, adding four live SIFT-OVA re-runs with real token capture), it holds at **0.0% over 96 claims (74 grounded, 77.1%)**; details in `results/`.
 
 ## How we built it
 

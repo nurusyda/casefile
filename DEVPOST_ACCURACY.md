@@ -1,16 +1,18 @@
-POST-CORRECTION GROUNDING VERIFICATION (across all five datasets)
+POST-CORRECTION GROUNDING VERIFICATION (across all eight investigations — five hosts)
 
-| Dataset        | Host role                       | Claims | Grounded       | Tier 2 verified | Hallucination |
-|----------------|---------------------------------|--------|----------------|-----------------|---------------|
-| SRL-2018       | Workstation                     | 10     | 10 (100%)      | 7               | 0.0%          |
-| SRL-2018-DC    | Domain Controller               | 12     | 12 (100%)      | 3               | 0.0%          |
-| SRL-2018-FILE  | File Server                     | 9      | 7 (77.8%)      | 6               | 0.0%          |
-| SRL-2018-WKSTN | `base-wkstn-01` (memory only)   | 10     | 6 (60.0%)      | 3               | 0.0%          |
-| SRL-2018-RD01  | `base-rd-01` (workstation, live run 2026-06-12) | 14 | 14 (100%) | — | 0.0% |
-| SRL-2018-FILE (live) | File Server (memory-only, 2026-06-13) | 15 | 3 (20.0%) | 0 | 0.0% |
-| SRL-2018-WKSTN (live) | Workstation (memory-only, 2026-06-13) | 12 | 8 (66.7%) | 0 | 0.0% |
-| SRL-2018 (live) | Workstation (disk + memory, 2026-06-13) | 14 | 14 (100%) | 0 | 0.0% |
-| **Aggregate**  |                                 | **96** | **74 (77.1%)** | **19**          | **0.0%**      |
+| Dataset        | Host role                       | Claims | Grounded       | Tier 2 | Halluc. | verify.sh |
+|----------------|---------------------------------|--------|----------------|--------|---------|-----------|
+| SRL-2018       | Workstation (disk+mem)          | 10     | 10 (100%)      | 7      | 0.0%    | ✅ fixture |
+| SRL-2018-DC    | Domain Controller               | 12     | 12 (100%)      | 3      | 0.0%    | ✅ fixture |
+| SRL-2018-FILE  | File Server                     | 9      | 7 (77.8%)      | 6      | 0.0%    | ✅ fixture |
+| SRL-2018-WKSTN | base-wkstn-01 (memory only)     | 10     | 6 (60.0%)      | 3      | 0.0%    | ✅ fixture |
+| SRL-2018-RD01  | base-rd-01 (live, 2026-06-12)   | 14     | 14 (100%)      | —      | 0.0%    | live re-run |
+| SRL-2018-FILE (live) | File Server (mem-only, 06-13) | 15     | 3 (20.0%)      | 0      | 0.0%    | live re-run |
+| SRL-2018-WKSTN (live) | Workstation (mem-only, 06-13) | 12     | 8 (66.7%)      | 0      | 0.0%    | live re-run |
+| SRL-2018 (live) | Workstation (disk+mem, 06-13)   | 14     | 14 (100%)      | 0      | 0.0%    | live re-run |
+| **Aggregate**  | **5 hosts, 8 investigations**   | **96** | **74 (77.1%)** | **19** | **0.0%** | **41 reproducible** |
+
+Reproducible core: the four `✅ fixture` rows (41 claims) reproduce from a fresh clone via `bash verify.sh`, no raw evidence required. The four live re-runs add breadth (live SIFT OVA, real token capture) and are documented with sanitized audit samples in `results/`. Hallucination rate = CONTRADICTED / total = 0.0% on every dataset.
 
 CaseFile uses two-tier grounding verification:
 

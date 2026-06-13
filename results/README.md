@@ -1,5 +1,15 @@
 # CaseFile — Validation Results
 
+> **Tracing a finding to its tool execution?** The files in this directory
+> (`*_audit_sample.jsonl`) are sanitized *samples*. To reproduce the three-claim trace,
+> use the full per-case logs the verifier reads:
+> `fixtures/reproducibility/<CASE>/audit/mcp.jsonl`. Every `invocation_id` cited in
+> `fixtures/reproducibility/<CASE>/findings.json` resolves there. Example:
+> `grep <invocation_id> fixtures/reproducibility/SRL-2018/audit/mcp.jsonl`.
+>
+> Or regenerate samples that contain every cited id (recommended):
+> `python3 scripts/regen_audit_samples.py --extra-audit audit/mcp.jsonl --context 12`
+
 This directory contains the raw output from five independent ralph.sh investigation runs
 against the SRL-2018 CRIMSON OSPREY case. These files are the primary evidence for the
 0.0% hallucination rate claimed in the project README.
